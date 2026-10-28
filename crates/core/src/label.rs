@@ -18,6 +18,8 @@ const MARGIN: f64 = 1.1;
 const ABOVE: f64 = 2.83 * tikra::extension::PT;
 const BELOW: f64 = 10.03 * tikra::extension::PT;
 const SIDE: f64 = 1.35 * tikra::extension::PT;
+/// TikZ's default inner sep of a node, `.3333em` of the 10 pt font.
+const INNER_SEP: f64 = 3.333 * tikra::extension::PT;
 
 /// Records a label (`which` = `l`) or an annotation (`a`) on side `side` (1 above, -1 below, 0 the
 /// default of its kind).
@@ -31,7 +33,13 @@ pub fn k_label(cx: &mut Context, v: Option<Tokens>) -> Result<(), Error> {
     let a = v.unwrap_or_default().arguments(3);
     let which = cx.expand(a[0].clone())?;
     let side = cx.expand(a[1].clone())?.parse().unwrap_or(0);
+    // `l2=A and B`, `a2=…`: a label of two lines
+    let (which, lines) = match which.strip_suffix('2') {
+        Some(w) => (w.to_string(), "2"),
+        None => (which, "1"),
+    };
     set(cx, &which, side, a[2].clone());
+    cx.define_text(&format!("voltik@{which}lines"), lines, false);
     Ok(())
 }
 
@@ -39,8 +47,15 @@ pub fn k_label(cx: &mut Context, v: Option<Tokens>) -> Result<(), Error> {
 pub fn nodes(cx: &mut Context, placed: &Placed, frame: &Frame, unit: f64) -> Result<String, Error> {
     let _ = unit;
     let align = setting(cx, "label/align")?;
+    let name = cx.macro_text("voltik@name");
     let mut s = String::new();
     for (which, default_side, distance_key) in [("l", 1, "label distance"), ("a", -1, "annotation distance")] {
+        let node = if which == "l" { "label" } else { "annotation" };
+        // the node is `R1label` for a component named `R1`, styled by `bipole label style`
+        let mut options = format!("/tikz/circuitikz/bipole {node} style,");
+        if !name.is_empty() {
+            options = format!("name={{{name}{node}}},{options}");
+        }
         let text = cx.macro_body(&format!("voltik@{which}"));
         if text.trim().is_empty() {
             continue;
@@ -55,7 +70,11 @@ pub fn nodes(cx: &mut Context, placed: &Placed, frame: &Frame, unit: f64) -> Res
             d if d.is_empty() => 0.0,
             d => cx.length(Tokens::text(&d)).unwrap_or(0.0),
         };
-        let text = units(&text.to_text());
+        let stacked = cx.macro_text(&format!("voltik@{which}lines")) == "2";
+        let text = match text.to_text().split_once(" and ") {
+            Some((first, second)) if stacked => format!("{}\\\\{}", units(first), units(second)),
+            _ => units(&text.to_text()),
+        };
         // the direction from the component to the label, on the canvas
         let outward = placed.angle + 90.0 * side;
         let rotate = match align.as_str() {
@@ -66,6 +85,32 @@ pub fn nodes(cx: &mut Context, placed: &Placed, frame: &Frame, unit: f64) -> Res
                 m > 20.0 && m < 70.0
             }
         };
+        if stacked && !rotate {
+            // two lines, as the manual's `tabular`: `l2 halign` (l, c, r) aligns them, `l2 valign`
+            // (b, c, t) puts the first one's baseline above, around or at the label's (measured)
+            let halign = setting(cx, &format!("{which}2 halign"))?;
+            let valign = setting(cx, &format!("{which}2 valign"))?;
+            let align = match halign.as_str() {
+                "c" => "center",
+                "r" => "right",
+                _ => "left",
+            };
+            let lift = match valign.as_str() {
+                "b" => 12.0,
+                "t" => 0.0,
+                _ => 6.1,
+            } * tikra::extension::PT;
+            let reach = placed.reach(side) * MARGIN + extra;
+            let (anchor, at) = match outward.rem_euclid(360.0) {
+                a if (45.0..135.0).contains(&a) => ("base", placed.mid.plus(Point::new(0.0, reach + 3.2 * tikra::extension::PT + lift))),
+                a if (225.0..315.0).contains(&a) => ("base", placed.mid.plus(Point::new(0.0, -reach - 16.1 * tikra::extension::PT + lift))),
+                a if (135.0..225.0).contains(&a) => ("base east", placed.mid.plus(Point::new(-reach - 3.6 * tikra::extension::PT + INNER_SEP, lift - 2.1 * tikra::extension::PT))),
+                _ => ("base west", placed.mid.plus(Point::new(reach + 3.6 * tikra::extension::PT - INNER_SEP, lift - 2.1 * tikra::extension::PT))),
+            };
+            s.push_str(&format!(" node[{options}align={align},anchor={anchor}] at {} {{{text}}}", frame.coordinate(at)));
+            record(cx, &name, node, anchor, 0.0);
+            continue;
+        }
         if rotate {
             // along the line, read left to right; `mid` sits on the line through the label's middle,
             // further out below the line than above it
@@ -77,44 +122,130 @@ pub fn nodes(cx: &mut Context, placed: &Placed, frame: &Frame, unit: f64) -> Res
             let space = if below { 2.25 } else { 1.5 } * LABEL_SPACE;
             let reach = placed.reach(side) * MARGIN + space + extra;
             let at = placed.mid.plus(placed.normal.scale(side * reach));
-            s.push_str(&format!(" node[anchor=mid,inner sep=0pt,rotate={}] at {} {{{text}}}", round(turn), frame.coordinate(at)));
+            s.push_str(&format!(" node[{options}anchor=mid,rotate={}] at {} {{{text}}}", round(turn), frame.coordinate(at)));
+            record(cx, &name, node, "mid", turn);
         } else {
             // the text keeps its baseline (above and below) or the middle of its x-height (at the
             // sides) at a fixed distance from the component's band, whatever its letters
             let border = placed.mid.plus(placed.normal.scale(side * (placed.reach(side) * MARGIN + extra)));
+            // the node keeps TikZ's inner sep, as CircuiTikZ's do (it counts in the picture's size):
+            // at the sides, its anchor is that much nearer, so that the text stays where it was
             let (anchor, shift) = match outward.rem_euclid(360.0) {
                 a if (45.0..135.0).contains(&a) => ("base", Point::new(0.0, ABOVE)),
                 a if (225.0..315.0).contains(&a) => ("base", Point::new(0.0, -BELOW)),
-                a if (135.0..225.0).contains(&a) => ("mid east", Point::new(-SIDE, 0.0)),
-                _ => ("mid west", Point::new(SIDE, 0.0)),
+                a if (135.0..225.0).contains(&a) => ("mid east", Point::new(-SIDE + INNER_SEP, 0.0)),
+                _ => ("mid west", Point::new(SIDE - INNER_SEP, 0.0)),
             };
             let at = border.plus(shift);
-            s.push_str(&format!(" node[anchor={anchor},inner sep=0pt] at {} {{{text}}}", frame.coordinate(at)));
+            s.push_str(&format!(" node[{options}anchor={anchor}] at {} {{{text}}}", frame.coordinate(at)));
+            record(cx, &name, node, anchor, 0.0);
         }
     }
     Ok(s)
+}
+
+/// What `\ctikzgetanchor{R1}{label}` and `\ctikzgetdirection{R1label}` answer.
+fn record(cx: &mut Context, name: &str, node: &str, anchor: &str, turn: f64) {
+    if !name.is_empty() {
+        cx.define_text(&format!("voltik@anchor@{name}@{node}"), anchor, true);
+        cx.define_text(&format!("voltik@direction@{name}{node}"), &round(turn), true);
+    }
 }
 
 fn round(x: f64) -> String {
     format!("{}", x.round() as i64)
 }
 
-/// `value<unit>`, the siunitx shorthand of the manual (`R=20<\ohm>`, `C=1<\micro\farad>`): the value
-/// and the unit's symbols as math, `$20\,\mathrm{\Omega}$`. Other text is left as it is.
+/// The text of a label, a voltage or a current, with siunitx written out: the manual's shorthand
+/// `value<unit>` (`R=20<\ohm>`) for the whole text, and `\SI{1}{\kilo\ohm}`, `\qty{…}{…}`,
+/// `\si{…}`, `\unit{…}` and `\num{…}` anywhere in it, as math (`$20\,\mathrm{\Omega}$`). Other
+/// text is left as it is.
 pub fn units(text: &str) -> String {
     let t = text.trim();
-    let Some(open) = t.rfind('<') else { return text.to_string() };
-    if !t.ends_with('>') {
-        return text.to_string();
+    if let (Some(open), true) = (t.rfind('<'), t.ends_with('>')) {
+        // a value already in math keeps its own dollars
+        let value = t[..open].trim().trim_matches('$');
+        let symbols = symbols(&t[open + 1..t.len() - 1]);
+        return if value.is_empty() { format!("$\\mathrm{{{symbols}}}$") } else { format!("${value}\\,\\mathrm{{{symbols}}}$") };
     }
-    let value = t[..open].trim();
-    let unit = &t[open + 1..t.len() - 1];
-    let mut symbols = String::new();
+    siunitx(text)
+}
+
+/// `\SI`, `\qty`, `\si`, `\unit` and `\num` in a text, in math whether the text is or not there.
+fn siunitx(text: &str) -> String {
+    let mut out = String::new();
+    let mut math = false;
+    let mut rest = text;
+    while let Some(c) = rest.chars().next() {
+        if c == '$' {
+            math = !math;
+        }
+        if c == '\\' {
+            let name_end = rest[1..].find(|c: char| !c.is_ascii_alphabetic()).map_or(rest.len(), |e| e + 1);
+            let name = &rest[1..name_end];
+            let args = match name {
+                "SI" | "qty" => 2,
+                "si" | "unit" | "num" => 1,
+                _ => 0,
+            };
+            if args > 0 {
+                if let Some((values, after)) = arguments(&rest[name_end..], args) {
+                    let body = match name {
+                        "SI" | "qty" => format!("{}\\,\\mathrm{{{}}}", values[0], symbols(&values[1])),
+                        "num" => values[0].clone(),
+                        _ => format!("\\mathrm{{{}}}", symbols(&values[0])),
+                    };
+                    out.push_str(&if math { body } else { format!("${body}$") });
+                    rest = after;
+                    continue;
+                }
+            }
+            out.push_str(&rest[..name_end]);
+            rest = &rest[name_end..];
+            continue;
+        }
+        out.push(c);
+        rest = &rest[c.len_utf8()..];
+    }
+    out
+}
+
+/// `n` braced arguments at the start of `text`, and what follows them.
+fn arguments(text: &str, n: usize) -> Option<(Vec<String>, &str)> {
+    let mut rest = text;
+    let mut values = Vec::new();
+    for _ in 0..n {
+        rest = rest.trim_start().strip_prefix('{')?;
+        let mut depth = 1;
+        let end = rest.char_indices().find(|&(_, c)| {
+            depth += match c {
+                '{' => 1,
+                '}' => -1,
+                _ => 0,
+            };
+            depth == 0
+        })?;
+        values.push(rest[..end.0].trim().to_string());
+        rest = &rest[end.0 + 1..];
+    }
+    Some((values, rest))
+}
+
+/// The symbols of a siunitx unit (`\kilo\ohm`, `k\ohm`, `\mA`), for `\mathrm`.
+fn symbols(unit: &str) -> String {
+    let mut out = String::new();
     let mut rest = unit.trim();
-    while let Some(r) = rest.strip_prefix('\\') {
-        let end = r.find(|c: char| !c.is_ascii_alphabetic()).unwrap_or(r.len());
-        let name = &r[..end];
-        symbols.push_str(match name {
+    while let Some(c) = rest.chars().next() {
+        if c != '\\' {
+            if !c.is_whitespace() {
+                out.push(c);
+            }
+            rest = &rest[c.len_utf8()..];
+            continue;
+        }
+        let end = rest[1..].find(|c: char| !c.is_ascii_alphabetic()).map_or(rest.len(), |e| e + 1);
+        let name = &rest[1..end];
+        out.push_str(match name {
             "ohm" => "\\Omega",
             "farad" => "F",
             "henry" => "H",
@@ -125,6 +256,10 @@ pub fn units(text: &str) -> String {
             "hertz" => "Hz",
             "second" => "s",
             "coulomb" => "C",
+            "joule" => "J",
+            "tesla" => "T",
+            "weber" => "Wb",
+            "meter" | "metre" => "m",
             "kilo" => "k",
             "mega" => "M",
             "giga" => "G",
@@ -132,21 +267,42 @@ pub fn units(text: &str) -> String {
             "micro" => "\\mu ",
             "nano" => "n",
             "pico" => "p",
+            "femto" => "f",
             "degree" => "{}^\\circ",
+            "celsius" => "{}^\\circ C",
+            "percent" => "\\%",
+            "per" => "/",
+            "squared" => "^2",
+            "kohm" => "k\\Omega",
+            "Mohm" => "M\\Omega",
+            "mohm" => "m\\Omega",
+            "kV" => "kV",
+            "mV" => "mV",
+            "uV" => "\\mu V",
+            "mA" => "mA",
+            "uA" => "\\mu A",
+            "nA" => "nA",
+            "pF" => "pF",
+            "nF" => "nF",
+            "uF" => "\\mu F",
+            "mF" => "mF",
+            "mH" => "mH",
+            "uH" => "\\mu H",
+            "nH" => "nH",
+            "Hz" => "Hz",
+            "kHz" => "kHz",
+            "MHz" => "MHz",
+            "GHz" => "GHz",
+            "ms" => "ms",
+            "us" => "\\mu s",
+            "ns" => "ns",
+            "mW" => "mW",
+            "kW" => "kW",
             _ => name,
         });
-        rest = r[end..].trim_start();
+        rest = &rest[end..];
     }
-    if !rest.is_empty() {
-        symbols.push_str(rest);
-    }
-    // a value already in math keeps its own dollars
-    let value = value.trim_matches('$');
-    if value.is_empty() {
-        format!("$\\mathrm{{{symbols}}}$")
-    } else {
-        format!("${value}\\,\\mathrm{{{symbols}}}$")
-    }
+    out
 }
 
 #[cfg(test)]
@@ -159,5 +315,9 @@ mod tests {
         assert_eq!(units(r"1<\micro\farad>"), r"$1\,\mathrm{\mu F}$");
         assert_eq!(units(r"$R_1$"), r"$R_1$");
         assert_eq!(units("a < b"), "a < b");
+        assert_eq!(units(r"\SI{4.7}{k\ohm}"), r"$4.7\,\mathrm{k\Omega}$");
+        assert_eq!(units(r"$i=\SI{1}{\milli\ampere}$"), r"$i=1\,\mathrm{mA}$");
+        assert_eq!(units(r"-t\si{\degree}"), r"-t$\mathrm{{}^\circ}$");
+        assert_eq!(units(r"\qty{2}{\kohm} and \num{3}"), r"$2\,\mathrm{k\Omega}$ and $3$");
     }
 }

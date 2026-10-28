@@ -37,7 +37,18 @@ The shapes are measured on what CircuiTikZ draws (`tools/oracle/`), at their def
 - **Keys:** `l`, `l^`, `l_` (label), `a`, `a^`, `a_` (annotation), and `R=label` (any component key with a value) for `l`. The label goes above a left-to-right component, the annotation below; `^` and `_` choose the side. `mirror` and `invert` do not move them.
 - **Alignment:** `label/align` (`\ctikzset`), or the styles `straight labels`, `rotate labels`, `smart labels`. `straight` never turns the text; `rotate` turns it along the line, read left to right; `smart` (the default) turns it only when the line is between 20° and 70° from an axis.
 - **Place:** from the component's band widened by 10%, a straight label keeps its baseline (above and below) or the middle of its x-height (at the sides) at a fixed distance, whatever its letters; a rotated one sits further below the line than above it. `label distance` and `annotation distance` add to it.
-- **Units:** `value<units>`, the siunitx shorthand, as `$value\,\mathrm{units}$` with the unit macros as symbols (`\kilo\ohm` → kΩ, `\micro\farad` → μF).
+- **Two lines:** `l2=first and second` (`l2^`, `l2_`, and `a2…` for the annotation), aligned by `l2 halign` (`l`, `c`, `r`) and placed by `l2 valign` (`b`, `c`, `t`), as the manual's `tabular`.
+- **Nodes:** a named component's labels are nodes too, `R1label` and `R1annotation`, styled by `bipole label style` and `bipole annotation style` (and their `append` forms); `\ctikzgetanchor{R1}{label}` and `\ctikzgetdirection{R1label}` give their anchor and turn. Their nodes keep TikZ's inner sep, which counts in the picture's size.
+- **Units:** `value<units>`, the siunitx shorthand, and `\SI{1}{\kilo\ohm}`, `\qty{…}{…}`, `\si{…}`, `\unit{…}`, `\num{…}` in any label, voltage or current, as `$value\,\mathrm{units}$` with the unit macros as symbols (`\kilo\ohm` → kΩ, `\micro\farad` → μF, and the abbreviations `\kohm`, `\mA`, `\nF`…).
+
+## Voltages, currents and flows
+
+- **Keys:** `v`, `i`, `f`, and their variants with a side (`^` the left of the path, `_` the other) and a direction (`>` toward the end, `<` toward the start): `v^>`, `i_<`, `f>^`… For currents and flows the symbol goes on the lead after the component, or before it when the direction comes first (`i>_`); `i<` alone goes before it. A key without a value (`to[R, v, name=R]`) draws nothing but gives the anchors.
+- **Currents:** a filled arrow head on the lead, `current/distance` (0.5) of the way along it, with the label beside it. **Flows:** a short arrow beside the lead (`flow/distance`).
+- **Voltages,** `voltage` = `european` (a curved arrow under the component, bent by the component's own bump; `voltage/bump b`), `straight`, `american` (`+` and `-` at the ends, `voltage/american plus`, `american minus`, `american font`, `american label distance`) or `raised` (the signs at the label's height); the styles `european voltages`, `straight voltages`, `american voltages`, `raised voltages`, and `american`/`european`. A voltage spans from `voltage/distance from node` of the way between each end and the component; an open circuit's lies on the line. `voltage shift` moves it all away from the component.
+- **Direction:** `voltage dir` = `noold` (the package's default) and `EF` point the arrow from `+` to `-`, `RP` and `old` from `-` to `+`; with no `>` nor `<`, a passive component's voltage points to the end with the former, to the start with the latter. The document's `\usepackage[RPvoltages, american…]{circuitikz}` sets them (the voltage directions and the style options).
+- **Anchors:** a named component's voltage, current and flow have `R1-Vfrom`, `R1-Vto`, `R1-Vcont1`, `R1-Vcont2`, `R1-Vlab`, `R1-Ifrom`, `R1-Ito`, `R1-Ipos`, `R1-Ffrom`, `R1-Fto`, `R1-Fpos`, their labels are the nodes `R1voltage`, `R1current`, `R1flow` (`bipole voltage style`…), and `\ctikzgetanchor{R1}{Vlab}` gives the label's anchor. `no v symbols`, `no i symbols`, `no f symbols` keep only the labels.
+- The shapes and places are measured on what CircuiTikZ draws, component by component (`components::VOLTS`).
 
 ## Poles and orientation
 
@@ -54,7 +65,7 @@ The shapes are measured on what CircuiTikZ draws (`tools/oracle/`), at their def
 ## Out, for now
 
 - Sources, batteries, diodes, transistors, op-amps, grounds and every other component of chapter 4 of the manual after the dynamical bipoles.
-- Voltages, currents and flows (`v=`, `i=`, `f=`).
+- Voltages and currents of sources and batteries, which follow their own rules (`bipole/is voltage`, `override source vif`), and the experimental automatic voltages (`vif queue`, `\fixedvlen`).
 - Node-style components (`node[resistorshape]`, `node[ocirc]`), and a named bipole as a node of its own (`(R1)`).
 - The fill and opacity of open poles set apart (`open poles fill`, `open poles opacity`), the arrow tips of tunable components and potentiometers (`tunable end arrow`, `wiper end arrow`), the zig-zag joins (`resistors/zigzag hook`, `zigzag stub`), the choke's lines (`twolineschoke`, `cthick`).
 - Straight labels on lines at angles that are not multiples of 90° (15°, 75°…) are a few points from where CircuiTikZ puts them.

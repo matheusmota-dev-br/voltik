@@ -236,6 +236,12 @@ pub const COMPONENTS: &[Component] = &[
     resistor("mov", &[Body(BOX), Modifier(&[M(0.4, 0.2353), L(0.28, 0.2353), L(-0.28, -0.2354), L(-0.4, -0.2354)])]).band(0.214, 0.214),
     resistor("photoresistor", &[Body(BOX), Arrow { from: [0.28, 0.3], to: [0.12, 0.18], thin: true }, Arrow { from: [0.18, 0.3], to: [0.02, 0.18], thin: true }]).band(0.3, 0.15),
     resistor("thermistor", &[Body(BOX), Modifier(THERMAL_BAR)]).band(0.214, 0.214).anchors(&[("wiper", [-0.4, -0.2568]), ("tip", [0.4, 0.214]), ("label", [-0.16, -0.2568])]),
+    // drawn as the thermistor, but its voltages are placed apart
+    resistor("european resistive sensor", &[Body(BOX), Modifier(THERMAL_BAR)]).band(0.214, 0.214).anchors(&[
+        ("wiper", [-0.4, -0.2568]),
+        ("tip", [0.4, 0.214]),
+        ("label", [-0.16, -0.2568]),
+    ]),
     resistor(
         "thermistor ptc",
         &[
@@ -379,9 +385,9 @@ pub const ALIASES: &[(&str, Target)] = &[
     ("potentiometer", Resistor("american potentiometer", "european potentiometer")),
     ("american potentiometer", Fixed("american potentiometer")),
     ("european potentiometer", Fixed("european potentiometer")),
-    ("sR", Resistor("american resistive sensor", "thermistor")),
+    ("sR", Resistor("american resistive sensor", "european resistive sensor")),
     ("american resistive sensor", Fixed("american resistive sensor")),
-    ("european resistive sensor", Fixed("thermistor")),
+    ("european resistive sensor", Fixed("european resistive sensor")),
     ("ldR", Resistor("american light dependent resistor", "european light dependent resistor")),
     ("american light dependent resistor", Fixed("american light dependent resistor")),
     ("european light dependent resistor", Fixed("european light dependent resistor")),
@@ -426,6 +432,90 @@ pub const ALIASES: &[(&str, Target)] = &[
     ("european inductive sensor", Fixed("european inductive sensor")),
     ("cute choke", Fixed("cute choke")),
 ];
+
+/// Where a component's voltage goes, in `bipoles/length` at its default size: the voltage spans
+/// from `from node` of the way between the end (`NODE_GAP` inside it) and the component, which is
+/// `half` wide on each side; `south` is how far its straight arrow and American signs keep from
+/// the line, `bump` how deep the European arrow bends, `label` how far the European label is.
+/// Measured on what CircuiTikZ draws, component by component.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Volts {
+    pub half: Option<f64>,
+    pub from_node: f64,
+    pub south: f64,
+    pub bump: f64,
+    pub label: f64,
+}
+
+const fn volts(south: f64, bump: f64, label: f64) -> Volts {
+    Volts { half: None, from_node: 0.5, south, bump, label }
+}
+
+/// The voltages of the generic bipoles start nearer their ends.
+const fn generic_volts(south: f64, bump: f64, label: f64) -> Volts {
+    Volts { from_node: 0.4, ..volts(south, bump, label) }
+}
+
+/// The voltages of every inductor are placed as for the cute one, 0.6 wide.
+const fn inductor_volts(south: f64, bump: f64, label: f64) -> Volts {
+    Volts { half: Some(0.3), ..volts(south, bump, label) }
+}
+
+/// How far inside the end a voltage starts from (2.5 bp).
+pub const NODE_GAP: f64 = 0.0629;
+
+const VOLTS: &[(&str, Volts)] = &[
+    ("short", volts(0.0909, 0.1364, 0.2853)),
+    // an open circuit's voltage is on the line, from 15% to 85% of the way
+    ("open", Volts { half: Some(0.0), from_node: 0.3, ..volts(0.15, 0.225, 0.3828) }),
+    ("generic", generic_volts(0.15, 0.3, 0.4653)),
+    ("xgeneric", volts(0.15, 0.225, 0.3828)),
+    ("sgeneric", volts(0.15, 0.225, 0.3828)),
+    ("singeneric", volts(0.15, 0.225, 0.3828)),
+    ("tgeneric", volts(0.35, 0.525, 0.7128)),
+    ("ageneric", generic_volts(0.15, 0.3, 0.4653)),
+    ("memristor", generic_volts(0.15, 0.3, 0.4653)),
+    ("american resistor", volts(0.15, 0.225, 0.3828)),
+    ("variable american resistor", volts(0.3, 0.45, 0.6303)),
+    ("american potentiometer", volts(0.15, 0.225, 0.3828)),
+    ("american resistive sensor", volts(0.3, 0.45, 0.6303)),
+    ("american light dependent resistor", volts(0.4, 0.6, 0.7953)),
+    ("variable european resistor", volts(0.3, 0.45, 0.6303)),
+    ("european potentiometer", volts(0.15, 0.225, 0.3828)),
+    ("european resistive sensor", volts(0.3, 0.45, 0.6303)),
+    ("european light dependent resistor", volts(0.4, 0.6, 0.7953)),
+    ("varistor", volts(0.3, 0.719, 0.9262)),
+    ("mov", volts(0.2568, 0.3852, 0.5591)),
+    ("photoresistor", volts(0.15, 0.24, 0.3993)),
+    ("thermistor", volts(0.2568, 0.6163, 0.6849)),
+    ("thermistor ptc", volts(0.375, 0.6, 0.6669)),
+    ("thermistor ntc", volts(0.375, 0.6, 0.6669)),
+    ("capacitor", volts(0.3, 0.4125, 0.5888)),
+    ("curved capacitor", volts(0.3, 0.6046, 0.8004)),
+    ("ecapacitor", volts(0.25, 0.375, 0.5478)),
+    ("variable capacitor", volts(0.3, 0.4125, 0.5888)),
+    ("capacitive sensor", volts(0.36, 0.54, 0.7293)),
+    ("piezoelectric", volts(0.35, 0.525, 0.7128)),
+    ("cpe", volts(0.3, 0.45, 0.6303)),
+    ("feC", volts(0.3, 0.45, 0.6303)),
+    ("cute inductor", inductor_volts(0.075, 0.1125, 0.2591)),
+    ("variable cute inductor", inductor_volts(0.15, 0.225, 0.3828)),
+    ("cute inductive sensor", inductor_volts(0.195, 0.2925, 0.457)),
+    ("cute choke", inductor_volts(0.075, 0.1125, 0.2591)),
+    ("american inductor", inductor_volts(0.075, 0.1125, 0.2591)),
+    ("variable american inductor", inductor_volts(0.15, 0.225, 0.3828)),
+    ("american inductive sensor", inductor_volts(0.195, 0.2925, 0.457)),
+    ("european inductor", inductor_volts(0.075, 0.1125, 0.2591)),
+    ("variable european inductor", inductor_volts(0.15, 0.225, 0.3828)),
+    ("european inductive sensor", inductor_volts(0.195, 0.2925, 0.457)),
+];
+
+impl Component {
+    /// Where its voltage goes.
+    pub fn volts(&self) -> Volts {
+        VOLTS.iter().find(|(n, _)| *n == self.name).map_or(volts(self.bottom, 1.5 * self.bottom, 0.1352 + 1.0969 * 1.5 * self.bottom), |(_, v)| *v)
+    }
+}
 
 pub fn find(name: &str) -> Option<&'static Component> {
     COMPONENTS.iter().find(|c| c.name == name)
