@@ -10,20 +10,27 @@ voltik is a library of tikra (`tikra::extension`): the figure is TikZ, read and 
 
 `\draw (A) to[name=label, options] (B);` places the component halfway between `A` and `B`, turned along the line, and draws the leads from `A` to it and from it to `B`.
 
-- **Size:** every length is a fraction of `bipoles/length` (1.4 cm): a component has a width (where the leads stop) and a height (the band that labels keep out of). The class keys scale them: `resistors/scale`, `resistors/width`, and the same for `capacitors` and `inductors`.
-- **Strokes:** the component's outline is `bipoles/thickness` (2) times the line width of the path, or its class's `thickness`; the leads keep the path's own width. Zig-zags and coils start and end half a thick stroke beyond the leads, so the joint is covered.
+- **Size:** every length is a fraction of `bipoles/length` (1.4 cm): a component has a width (where the leads stop), a height, and how far it reaches above and below the line, its north and south (the band that labels keep out of; a variable resistor's arrow widens it). The class keys change them: `scale` scales the whole component; `width` sets the width of all the class (the piezoelectric element and the constant phase element stay twice as wide as the other capacitors); `height` sets the height of all the class. The drawing stretches with the width and the height; arrow heads and text do not.
+- **Strokes:** the outline is `bipoles/thickness` (2) times the line width of the path, or its class's `thickness`; the marks that tell the kind of a component (a sensor's bar, a variable component's arrow) are that times the class's `modifier thickness` (1); the leads keep the path's own width. Zig-zags and coils start and end half a thick stroke beyond the leads, so the joint is covered.
+- **Fill:** the `fill` of the `to` (or of its path) fills the components the manual marks as fillable: the box of the generic bipoles, the space between a capacitor's plates. The others are not filled; the solid parts (the dark end of `ageneric`, the European inductor) take the color of the stroke.
 - **Coordinates and transforms:** the ends are read as TikZ reads them (named nodes give their center); the picture's `scale` moves the ends but does not resize the components, as with nodes.
 
-| Key | Component | Look |
+The shapes are measured on what CircuiTikZ draws (`tools/oracle/`), at their default size.
+
+| Class | Keys | Components |
 |---|---|---|
-| `short` | wire | the leads join |
-| `open` | open circuit | nothing but its poles and labels |
-| `generic`, `european resistor` | generic bipole, European resistor | rectangle 0.8 × 0.3 |
-| `american resistor` | American resistor | zig-zag 0.8 × 0.3, `resistors/zigs` teeth (3) |
-| `R`, `resistor` | resistor | American or European, by the `resistor` setting |
-| `C`, `capacitor` | capacitor | two plates 0.6 high, 0.2 apart |
-| `cute inductor` | inductor | `inductors/coils` arches (5) over 0.6, with small loops between them |
-| `L`, `inductor` | inductor | cute; American and European inductors are not drawn yet (a warning, and a cute one) |
+| — | `short`, `open` | wire; open circuit (nothing but its poles and labels) |
+| resistors | `generic`, `xgeneric`, `sgeneric`, `singeneric`, `tgeneric`, `ageneric`, `memristor` (`Mr`) | box 0.8 × 0.3, crossed, slashed, with a sine, tunable, asymmetric, memristor |
+| resistors | `R` (`resistor`), `vR`, `pR` (`potentiometer`), `sR`, `ldR` | American or European by the `resistor` setting: zig-zag of `resistors/zigs` teeth (3) or box; variable, potentiometer (the wiper at `wiper pos`, 0.5), resistive sensor (the European one is the thermistor), light dependent |
+| resistors | `american resistor`, `european resistor`, `variable american resistor`, `variable european resistor`, `american potentiometer`, `european potentiometer`, `american resistive sensor`, `european resistive sensor`, `american light dependent resistor`, `european light dependent resistor` | the same, whatever the setting |
+| resistors | `varistor`, `mov`, `phR` (`photoresistor`), `thR` (`thermistor`), `thRp` (`thermistor ptc`), `thRn` (`thermistor ntc`) | varistors, photoresistor, thermistors |
+| capacitors | `C` (`capacitor`), `cC` (`curved capacitor`), `eC` (`elko`, `ecapacitor`), `vC` (`variable capacitor`), `sC` (`capacitive sensor`), `PZ` (`piezoelectric`), `cpe`, `feC` (`ferrocap`) | plates 0.2 apart and 0.6 high (0.5 the electrolytic, 0.7 the piezoelectric) |
+| inductors | `L` (`inductor`), `vL`, `sL` | cute, American or European by the `inductor` setting: `inductors/coils` arches with loops (5, at least 2), plain arches (4, at least 1), or a solid box; variable; inductive sensor |
+| inductors | `cute inductor`, `american inductor`, `european inductor`, `variable cute inductor`, `variable american inductor`, `variable european inductor`, `cute inductive sensor`, `american inductive sensor`, `european inductive sensor`, `cute choke` | the same, whatever the setting; the choke has a core line |
+
+## Named components and their anchors
+
+`to[R, name=R1]` names the component, and its anchors become coordinates: `(R1.north)`, `(R1.wiper)`. Every component has `center`, `north`, `south`, `east`, `west` (and `left`, `right`), and the four corners of its band. Variable components have `wiper` and `tip` (the ends of the arrow); potentiometers `wiper` and `tip` (the ends of the wiper); sensors `wiper`, `tip` and `label` (the ends and the corner of the bar); the ferroelectric capacitor `kink left`, `kink right`, `curve left`, `curve right`; inductors `midtap` (on the coil, above or below as the coils fall), `core west` and `core east` (`bipoles/inductors/core distance` above the coil, 2pt) and the dots of mutual inductance `ul dot`, `ur dot`, `ll dot`, `lr dot` (`bipoles/inductors/dot x distance` and `dot y distance`, 4pt and 1pt, beyond the corners). The anchors are mirrored and inverted with the component. `(R1)` alone is not a coordinate.
 
 ## Labels and annotations
 
@@ -34,17 +41,20 @@ voltik is a library of tikra (`tikra::extension`): the figure is TikZ, read and 
 
 ## Poles and orientation
 
-- `o-*`, `*-o`, `-o`, `o-`, `*-`, `-*`, `o-o`, `*-*`: an open pole is a circle filled in white, a closed one a filled circle, 0.04 of `bipoles/length` across the radius, with the path's stroke, drawn over the wires.
+- `bipole nodes={start}{end}` puts a pole at each end: `none`, `circ`, `ocirc`, `diamondpole`, `odiamondpole`, `squarepole`, `osquarepole`, each with options of its own (`{odiamondpole, fill=red}`). The shorthands combine none, `o` (`ocirc`), `*` (`circ`) and `d` (`diamondpole`): `o-*`, `*-o`, `-o`, `d-d`, `o-d`…
+- A pole is `nodes width` (0.04) of `bipoles/length` across the half, with the path's stroke, drawn over the wires; a full one is filled with the stroke's color, an open one with the component's fill, or white.
 - `mirror` flips the component across the line; `invert` turns it end for end.
 
 ## Settings and styles
 
-- `\ctikzset{…}` and `\ctikzvalof{…}` (keys under `/tikz/circuitikz/`): `bipoles/length`, `bipoles/thickness`, `resistor` (`american`, `european`), `inductor`, `label/align`, `label distance`, `annotation distance`, and the class keys above.
+- `\ctikzset{…}` and `\ctikzvalof{…}` (keys under `/tikz/circuitikz/`): `bipoles/length`, `bipoles/thickness`, `resistor` (`american`, `european`), `inductor` (`cute`, `american`, `european`), `label/align`, `label distance`, `annotation distance`, `nodes width`, `wiper pos`, the class keys `resistors/…`, `capacitors/…`, `inductors/…` (`scale`, `width`, `height`, `thickness`, `modifier thickness`; `resistors/zigs`, `inductors/coils`), `bipoles/inductors/…` (`core distance`, `dot x distance`, `dot y distance`), and `quadpoles style`, kept for the quadpoles to come.
+- The same settings in a `to[…]` or a TikZ style: `to[R, resistors/scale=1.8]`. A style defined with `\ctikzset{tallR/.style={…}}` is a TikZ style too: `to[R, tallR]`.
 - Styles: `american`, `european`, `american resistors`, `european resistors`, `american inductors`, `european inductors`, `cute inductors`, on the environment, a scope or a path.
 
 ## Out, for now
 
-- Sources, batteries, diodes, transistors, op-amps, grounds and every other component of chapter 4 of the manual.
+- Sources, batteries, diodes, transistors, op-amps, grounds and every other component of chapter 4 of the manual after the dynamical bipoles.
 - Voltages, currents and flows (`v=`, `i=`, `f=`).
-- Node-style components (`node[resistorshape]`) and named bipoles with their anchors (`name=`).
+- Node-style components (`node[resistorshape]`, `node[ocirc]`), and a named bipole as a node of its own (`(R1)`).
+- The fill and opacity of open poles set apart (`open poles fill`, `open poles opacity`), the arrow tips of tunable components and potentiometers (`tunable end arrow`, `wiper end arrow`), the zig-zag joins (`resistors/zigzag hook`, `zigzag stub`), the choke's lines (`twolineschoke`, `cthick`).
 - Straight labels on lines at angles that are not multiples of 90° (15°, 75°…) are a few points from where CircuiTikZ puts them.

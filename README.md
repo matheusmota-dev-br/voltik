@@ -92,11 +92,12 @@ A `circuitikz` environment, or a `tikzpicture` that uses CircuiTikZ components, 
 
 ## What it draws
 
-- **Path-style components**, `to[name=label, options]`: `short`, `open`, `generic`, resistors (`R`, `resistor`, `american resistor`, `european resistor`), capacitors (`C`, `capacitor`) and inductors (`L`, `inductor`, `cute inductor`).
+- **Path-style components**, `to[name=label, options]`: `short`, `open`, every resistive bipole of the manual (generic bipoles, resistors, variable resistors, potentiometers, sensors, light-dependent resistors, varistors, thermistors, memristors), every capacitor (`C`, `cC`, `eC`, `vC`, `sC`, `PZ`, `cpe`, `feC`) and every inductor (`L`, `vL`, `sL` in the cute, American and European styles, `cute choke`), filled with the `fill` of the `to` when the manual makes them fillable.
+- **Named components**: `to[pR, name=P]` makes their anchors coordinates, `(P.wiper)`, `(P.north)`, `(L1.midtap)`, `(L1.core west)`.
 - **Labels and annotations**: `l`, `l^`, `l_`, `a`, `a^`, `a_`, and `R=label` for `l`; straight, rotated and smart alignment (`label/align`, `smart labels`…); `label distance`, `annotation distance`; the siunitx shorthand `20<\ohm>`.
-- **Poles**: `o-*`, `*-o`, `-o` and the other combinations of none, `o` and `*`.
+- **Poles**: `o-*`, `*-o`, `-o`, `d-d` and the other combinations of none, `o`, `*` and `d`; `bipole nodes={…}{…}` with circles, diamonds and squares, full or open; `nodes width`.
 - **Orientation**: `mirror`, `invert`.
-- **Settings and styles**: `\ctikzset`, `\ctikzvalof`; `bipoles/length`, `bipoles/thickness`, the class keys `resistors/…`, `capacitors/…`, `inductors/…` (`scale`, `width`, `thickness`, `zigs`, `coils`); `american`, `european`, `american resistors`, `european resistors`, `cute inductors`.
+- **Settings and styles**: `\ctikzset`, `\ctikzvalof`; `bipoles/length`, `bipoles/thickness`, the class keys `resistors/…`, `capacitors/…`, `inductors/…` (`scale`, `width`, `height`, `thickness`, `modifier thickness`, `zigs`, `coils`), in `\ctikzset` or in a `to[…]`; `wiper pos`; styles defined with `\ctikzset{name/.style=…}`; `american`, `european`, `american resistors`, `european resistors`, `american inductors`, `european inductors`, `cute inductors`.
 
 What is drawn and what is not yet is in [`spec/subset.md`](spec/subset.md).
 

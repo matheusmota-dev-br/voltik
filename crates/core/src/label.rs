@@ -75,13 +75,13 @@ pub fn nodes(cx: &mut Context, placed: &Placed, frame: &Frame, unit: f64) -> Res
             }
             let below = (side < 0.0) != (turn != placed.angle);
             let space = if below { 2.25 } else { 1.5 } * LABEL_SPACE;
-            let reach = placed.height / 2.0 * MARGIN + space + extra;
+            let reach = placed.reach(side) * MARGIN + space + extra;
             let at = placed.mid.plus(placed.normal.scale(side * reach));
             s.push_str(&format!(" node[anchor=mid,inner sep=0pt,rotate={}] at {} {{{text}}}", round(turn), frame.coordinate(at)));
         } else {
             // the text keeps its baseline (above and below) or the middle of its x-height (at the
             // sides) at a fixed distance from the component's band, whatever its letters
-            let border = placed.mid.plus(placed.normal.scale(side * (placed.height / 2.0 * MARGIN + extra)));
+            let border = placed.mid.plus(placed.normal.scale(side * (placed.reach(side) * MARGIN + extra)));
             let (anchor, shift) = match outward.rem_euclid(360.0) {
                 a if (45.0..135.0).contains(&a) => ("base", Point::new(0.0, ABOVE)),
                 a if (225.0..315.0).contains(&a) => ("base", Point::new(0.0, -BELOW)),
