@@ -84,6 +84,8 @@ $ python3 -I tools/oracle/ink.py corpus/labels/*.tex                   # labels 
 
 The shapes of the components drawn so far match TeX's coordinates; labels on lines at 0°, 90°, 180°, 270° and rotated labels fall within about half a point of TeX's.
 
+How much of CircuiTikZ that is, measured by the manual itself: every example of the manual and every entry of its list of components, drawn by pdflatex and by voltik and compared, in [docs/conformance.md](docs/conformance.md) (`tools/conformance/run.sh`, see [tools/conformance](tools/conformance/README.md)).
+
 ## Input
 
 A `circuitikz` environment, or a `tikzpicture` that uses CircuiTikZ components, alone or in a full `standalone` document. Everything tikra reads is read too, so TikZ and CircuiTikZ mix in the same figure.
