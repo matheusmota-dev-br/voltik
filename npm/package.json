@@ -1,6 +1,6 @@
 {
   "name": "@mathlabs/voltik",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "CircuiTikZ circuits to SVG and PNG, without a TeX install. A library of tikra; math labels typeset by mathra. Runs on WebAssembly in Node, bundlers and browsers.",
   "keywords": [
     "circuitikz",
