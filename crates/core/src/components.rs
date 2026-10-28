@@ -50,6 +50,11 @@ pub enum Part {
     Stroke(f64, &'static [Op]),
     /// Filled with a color of its own (a noise source's gray, a fuse's white).
     Paint(&'static str, &'static [Op]),
+    /// A pole of the component (a jumper's, a cute switch's): filled with the `fill` of the `to`, or
+    /// white.
+    Pole(&'static [Op]),
+    /// Stroked `k` times the path's line width with round caps: a cute switch's lever.
+    Lever(f64, &'static [Op]),
     /// Text in a font of `size` pt, its baseline starting at the point, `shift` away from it, turned
     /// by `turn` degrees: the point stretches with the component, the shift does not.
     Text { at: [f64; 2], shift: [f64; 2], size: f64, text: &'static str, turn: f64 },
@@ -72,6 +77,7 @@ pub enum Class {
     Mechanicals,
     Misc,
     Diodes,
+    Switches,
 }
 
 impl Class {
@@ -89,6 +95,7 @@ impl Class {
             Class::Mechanicals => "mechanicals",
             Class::Misc => "misc",
             Class::Diodes => "diodes",
+            Class::Switches => "switches",
         }
     }
 }
@@ -767,9 +774,10 @@ mod instruments;
 mod mechanicals;
 mod misc;
 mod sources;
+mod switches;
 
 /// The tables of components, by group of the manual.
-const GROUPS: &[&[Component]] = &[COMPONENTS, sources::COMPONENTS, instruments::COMPONENTS, mechanicals::COMPONENTS, misc::COMPONENTS, diodes::COMPONENTS];
+const GROUPS: &[&[Component]] = &[COMPONENTS, sources::COMPONENTS, instruments::COMPONENTS, mechanicals::COMPONENTS, misc::COMPONENTS, diodes::COMPONENTS, switches::COMPONENTS];
 
 /// The diodes' keys: the short ones (`D`, `sD`, `Ty`, `triac`…) follow the `diode` setting (`empty`,
 /// `full`, `stroke`; the styles `empty diodes`, `full diodes`, `stroke diodes`), the others name a
@@ -910,13 +918,65 @@ const DIODE_ALIASES: &[(&str, Target)] = &[
     ("IGCT-", Fixed("stroke igct")),
 ];
 
+/// The switches' keys (`switch`, `spst`, `cute open switch`…).
+const SWITCH_ALIASES: &[(&str, Target)] = &[
+    ("switch", Fixed("switch")),
+    ("spst", Fixed("switch")),
+    ("closing switch", Fixed("closing switch")),
+    ("cspst", Fixed("closing switch")),
+    ("opening switch", Fixed("opening switch")),
+    ("ospst", Fixed("opening switch")),
+    ("normal open switch", Fixed("normal open switch")),
+    ("nos", Fixed("normal open switch")),
+    ("normal closed switch", Fixed("normal closed switch")),
+    ("ncs", Fixed("normal closed switch")),
+    ("opening normal closed switch", Fixed("opening normal closed switch")),
+    ("oncs", Fixed("opening normal closed switch")),
+    ("closing normal closed switch", Fixed("closing normal closed switch")),
+    ("cncs", Fixed("closing normal closed switch")),
+    ("opening normal open switch", Fixed("opening normal open switch")),
+    ("onos", Fixed("opening normal open switch")),
+    ("closing normal open switch", Fixed("closing normal open switch")),
+    ("cnos", Fixed("closing normal open switch")),
+    ("push button", Fixed("push button")),
+    ("normally open push button", Fixed("push button")),
+    ("nopb", Fixed("push button")),
+    ("normally closed push button", Fixed("normally closed push button")),
+    ("ncpb", Fixed("normally closed push button")),
+    ("normally open push button closed", Fixed("normally open push button closed")),
+    ("nopbc", Fixed("normally open push button closed")),
+    ("normally closed push button open", Fixed("normally closed push button open")),
+    ("ncpbo", Fixed("normally closed push button open")),
+    ("toggle switch", Fixed("toggle switch")),
+    ("reed", Fixed("reed")),
+    ("cute closed switch", Fixed("cute closed switch")),
+    ("ccsw", Fixed("cute closed switch")),
+    ("cute open switch", Fixed("cute open switch")),
+    ("cosw", Fixed("cute open switch")),
+    ("cute closing switch", Fixed("cute closing switch")),
+    ("ccgsw", Fixed("cute closing switch")),
+    ("cute opening switch", Fixed("cute opening switch")),
+    ("cogsw", Fixed("cute opening switch")),
+    ("inline proximeter", Fixed("inline proximeter")),
+    ("bare jumper", Fixed("bare jumper")),
+    ("open jumper", Fixed("open jumper")),
+    ("closed jumper", Fixed("closed jumper")),
+    ("three-pins jumper", Fixed("three-pins jumper")),
+    ("open solder jumper", Fixed("open solder jumper")),
+    ("closed solder jumper", Fixed("closed solder jumper")),
+    ("open double solder jumper", Fixed("open double solder jumper")),
+    ("left double solder jumper", Fixed("left double solder jumper")),
+    ("right double solder jumper", Fixed("right double solder jumper")),
+    ("closed double solder jumper", Fixed("closed double solder jumper")),
+];
+
 pub fn find(name: &str) -> Option<&'static Component> {
     GROUPS.iter().flat_map(|g| g.iter()).find(|c| c.name == name)
 }
 
 /// Every key that names a component, and what it names.
 pub fn aliases() -> impl Iterator<Item = &'static (&'static str, Target)> {
-    ALIASES.iter().chain(SOURCE_ALIASES).chain(OTHER_ALIASES).chain(DIODE_ALIASES)
+    ALIASES.iter().chain(SOURCE_ALIASES).chain(OTHER_ALIASES).chain(DIODE_ALIASES).chain(SWITCH_ALIASES)
 }
 
 pub fn target(key: &str) -> Option<Target> {
