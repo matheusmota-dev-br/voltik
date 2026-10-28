@@ -30,7 +30,7 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://matheusmota-dev-br.github.io/voltik/"
+Homepage = "https://github.com/matheusmota-dev-br/voltik"
 Repository = "https://github.com/matheusmota-dev-br/voltik"
 Issues = "https://github.com/matheusmota-dev-br/voltik/issues"
 Documentation = "https://github.com/matheusmota-dev-br/voltik#install-and-use"

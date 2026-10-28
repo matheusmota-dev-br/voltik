@@ -2,7 +2,7 @@
 
 # voltik
 
-CircuiTikZ circuits to SVG and PNG, without a TeX install: no LaTeX, no fonts on the system, no external processes. voltik is a library of [tikra](https://github.com/matheusmota-dev-br/tikra), which draws the TikZ; voltik adds the CircuiTikZ components, and labels are set by [mathra](https://github.com/matheusmota-dev-br/mathra) in Latin Modern, TeX's own Computer Modern. **[Try it in the browser](https://matheusmota-dev-br.github.io/voltik/)** · **[See the gallery](https://matheusmota-dev-br.github.io/voltik/gallery.html)**.
+CircuiTikZ circuits to SVG and PNG, without a TeX install: no LaTeX, no fonts on the system, no external processes. voltik is a library of [tikra](https://github.com/matheusmota-dev-br/tikra), which draws the TikZ; voltik adds the CircuiTikZ components, and labels are set by [mathra](https://github.com/matheusmota-dev-br/mathra) in Latin Modern, TeX's own Computer Modern.
 
 ```sh
 pip install voltik
