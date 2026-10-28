@@ -31,6 +31,8 @@ The shapes are measured on what CircuiTikZ draws (`tools/oracle/`), at their def
 | csources | `cV`, `cI`, `cvsource`, `cisource`, `csV`, `csI`, `ecsource`… | the controlled sources, diamonds |
 | instruments | `rmeter`, `rmeterwa`, `smeter`, `ammeter`, `voltmeter`, `ohmmeter`, `qiprobe`, `qvprobe`, `qpprobe`, `oscope`, `iloop`, `iloop2`, `currtap` | `t=…` writes upright in the middle of the meter (below the screen's) |
 | mechanicals | `spring`, `damper`, `mass`, `inerter`, `viscoe` | the mechanical analogies |
+| diodes | `D`, `sD`, `zD`, `zzD`, `tD`, `pD`, `leD`, `lasD`, `VC`, `tvsD`, `shD`, `biD`, each `…o` (empty), `…*` (full) and `…-` (stroke), and the long names (`empty diode`, `full Zener diode`, `stroke led`…) | the short keys follow the `diode` setting (`empty`, the default, `full`, `stroke`; the styles `empty diodes`, `full diodes`, `stroke diodes` and the package options `emptydiode`, `fulldiode`, `strokediode`); `led arrows from cathode`, `pd arrows to cathode` (and back, `… anode`) turn the arrows of LEDs and photodiodes; `diode straight whiskers` (`diode sloped whiskers`) the ZZener's and TVS's |
+| diodes | `Tr` (`triac`), `Ty` (`thyristor`), `PUT` (`put`), `GTO` (`gto`), `GTOb` (`gtobar`), `aGTOb` (`agtobar`), `IGCT` (`igct`), each `…o`, `…*`, `…-` and long names | the thyristor-like tripoles, legacy or `thyristor style=compact`, with their gate (`G`, `gate`) and `anode`, `cathode` anchors |
 | misc | `fuse`, `afuse`, `wfuse`, `lamp`, `bulb`, `wbulb`, `neonlampcc`, `neonlampac`, `sparkgap` (`sparkgap/dot`, `sparkgap/circle`), `loudspeaker`, `mic`, `tlmic`, `buzzer`, `rbuzzer`, `squid`, `barrier`, `openbarrier`, `relais`, `thermocouple`, `european gas filled surge arrester`… | the other bipoles |
 | inductors | `cute inductor`, `american inductor`, `european inductor`, `variable cute inductor`, `variable american inductor`, `variable european inductor`, `cute inductive sensor`, `american inductive sensor`, `european inductive sensor`, `cute choke` | the same, whatever the setting; the choke has a core line |
 
@@ -86,8 +88,8 @@ Path-style, with the bipoles: `multiwire`, `bmultiwire`, `tmultiwire` (buses), `
 
 ## Out, for now
 
-- Diodes, transistors, op-amps, the transformers and the other components of chapter 4 of the manual after the miscellaneous bipoles.
-- The sources' own keys (`prim`, `sec`, `tert` and the windings of the `oosource`s, `sign rotation`), the oscilloscope's `waveform`, the instruments' `rotated instruments`, the `sparkgap end arrow`, and the experimental automatic voltages (`vif queue`, `\fixedvlen`).
+- Switches, transistors, op-amps, the transformers and the other components of chapter 4 of the manual after the miscellaneous bipoles.
+- The sources' own keys (`prim`, `sec`, `tert` and the windings of the `oosource`s, `sign rotation`), the oscilloscope's `waveform`, the instruments' `rotated instruments`, the `sparkgap end arrow`, the opto and GTO gate arrows' customizations (`opto arrows/…`, `opto end arrow`, `gto gate end arrow`), and the experimental automatic voltages (`vif queue`, `\fixedvlen`).
 - Bipoles as nodes (`node[resistorshape]`), and a named bipole as a node of its own (`(R1)`); the customizations of the supplies' arrows (`monopoles/vcc/arrow`) and the `Jack Tap` arrow tip.
 - The fill and opacity of open poles set apart (`open poles fill`, `open poles opacity`), the arrow tips of tunable components and potentiometers (`tunable end arrow`, `wiper end arrow`), the zig-zag joins (`resistors/zigzag hook`, `zigzag stub`), the choke's lines (`twolineschoke`, `cthick`).
 - Straight labels on lines at angles that are not multiples of 90° (15°, 75°…) are a few points from where CircuiTikZ puts them.

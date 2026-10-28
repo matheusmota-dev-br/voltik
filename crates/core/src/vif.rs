@@ -13,7 +13,7 @@
 use tikra::extension::{Context, Error, Point, Tokens, PT};
 
 use crate::bipole::{setting, Frame, Placed};
-use crate::components::{self, Component, Leads, Source};
+use crate::components::{self, Component, Leads, Source, Volts};
 use crate::label;
 
 /// Records a voltage, current or flow: `voltik/vif={kind}{variant}{text}`. Without a value
@@ -225,7 +225,10 @@ fn voltage(cx: &mut Context, comp: &Component, span: &Span, name: &str, out: &mu
         Source::Current => variant(&cx.macro_text("voltik@vspec"), -1.0, rising),
         Source::Not => variant(&cx.macro_text("voltik@vspec"), -1.0, !rising),
     };
-    let volts = comp.volts();
+    let volts = match (comp.volts(), v.side > 0.0) {
+        (Volts { above: Some([south, bump, label]), .. }, true) => Volts { south, bump, label, ..comp.volts() },
+        (volts, _) => volts,
+    };
     let style = setting(cx, "voltage")?;
     let from_node = match (volts.from_node, number(cx, "voltage/distance from node")) {
         (d, Some(set)) if (d - 0.5).abs() < 1e-9 => set,
