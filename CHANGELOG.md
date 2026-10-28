@@ -4,6 +4,17 @@ What changed in each release of voltik: the crates `voltik` and `voltik-cli`, `@
 
 Each release has a headline (the line under its title), what changed, and the figures of [`corpus/`](corpus) that show it (`Figures:`), drawn by the site with today's voltik. `scripts/release.sh` will not release a version without its section here, and makes the GitHub release from it.
 
+## Unreleased
+
+Transistors.
+
+- Every transistor of the manual as a node: bipolar (`npn`, `pnp`, multi-collector `bjtnpn`…), IGBTs, MOSFETs (`nmos`, `pmos`, depletion), FETs (`nfet`, `nigfete`…), HEMTs, JFETs, UJTs, ISFET and graphene FETs, with all their anchors, in the `transistors` class.
+- Their options in the combinations the manual draws: `bodydiode`, `tr circle`, `bulk`, `fdsoi`, `doublegate`, `solderdot`, `schottky base`, `photo`, `nobase`, `arrowmos`, `emptycircle`, `nocircle`, `collectors`, `emitters`.
+- Transistors on a path (`to[Tnmos=$M_1$, n=M]`), turned round by `invert`.
+- Depletion channels dark unless filled; the text right of the transistor, not counting in the picture's size, as in CircuiTikZ.
+
+Figures: `transistors` `common-emitter`
+
 ## 0.7.0 - 2026-10-28
 
 Switches, buttons and jumpers.

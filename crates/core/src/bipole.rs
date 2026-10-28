@@ -55,6 +55,8 @@ pub fn k_component(cx: &mut Context, v: Option<Tokens>) -> Result<(), Error> {
         match kind {
             Some(Source::Voltage) => vif::set(cx, "v", &variant, value),
             Some(Source::Current) => vif::set(cx, "i", &variant, value),
+            // a transistor's value is its text, in its middle
+            _ if components::find(&name).is_some_and(|c| c.class == components::Class::Transistors) => cx.define("voltik@t", value),
             _ => label::set(cx, "l", 1, value),
         }
     }
@@ -239,7 +241,8 @@ pub fn k_place(cx: &mut Context, _v: Option<Tokens>) -> Result<(), Error> {
         width,
         top: comp.top * y,
         bottom: comp.bottom * y,
-        mirror: cx.macro_text("voltik@mirror") == "1",
+        // a transistor inverted is turned round: its gate goes to the other side too
+        mirror: (cx.macro_text("voltik@mirror") == "1") != (comp.class == components::Class::Transistors && cx.macro_text("voltik@invert") == "1"),
         invert: cx.macro_text("voltik@invert") == "1",
     };
     let look = Look {
@@ -408,6 +411,10 @@ fn draw_part(cx: &mut Context, look: &Look, comp: &components::Component, part: 
         Part::Stroke(k, ops) => format!("{}{};", stroke(k / 2.0 * look.thick, "fill=none,"), look.path(ops)),
         Part::Paint(color, ops) => format!("\\path[fill={{{color}}}]{};", look.path(ops)),
         Part::Pole(ops) => format!("\\path[{}]{};", look.fill.clone().unwrap_or_else(|| "fill=white".into()), look.path(ops)),
+        Part::Channel(ops) => match &look.fill {
+            Some(f) => format!("\\path[{f}]{};", look.path(ops)),
+            None => format!("\\fill[color=.]{};", look.path(ops)),
+        },
         Part::Lever(k, ops) => format!("{}{};", stroke(k * look.thin, "fill=none,line cap=round,"), look.path(ops)),
         Part::Thin(ops) => format!("{}{};", stroke(look.thin, "fill=none,"), look.path(ops)),
         Part::Solid(ops) => format!("\\fill[color=.]{};", look.path(ops)),

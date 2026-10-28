@@ -71,7 +71,9 @@ fn definitions() -> String {
          bipoles/length/.initial=1.4cm, bipoles/thickness/.initial=2,\n\
          resistors/zigs/.initial=3, inductors/coils/.initial=, wiper pos/.initial=0.5, quadpoles style/.initial=, nodes width/.initial=0.04,\n\
          bipoles/inductors/core distance/.initial=2pt, bipoles/inductors/dot x distance/.initial=4pt, bipoles/inductors/dot y distance/.initial=1pt,\n\
-         resistor/.initial=american, inductor/.initial=cute, diode/.initial=empty, thyristor style/.initial=legacy, led arrows/.initial=anode, pd arrows/.initial=anode, diode whiskers/.initial=sloped, tjumper connections/.initial=00,\n\
+         resistor/.initial=american, inductor/.initial=cute, diode/.initial=empty, thyristor style/.initial=legacy, led arrows/.initial=anode, pd arrows/.initial=anode, diode whiskers/.initial=sloped, tjumper connections/.initial=00, tr/schottky base/.initial=false, tr/bodydiode/.initial=false, tr/photo/.initial=false, tr/tr circle/.initial=false,\n\
+         tr/nobase/.initial=false, tr/bulk/.initial=false, tr/emptycircle/.initial=false, tr/nocircle/.initial=false, tr/arrowmos/.initial=false, tr/solderdot/.initial=false,\n\
+         tr/fdsoi/.initial=false, tr/fdsoidot/.initial=false, tr/doublegate/.initial=false, tr/collectors/.initial=, tr/emitters/.initial=, tr/bjt pins width/.initial=, tr/bjt multi height/.initial=,\n\
          led arrows from cathode/.style={led arrows=cathode}, led arrows from anode/.style={led arrows=anode}, pd arrows to cathode/.style={pd arrows=cathode},\n\
          pd arrows to anode/.style={pd arrows=anode}, diode straight whiskers/.style={diode whiskers=straight}, diode sloped whiskers/.style={diode whiskers=sloped}, voltage/.initial=european, current/.initial=european, voltage dir/.initial=noold,\n\
          voltage/distance from node/.initial=, voltage/bump b/.initial=, l2 halign/.initial=l, l2 valign/.initial=c, a2 halign/.initial=l, a2 valign/.initial=c, bipole/is voltage/.initial=true, bipole/is current/.initial=true, bipole/override source vif/.initial=false,\n\
@@ -132,7 +134,7 @@ fn definitions() -> String {
         "f symbols/.style={/tikz/circuitikz/f symbols=true}".into(),
     ];
     // the node-style components, shapes of their own
-    for name in nodes::NODES.iter().map(|n| n.name).chain(nodes::TERMINALS.iter().copied()) {
+    for name in nodes::NODES.iter().map(|n| n.name).chain(nodes::TERMINALS.iter().copied()).chain(nodes::transistor_shapes()) {
         keys.push(format!("{name}/.style={{shape={name}}}"));
     }
     for (key, target) in components::aliases() {
@@ -161,6 +163,13 @@ fn definitions() -> String {
         ("a2_", "a2", -1),
     ] {
         keys.push(format!("{key}/.style={{voltik/label={{{which}}}{{{side}}}{{#1}}}}"));
+    }
+    // the transistors' options (`node[npn, bodydiode]`)
+    for flag in nodes::TRANSISTOR_FLAGS {
+        keys.push(format!("{flag}/.style={{/tikz/circuitikz/tr/{flag}=#1}}, {flag}/.default=true"));
+    }
+    for key in nodes::TRANSISTOR_VALUES {
+        keys.push(format!("{key}/.style={{/tikz/circuitikz/tr/{key}=#1}}"));
     }
     // `n=R1`: a component's name, as `name=R1`
     keys.push("n/.style={name={#1}}".into());
@@ -228,6 +237,7 @@ fn definitions() -> String {
         "amplifiers",
         "switches",
         "logic ports",
+        "transistors",
         "flipflops",
         "muxdemuxes",
         "chips",
