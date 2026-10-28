@@ -60,4 +60,4 @@ The wasm crate's gaps are the `#[wasm_bindgen]` wrappers, which only `web.rs` ca
 
 ## Comparing with TeX
 
-The tests check that a circuit draws and how it is built; whether it looks like CircuiTikZ is checked against TeX with the tools in `tools/oracle/` (see "How close to CircuiTikZ" in the README). They need Docker and are not part of `cargo test`.
+The tests check that a circuit draws and how it is built; whether it looks like CircuiTikZ is checked against TeX with the tools in `tools/oracle/` (see "How close to CircuiTikZ" in the README). They need Docker and are not part of `cargo test`; neither is the conformance run over the whole manual, `tools/conformance/run.sh` ([docs/conformance.md](conformance.md)).

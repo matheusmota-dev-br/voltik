@@ -20,7 +20,7 @@ For a larger change (a new family of components, node-style components, voltage 
 
 The specification is the [CircuiTikZ manual](https://ctan.org/pkg/circuitikz) (version 1.8.7): shapes, measures and keys come from it, not from the CircuiTikZ source code, which voltik does not copy or read. When the manual leaves something open, measure it in what TeX draws with `tools/oracle/tex.sh`, and say in the pull request what was measured.
 
-New features come with tests; [docs/tests.md](../docs/tests.md) lists what each test file covers. A new component also gets a circuit in `corpus/`, compared with TeX's drawing (`tools/oracle/side.py`, and `tools/oracle/ink.py` for labels).
+New features come with tests; [docs/tests.md](../docs/tests.md) lists what each test file covers. A new component also gets a circuit in `corpus/`, compared with TeX's drawing (`tools/oracle/side.py`, and `tools/oracle/ink.py` for labels). Run `tools/conformance/run.sh` and say in the pull request what moved in [docs/conformance.md](../docs/conformance.md).
 
 Changes to the TikZ engine itself belong in [tikra](https://github.com/matheusmota-dev-br/tikra); voltik is built on `tikra::extension` and does not patch it.
 
