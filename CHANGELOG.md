@@ -4,6 +4,19 @@ What changed in each release of voltik: the crates `voltik` and `voltik-cli`, `@
 
 Each release has a headline (the line under its title), what changed, and the figures of [`corpus/`](corpus) that show it (`Figures:`), drawn by the site with today's voltik. `scripts/release.sh` will not release a version without its section here, and makes the GitHub release from it.
 
+## Unreleased
+
+Voltages, currents and flows, as the manual draws them for every component so far.
+
+- `v=`, `i=`, `f=` and their variants with a side (`^`, `_`) and a direction (`<`, `>`), on the lead before or after the component.
+- Voltages in the four styles: European curved arrows, straight arrows, American signs and raised American signs, with `voltage shift`, `voltage/bump b`, `voltage/distance from node` and the American keys (`american plus`, `american label distance`…); an open circuit's voltage lies on the line.
+- The `voltage dir` conventions (`noold`, the default, `EF`, `RP`, `old`), and the document's own `\usepackage[RPvoltages, american]{circuitikz}`.
+- The anchors of named components' voltages, currents and flows (`R1-Vfrom`, `R1-Ipos`…), their labels' nodes (`R1voltage`, `R1label`), `\ctikzgetanchor`, `\ctikzgetdirection`, `no v symbols` and the `bipole … style` keys.
+- Two-line labels `l2=… and …`, and siunitx in any label: `\SI`, `\qty`, `\si`, `\unit`, `\num`.
+- Labels keep TikZ's inner sep, as CircuiTikZ's do, so pictures are their size.
+
+Figures: `voltages-and-currents` `voltage-styles` `stacked-and-units`
+
 ## 0.2.0 - 2026-10-28
 
 Every resistive bipole, capacitor and inductor of the manual, drawn as CircuiTikZ draws them.

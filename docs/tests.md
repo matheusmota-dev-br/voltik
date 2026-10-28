@@ -5,7 +5,7 @@ Every circuit in the tests and in `corpus/` was written for this repository to e
 ## How to run
 
 ```console
-$ cargo test                                    # core, CLI and wasm (natively), 29 tests, under 2 s
+$ cargo test                                    # core, CLI and wasm (natively), 37 tests, under 3 s
 $ cargo llvm-cov --workspace --exclude voltik-python --summary-only   # coverage (cargo install cargo-llvm-cov)
 $ cargo clippy --all-targets -- -D warnings
 $ VOLTIK_UPDATE_BANNER=1 cargo test -p voltik --test banner   # redraws docs/banner.svg and docs/banner.png
@@ -26,6 +26,7 @@ Integration, in `crates/core/tests/`:
 | File | Tests | What it exercises |
 |---|---:|---|
 | `bipoles.rs` | 14 | Every path-style component draws without warnings, in every style and filled; a component is its outline and two leads; `short` and `open` have no outline; `american`/`european` choose the resistor, the variable and the sensing components; `fill` fills the fillable components only; named components have anchors (`wiper`, `tip`, `label`, `midtap`…); poles by shorthand (`d-d`) and `bipole nodes`; class settings (`zigs`, `coils`, `width`) change the shape, the same in `\ctikzset`, in a `to[…]` and in a style defined with `\ctikzset`; labels and the siunitx shorthand; poles drawn over the wire; `mirror` and `invert` keep the leads outside; components inside a plain `tikzpicture`. |
+| `vif.rs` | 7 | Every voltage, current and flow variant draws in every voltage style and both directions, on a component and an open circuit; a current is an arrow head on the lead after the component, or before it with `>_`; the European arrow points by `voltage dir`, and `\usepackage[RPvoltages]{circuitikz}` sets it; American voltages are signs; the anchors (`R-Vfrom`, `R-Ipos`…), the labels' nodes and `\ctikzgetanchor`; a valueless `v` and `no v symbols`; `voltage shift`, `bump b`, `distance from node`, `current/distance` move them; two-line labels and `\SI`, `\qty`. |
 | `corpus.rs` | 1 | Every circuit in `corpus/<topic>/` converts without warnings to SVG and PNG. |
 | `banner.rs` | 1 | `docs/banner.svg` and `docs/banner.png` are what the code draws today from `docs/banner.tex`. |
 
@@ -40,7 +41,7 @@ Packages:
 | `npm/test/*.test.*` | 7 | The packed npm package, installed in a scratch project: ESM and `require`, every input form, `render` and its figure in words, `png`, errors as `Error`, `version()`. |
 | `crates/python/tests/test_voltik.py` | 8 | The Python module as installed: every input form, `render` and its figure in words, `png` and its errors, `ValueError`, versions. `pypi.yml` runs it against each built wheel and the sdist. |
 
-Unit tests, inside the modules: `label.rs` (the siunitx shorthand). Plus the documentation example in `lib.rs`.
+Unit tests, inside the modules: `label.rs` (the siunitx shorthand and `\SI`, `\qty`, `\si`, `\num`), `vif.rs` (reading a variant's side, direction and end). Plus the documentation example in `lib.rs`.
 
 ## Coverage
 
@@ -49,14 +50,15 @@ Unit tests, inside the modules: `label.rs` (the siunitx shorthand). Plus the doc
 | File | Regions | Functions | Lines |
 |---|---:|---:|---:|
 | `cli/src/main.rs` | 98.39% | 100.00% | 100.00% |
-| `core/src/bipole.rs` | 95.17% | 97.22% | 95.28% |
-| `core/src/components.rs` | 73.05% | 58.82% | 72.37% |
-| `core/src/label.rs` | 89.78% | 100.00% | 94.34% |
-| `core/src/lib.rs` | 98.45% | 100.00% | 98.96% |
+| `core/src/bipole.rs` | 95.08% | 97.30% | 95.65% |
+| `core/src/components.rs` | 70.83% | 59.09% | 69.66% |
+| `core/src/label.rs` | 82.27% | 100.00% | 88.16% |
+| `core/src/lib.rs` | 89.68% | 100.00% | 91.57% |
+| `core/src/vif.rs` | 97.59% | 100.00% | 98.25% |
 | `wasm/src/lib.rs` | 71.88% | 57.14% | 71.43% |
-| **Total** | **91.91%** | **83.13%** | **92.50%** |
+| **Total** | **90.71%** | **86.78%** | **91.65%** |
 
-The gaps of `components.rs` are the builders of its table of components (`bipole`, `band`, `anchors`…), `const fn`s that run when the crate compiles, where coverage does not see them. The wasm crate's gaps are the `#[wasm_bindgen]` wrappers, which only `web.rs` calls, and it runs inside wasm, where `cargo llvm-cov` does not reach.
+The gaps of `components.rs` are the builders of its table of components (`bipole`, `band`, `anchors`…), `const fn`s that run when the crate compiles, where coverage does not see them. The gaps of `label.rs` and `lib.rs` are mostly the long tables of siunitx units and of package options, one line each. The wasm crate's gaps are the `#[wasm_bindgen]` wrappers, which only `web.rs` calls, and it runs inside wasm, where `cargo llvm-cov` does not reach.
 
 ## Comparing with TeX
 

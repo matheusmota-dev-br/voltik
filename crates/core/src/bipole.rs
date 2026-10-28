@@ -9,7 +9,7 @@
 use tikra::extension::{Context, Error, Point, Tokens, Transform, PT};
 
 use crate::components::{self, Leads, Op, Part, Target};
-use crate::label;
+use crate::{label, vif};
 
 /// The `to path` of every component: place it, then the rest of the path.
 const TO_PATH: &str = "to path={\\pgfextra{\\pgfkeys{/tikz/voltik/place}}\\voltik@path}";
@@ -164,7 +164,8 @@ pub fn k_place(cx: &mut Context, _v: Option<Tokens>) -> Result<(), Error> {
 
     let length_setting = setting(cx, "bipoles/length")?;
     let unit = cx.length(Tokens::text(&length_setting)).unwrap_or(1.4);
-    let comp = component(cx)?.or_else(|| components::find("short")).expect("short is a component");
+    let known = component(cx)?;
+    let comp = known.or_else(|| components::find("short")).expect("short is a component");
     let class = comp.class.name();
     let scale = number(cx, &format!("{class}/scale"), 1.0);
     // the class's width and height settings, when given, are the same for all its components (but
@@ -229,6 +230,25 @@ pub fn k_place(cx: &mut Context, _v: Option<Tokens>) -> Result<(), Error> {
         ),
     };
     path.push_str(&label::nodes(cx, &placed, &frame, unit)?);
+    let span = vif::Span { placed: &placed, frame: &frame, start, length, unit: unit * scale, y, half: width / 2.0, volts_half: comp.volts().half.map_or(width / 2.0, |h| h * x) };
+    // a component voltik does not draw yet gets no voltage nor current: its convention is its own
+    let drawn = if known.is_some() { vif::vif(cx, comp, &span, &name)? } else { vif::Drawn::default() };
+    if !drawn.draw.is_empty() {
+        cx.run(Tokens::text(&drawn.draw))?;
+    }
+    path.push_str(&drawn.nodes);
+    if !name.is_empty() {
+        let mut code = String::new();
+        for (point, at) in &drawn.points {
+            code.push_str(&format!("\\coordinate ({name}-{point}) at {};", frame.coordinate(*at)));
+        }
+        cx.run(Tokens::text(&code))?;
+        for (key, anchor) in &drawn.anchors {
+            cx.define_text(&format!("voltik@anchor@{name}@{key}"), anchor, true);
+        }
+        // `\ctikzgetdirection{R1}`: the way the component goes, in degrees
+        cx.define_text(&format!("voltik@direction@{name}"), &format!("{}", placed.angle.round()), true);
+    }
     path.push_str(&poles(cx, &frame, start, end, unit));
     path.push_str(" \\tikztonodes");
     cx.define("voltik@path", Tokens::text(&path));
