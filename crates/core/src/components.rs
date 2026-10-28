@@ -60,6 +60,7 @@ pub enum Class {
     Resistors,
     Capacitors,
     Inductors,
+    Connectors,
 }
 
 impl Class {
@@ -69,6 +70,7 @@ impl Class {
             Class::Resistors => "resistors",
             Class::Capacitors => "capacitors",
             Class::Inductors => "inductors",
+            Class::Connectors => "connectors",
         }
     }
 }
@@ -318,6 +320,29 @@ pub const COMPONENTS: &[Component] = &[
         ],
     )
     .anchors(&[("kink left", [-0.18, 0.15]), ("kink right", [0.18, -0.15]), ("curve left", [-0.18, 0.3]), ("curve right", [0.18, -0.3])]),
+    // buses, crossings and connectors
+    bipole("multiwire", Class::Default, 0.2, 0.4, &[Thin(&[M(-0.1, -0.2), L(0.0, 0.2), M(-0.1, 0.0), L(0.1, 0.0)])]),
+    bipole("bmultiwire", Class::Default, 0.2, 0.4, &[Thin(&[M(-0.1, -0.2), L(0.0, 0.2), M(-0.05, -0.2), L(0.05, 0.2), M(-0.1, 0.0), L(0.1, 0.0)])]),
+    bipole("tmultiwire", Class::Default, 0.2, 0.4, &[Thin(&[M(-0.1, -0.2), L(0.0, 0.2), M(-0.05, -0.2), L(0.05, 0.2), M(0.0, -0.2), L(0.1, 0.2), M(-0.1, 0.0), L(0.1, 0.0)])]),
+    bipole(
+        "crossing",
+        Class::Default,
+        0.2,
+        0.08,
+        &[Thin(&[M(-0.1, 0.0), L(-0.04, 0.0), C([-0.04, 0.0221], [-0.0221, 0.04], [0.0, 0.04]), C([0.0221, 0.04], [0.04, 0.0221], [0.04, 0.0]), L(0.1, 0.0)])],
+    ),
+    bipole(
+        "iec connector",
+        Class::Connectors,
+        0.3,
+        0.2,
+        &[
+            Line(&[M(-0.05, 0.1), C([-0.1052, 0.1], [-0.15, 0.0552], [-0.15, 0.0]), C([-0.15, -0.0552], [-0.1052, -0.1], [-0.05, -0.1])]),
+            Solid(&[M(-0.05, 0.05), L(0.15, 0.05), L(0.15, -0.05), L(-0.05, -0.05), Z]),
+            Line(&[M(-0.05, 0.05), L(0.15, 0.05), L(0.15, -0.05), L(-0.05, -0.05), Z]),
+        ],
+    )
+    .anchors(&[("plug center", [0.05, 0.0]), ("socket center", [-0.05, 0.0])]),
     // inductors
     inductor("cute inductor", 0.6, &[Part::Coil]).band(0.15, 0.075),
     inductor("variable cute inductor", 0.6, &[Arrow { from: [-0.12, -0.15], to: [0.12, 0.3], thin: false }, Part::Coil])
@@ -431,6 +456,13 @@ pub const ALIASES: &[(&str, Target)] = &[
     ("american inductive sensor", Fixed("american inductive sensor")),
     ("european inductive sensor", Fixed("european inductive sensor")),
     ("cute choke", Fixed("cute choke")),
+    ("multiwire", Fixed("multiwire")),
+    ("bmultiwire", Fixed("bmultiwire")),
+    ("tmultiwire", Fixed("tmultiwire")),
+    ("crossing", Fixed("crossing")),
+    ("xing", Fixed("crossing")),
+    ("iec connector", Fixed("iec connector")),
+    ("iecconn", Fixed("iec connector")),
 ];
 
 /// Where a component's voltage goes, in `bipoles/length` at its default size: the voltage spans

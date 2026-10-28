@@ -4,6 +4,17 @@ What changed in each release of voltik: the crates `voltik` and `voltik-cli`, `@
 
 Each release has a headline (the line under its title), what changed, and the figures of [`corpus/`](corpus) that show it (`Figures:`), drawn by the site with today's voltik. `scripts/release.sh` will not release a version without its section here, and makes the GitHub release from it.
 
+## Unreleased
+
+Components as nodes, with anchors of their own.
+
+- Node-style components, each a node shape of its own (tikra's new library shapes): the ten grounds, `vcc` and `vee`, the terminals (`circ`, `ocirc`, `diamondpole`, `squarepole`… and `rectjoinfill`), the BNC and IEC connectors, the jump and plain crossings, and the arrows (`currarrow`, `inputarrow`, `trarrow`, `flowarrow`).
+- Their anchors (`G.south`, `B.zero`, `S.socket center`), placing by them (`anchor=zero`), turning with the node, `fill` where fillable, and the picture's size as CircuiTikZ counts it.
+- The classes `grounds`, `power supplies` and `connectors` (`…/scale`); every class of the manual has its settings, so `\ctikzset{diodes/scale=…}` no longer scales the picture.
+- Path-style buses (`multiwire`, `bmultiwire`, `tmultiwire`), `crossing` and `iec connector`; named bipoles have the short anchors too (`R1.nw`).
+
+Figures: `grounds-and-supplies` `terminals-and-connectors` `powered-divider`
+
 ## 0.3.0 - 2026-10-28
 
 Voltages, currents and flows, as the manual draws them for every component so far.
