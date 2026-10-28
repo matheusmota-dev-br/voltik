@@ -2,7 +2,7 @@
 
 # voltik
 
-voltik converts CircuiTikZ circuits to SVG and PNG, with no TeX installation, no fonts on the system and no external processes. It is a library of [tikra](https://github.com/matheusmota-dev-br/tikra): tikra draws the TikZ, voltik adds the CircuiTikZ keys and components on top of it, and labels are set by [mathra](https://github.com/matheusmota-dev-br/mathra) in Latin Modern, TeX's own Computer Modern. **[Try it in the browser](https://matheusmota-dev-br.github.io/voltik/)** · **[See the gallery](https://matheusmota-dev-br.github.io/voltik/gallery.html)**.
+voltik converts CircuiTikZ circuits to SVG and PNG, with no TeX installation, no fonts on the system and no external processes. It is a library of [tikra](https://github.com/matheusmota-dev-br/tikra): tikra draws the TikZ, voltik adds the CircuiTikZ keys and components on top of it, and labels are set by [mathra](https://github.com/matheusmota-dev-br/mathra) in Latin Modern, TeX's own Computer Modern.
 
 ## Install and use
 
@@ -63,7 +63,7 @@ The banner above is drawn by voltik itself from [`docs/banner.tex`](https://gith
 
 ## Examples
 
-Every image is an SVG written by voltik from a circuit of [`corpus/`](https://github.com/matheusmota-dev-br/voltik/tree/main/corpus); the [gallery](https://matheusmota-dev-br.github.io/voltik/gallery.html) has them all, and opens each in the playground.
+Every image is an SVG written by voltik from a circuit of [`corpus/`](https://github.com/matheusmota-dev-br/voltik/tree/main/corpus); the gallery of the local site (`site/build.sh`, then open `site/gallery.html`) has them all, and opens each in the playground.
 
 <table>
 <tr><td align="center"><a href="corpus/circuits/ladder-network.tex"><img src="docs/examples/ladder-network.svg" alt="An RC ladder network" width="380"></a><br><sub>An RC ladder network</sub></td><td align="center"><a href="corpus/circuits/voltage-divider.tex"><img src="docs/examples/voltage-divider.svg" alt="A voltage divider" width="300"></a><br><sub>A voltage divider</sub></td></tr>
@@ -128,9 +128,9 @@ The first release needs a few steps by hand, because crates.io and npm only let 
 1. crates.io: `cargo login`, then `cargo publish -p voltik` and `cargo publish -p voltik-cli`. Then, for each crate, Settings → Trusted Publishing: repository `matheusmota-dev-br/voltik`, workflow `crates.yml`.
 2. npm: `npm/build.sh && cd npm/pkg && npm publish --access public` (the `@mathlabs` scope). Then in the package settings, Trusted Publisher → GitHub Actions: repository `matheusmota-dev-br/voltik`, workflow `npm.yml`.
 3. PyPI accepts a trusted publisher before the project exists: Publishing → add a pending publisher, project `voltik`, repository `matheusmota-dev-br/voltik`, workflow `pypi.yml`, environment `pypi`. The `py-v*` tag publishes it.
-4. GitHub: Settings → Pages → Source: "GitHub Actions", for the playground (`pages.yml`), and an environment named `pypi`.
+4. GitHub: an environment named `pypi`.
 
-Every pull request runs the same checks (`.github/workflows/ci.yml`): fmt, clippy, the Rust, wasm, npm and Python tests.
+The checks run on your machine: `git config core.hooksPath .githooks` once, and every commit runs fmt, clippy and the Rust tests, every push the wasm, npm and Python tests (`scripts/check.sh` runs them all by hand). `.github/workflows/ci.yml` runs the same checks again on `main` after each merge. What each test covers is in [`docs/tests.md`](docs/tests.md); how to contribute, in [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md).
 
 ## Credits
 
