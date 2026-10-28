@@ -101,11 +101,32 @@ fn component(cx: &mut Context) -> Result<Option<&'static components::Component>,
             "american" => american,
             _ => european,
         },
+        Some(Target::Diode(empty, full, stroke)) => match setting(cx, "diode")?.as_str() {
+            "full" => full,
+            "stroke" => stroke,
+            _ => empty,
+        },
         None => {
             cx.warn(format!("voltik: unknown component {kind}; drawn as a short"));
             return Ok(None);
         }
     };
+    // the other shapes of thyristors, LEDs, photodiodes and whiskered diodes, by their settings
+    if setting(cx, "thyristor style")? == "compact" {
+        if let Some(compact) = components::find(&format!("compact {name}")) {
+            return Ok(Some(compact));
+        }
+    }
+    for (key, value, suffix) in [("led arrows", "cathode", "@cathode"), ("pd arrows", "cathode", "@cathode"), ("diode whiskers", "straight", "@straight")] {
+        let fits = match key {
+            "led arrows" => name.ends_with(" led"),
+            "pd arrows" => name.ends_with(" photodiode"),
+            _ => name.contains("ZZener") || name.contains("TVS"),
+        };
+        if fits && setting(cx, key)? == value {
+            return Ok(components::find(&format!("{name}{suffix}")));
+        }
+    }
     Ok(components::find(name))
 }
 

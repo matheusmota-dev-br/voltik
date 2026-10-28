@@ -71,6 +71,7 @@ pub enum Class {
     Instruments,
     Mechanicals,
     Misc,
+    Diodes,
 }
 
 impl Class {
@@ -87,6 +88,7 @@ impl Class {
             Class::Instruments => "instruments",
             Class::Mechanicals => "mechanicals",
             Class::Misc => "misc",
+            Class::Diodes => "diodes",
         }
     }
 }
@@ -409,9 +411,11 @@ pub enum Target {
     Voltage(&'static str, &'static str),
     /// European, American, by the `current` style
     Current(&'static str, &'static str),
+    /// empty, full, stroke, by the `diode` setting
+    Diode(&'static str, &'static str, &'static str),
 }
 
-use Target::{Current, Fixed, Inductor, Resistor, Voltage};
+use Target::{Current, Diode, Fixed, Inductor, Resistor, Voltage};
 
 /// The keys that name a component, and what they name: the short names (`R`, `vR`, `L`) follow the
 /// `resistor` and `inductor` styles (`\ctikzset{resistor=european}`, the `european` style).
@@ -506,10 +510,12 @@ pub struct Volts {
     pub label: f64,
     /// a `voltage shift` of its own, in `bipoles/length` (a square meter's, 0.08)
     pub shift: f64,
+    /// `south`, `bump` and `label` on the other side (`v^`), when they differ: an LED's arrows
+    pub above: Option<[f64; 3]>,
 }
 
 const fn volts(south: f64, bump: f64, label: f64) -> Volts {
-    Volts { half: None, from_node: 0.5, south, bump, label, shift: 0.0 }
+    Volts { half: None, from_node: 0.5, south, bump, label, shift: 0.0, above: None }
 }
 
 /// The voltages of the generic bipoles start nearer their ends.
@@ -623,6 +629,92 @@ const VOLTS: &[(&str, Volts)] = &[
     ("tlmic", volts(0.25, 0.375, 0.5479)),
     ("buzzer", volts(0.0, 0.0, 0.1353)),
     ("rbuzzer", volts(0.0, 0.0, 0.1353)),
+    ("empty diode", volts(0.2499, 0.375, 0.5478)),
+    ("empty Schottky diode", volts(0.2499, 0.375, 0.5478)),
+    ("empty Zener diode", volts(0.2499, 0.375, 0.5478)),
+    ("empty ZZener diode", volts(0.325, 0.8124, 0.829)),
+    ("empty tunnel diode", volts(0.2499, 0.375, 0.5478)),
+    ("empty photodiode", Volts { above: Some([0.45, 0.675, 0.8777]), ..volts(0.25, 0.375, 0.5479) }),
+    ("empty led", Volts { above: Some([0.45, 0.675, 0.8777]), ..volts(0.25, 0.375, 0.5479) }),
+    ("empty laser diode", Volts { above: Some([0.45, 0.675, 0.8777]), ..volts(0.25, 0.375, 0.5479) }),
+    ("empty varcap", volts(0.2499, 0.375, 0.5478)),
+    ("empty TVS diode", volts(0.325, 0.4875, 0.6715)),
+    ("empty Shockley diode", volts(0.2499, 0.375, 0.5478)),
+    ("empty bidirectionaldiode", volts(0.5501, 0.8251, 1.0429)),
+    ("full diode", volts(0.2499, 0.375, 0.5478)),
+    ("full Schottky diode", volts(0.2499, 0.375, 0.5478)),
+    ("full Zener diode", volts(0.2499, 0.375, 0.5478)),
+    ("full ZZener diode", volts(0.325, 0.8124, 0.829)),
+    ("full tunnel diode", volts(0.2499, 0.375, 0.5478)),
+    ("full photodiode", Volts { above: Some([0.45, 0.675, 0.8777]), ..volts(0.25, 0.375, 0.5479) }),
+    ("full led", Volts { above: Some([0.45, 0.675, 0.8777]), ..volts(0.25, 0.375, 0.5479) }),
+    ("full laser diode", Volts { above: Some([0.45, 0.675, 0.8777]), ..volts(0.25, 0.375, 0.5479) }),
+    ("full varcap", volts(0.2499, 0.375, 0.5478)),
+    ("full TVS diode", volts(0.325, 0.4875, 0.6715)),
+    ("full Shockley diode", volts(0.2499, 0.375, 0.5478)),
+    ("full bidirectionaldiode", volts(0.5501, 0.8251, 1.0429)),
+    ("stroke diode", volts(0.2499, 0.375, 0.5478)),
+    ("stroke Schottky diode", volts(0.2499, 0.375, 0.5478)),
+    ("stroke Zener diode", volts(0.2499, 0.375, 0.5478)),
+    ("stroke ZZener diode", volts(0.325, 0.8124, 0.829)),
+    ("stroke tunnel diode", volts(0.2499, 0.375, 0.5478)),
+    ("stroke photodiode", Volts { above: Some([0.45, 0.675, 0.8777]), ..volts(0.25, 0.375, 0.5479) }),
+    ("stroke led", Volts { above: Some([0.45, 0.675, 0.8777]), ..volts(0.25, 0.375, 0.5479) }),
+    ("stroke laser diode", Volts { above: Some([0.45, 0.675, 0.8777]), ..volts(0.25, 0.375, 0.5479) }),
+    ("stroke varcap", volts(0.2499, 0.375, 0.5478)),
+    ("stroke TVS diode", volts(0.325, 0.4875, 0.6715)),
+    ("empty triac", volts(0.5501, 0.9901, 0.9244)),
+    ("full triac", volts(0.5501, 0.9901, 0.9244)),
+    ("empty thyristor", Volts { above: Some([0.55, 1.1, 1.2453]), ..volts(0.25, 0.5001, 0.5854) }),
+    ("full thyristor", Volts { above: Some([0.55, 1.1, 1.2453]), ..volts(0.25, 0.5001, 0.5854) }),
+    ("stroke thyristor", Volts { above: Some([0.55, 1.1, 1.2453]), ..volts(0.25, 0.5001, 0.5854) }),
+    ("empty put", Volts { above: Some([0.5501, 0.8251, 1.0428]), ..volts(0.25, 0.375, 0.5479) }),
+    ("full put", Volts { above: Some([0.5501, 0.8251, 1.0428]), ..volts(0.25, 0.375, 0.5479) }),
+    ("stroke put", Volts { above: Some([0.5501, 0.8251, 1.0428]), ..volts(0.25, 0.375, 0.5479) }),
+    ("empty gto", Volts { above: Some([0.5501, 0.8251, 1.0428]), ..volts(0.25, 0.375, 0.5479) }),
+    ("full gto", Volts { above: Some([0.5501, 0.8251, 1.0428]), ..volts(0.25, 0.375, 0.5479) }),
+    ("stroke gto", Volts { above: Some([0.5501, 0.8251, 1.0428]), ..volts(0.25, 0.375, 0.5479) }),
+    ("empty gtobar", Volts { above: Some([0.5501, 0.8251, 1.0428]), ..volts(0.25, 0.375, 0.5479) }),
+    ("full gtobar", Volts { above: Some([0.5501, 0.8251, 1.0428]), ..volts(0.25, 0.375, 0.5479) }),
+    ("stroke gtobar", Volts { above: Some([0.5501, 0.8251, 1.0428]), ..volts(0.25, 0.375, 0.5479) }),
+    ("empty agtobar", Volts { above: Some([0.5501, 0.8251, 1.0428]), ..volts(0.25, 0.375, 0.5479) }),
+    ("full agtobar", Volts { above: Some([0.5501, 0.8251, 1.0428]), ..volts(0.25, 0.375, 0.5479) }),
+    ("stroke agtobar", Volts { above: Some([0.5501, 0.8251, 1.0428]), ..volts(0.25, 0.375, 0.5479) }),
+    ("empty igct", Volts { above: Some([0.5501, 0.8251, 1.0428]), ..volts(0.25, 0.375, 0.5479) }),
+    ("full igct", Volts { above: Some([0.5501, 0.8251, 1.0428]), ..volts(0.25, 0.375, 0.5479) }),
+    ("stroke igct", Volts { above: Some([0.5501, 0.8251, 1.0428]), ..volts(0.25, 0.375, 0.5479) }),
+    ("compact empty triac", volts(0.5501, 0.9901, 0.9244)),
+    ("compact full triac", volts(0.5501, 0.9901, 0.9244)),
+    ("compact empty thyristor", Volts { above: Some([0.4, 0.8, 0.9152]), ..volts(0.2499, 0.5, 0.5853) }),
+    ("compact full thyristor", Volts { above: Some([0.4, 0.8, 0.9152]), ..volts(0.2499, 0.5, 0.5853) }),
+    ("compact stroke thyristor", Volts { above: Some([0.4, 0.8, 0.9152]), ..volts(0.2499, 0.5, 0.5853) }),
+    ("compact empty put", Volts { above: Some([0.4, 0.6, 0.7952]), ..volts(0.2499, 0.375, 0.5478) }),
+    ("compact full put", Volts { above: Some([0.4, 0.6, 0.7952]), ..volts(0.2499, 0.375, 0.5478) }),
+    ("compact stroke put", Volts { above: Some([0.4, 0.6, 0.7952]), ..volts(0.2499, 0.375, 0.5478) }),
+    ("compact empty gto", Volts { above: Some([0.4, 0.6, 0.7952]), ..volts(0.2499, 0.375, 0.5478) }),
+    ("compact full gto", Volts { above: Some([0.4, 0.6, 0.7952]), ..volts(0.2499, 0.375, 0.5478) }),
+    ("compact stroke gto", Volts { above: Some([0.4, 0.6, 0.7952]), ..volts(0.2499, 0.375, 0.5478) }),
+    ("compact empty gtobar", Volts { above: Some([0.4, 0.6, 0.7952]), ..volts(0.2499, 0.375, 0.5478) }),
+    ("compact full gtobar", Volts { above: Some([0.4, 0.6, 0.7952]), ..volts(0.2499, 0.375, 0.5478) }),
+    ("compact stroke gtobar", Volts { above: Some([0.4, 0.6, 0.7952]), ..volts(0.2499, 0.375, 0.5478) }),
+    ("compact empty agtobar", Volts { above: Some([0.4, 0.6, 0.7952]), ..volts(0.2499, 0.375, 0.5478) }),
+    ("compact full agtobar", Volts { above: Some([0.4, 0.6, 0.7952]), ..volts(0.2499, 0.375, 0.5478) }),
+    ("compact stroke agtobar", Volts { above: Some([0.4, 0.6, 0.7952]), ..volts(0.2499, 0.375, 0.5478) }),
+    ("compact empty igct", Volts { above: Some([0.4, 0.6, 0.7952]), ..volts(0.2499, 0.375, 0.5478) }),
+    ("compact full igct", Volts { above: Some([0.4, 0.6, 0.7952]), ..volts(0.2499, 0.375, 0.5478) }),
+    ("compact stroke igct", Volts { above: Some([0.4, 0.6, 0.7952]), ..volts(0.2499, 0.375, 0.5478) }),
+    ("empty led@cathode", Volts { above: Some([0.45, 0.675, 0.8777]), ..volts(0.25, 0.375, 0.5479) }),
+    ("empty photodiode@cathode", Volts { above: Some([0.45, 0.675, 0.8777]), ..volts(0.25, 0.375, 0.5479) }),
+    ("empty ZZener diode@straight", volts(0.325, 0.8124, 0.829)),
+    ("empty TVS diode@straight", volts(0.325, 0.4875, 0.6715)),
+    ("full led@cathode", Volts { above: Some([0.45, 0.675, 0.8777]), ..volts(0.25, 0.375, 0.5479) }),
+    ("full photodiode@cathode", Volts { above: Some([0.45, 0.675, 0.8777]), ..volts(0.25, 0.375, 0.5479) }),
+    ("full ZZener diode@straight", volts(0.325, 0.8124, 0.829)),
+    ("full TVS diode@straight", volts(0.325, 0.4875, 0.6715)),
+    ("stroke led@cathode", Volts { above: Some([0.45, 0.675, 0.8777]), ..volts(0.25, 0.375, 0.5479) }),
+    ("stroke photodiode@cathode", Volts { above: Some([0.45, 0.675, 0.8777]), ..volts(0.25, 0.375, 0.5479) }),
+    ("stroke ZZener diode@straight", volts(0.325, 0.8124, 0.829)),
+    ("stroke TVS diode@straight", volts(0.325, 0.4875, 0.6715)),
 ];
 
 /// The voltage of a voltage source (and of a battery): a straight arrow across it, `[half its
@@ -670,13 +762,153 @@ impl Component {
     }
 }
 
+mod diodes;
 mod instruments;
 mod mechanicals;
 mod misc;
 mod sources;
 
 /// The tables of components, by group of the manual.
-const GROUPS: &[&[Component]] = &[COMPONENTS, sources::COMPONENTS, instruments::COMPONENTS, mechanicals::COMPONENTS, misc::COMPONENTS];
+const GROUPS: &[&[Component]] = &[COMPONENTS, sources::COMPONENTS, instruments::COMPONENTS, mechanicals::COMPONENTS, misc::COMPONENTS, diodes::COMPONENTS];
+
+/// The diodes' keys: the short ones (`D`, `sD`, `Ty`, `triac`…) follow the `diode` setting (`empty`,
+/// `full`, `stroke`; the styles `empty diodes`, `full diodes`, `stroke diodes`), the others name a
+/// shape (`D*` is always full).
+const DIODE_ALIASES: &[(&str, Target)] = &[
+    ("D", Diode("empty diode", "full diode", "stroke diode")),
+    ("sD", Diode("empty Schottky diode", "full Schottky diode", "stroke Schottky diode")),
+    ("zD", Diode("empty Zener diode", "full Zener diode", "stroke Zener diode")),
+    ("zzD", Diode("empty ZZener diode", "full ZZener diode", "stroke ZZener diode")),
+    ("tD", Diode("empty tunnel diode", "full tunnel diode", "stroke tunnel diode")),
+    ("pD", Diode("empty photodiode", "full photodiode", "stroke photodiode")),
+    ("leD", Diode("empty led", "full led", "stroke led")),
+    ("VC", Diode("empty varcap", "full varcap", "stroke varcap")),
+    ("tvsD", Diode("empty TVS diode", "full TVS diode", "stroke TVS diode")),
+    ("shD", Diode("empty Shockley diode", "full Shockley diode", "empty Shockley diode")),
+    ("biD", Diode("empty bidirectionaldiode", "full bidirectionaldiode", "empty bidirectionaldiode")),
+    ("Tr", Diode("empty triac", "full triac", "empty triac")),
+    ("Ty", Diode("empty thyristor", "full thyristor", "stroke thyristor")),
+    ("PUT", Diode("empty put", "full put", "stroke put")),
+    ("GTO", Diode("empty gto", "full gto", "stroke gto")),
+    ("GTOb", Diode("empty gtobar", "full gtobar", "stroke gtobar")),
+    ("aGTOb", Diode("empty agtobar", "full agtobar", "stroke agtobar")),
+    ("IGCT", Diode("empty igct", "full igct", "stroke igct")),
+    ("triac", Diode("empty triac", "full triac", "empty triac")),
+    ("thyristor", Diode("empty thyristor", "full thyristor", "stroke thyristor")),
+    ("put", Diode("empty put", "full put", "stroke put")),
+    ("gto", Diode("empty gto", "full gto", "stroke gto")),
+    ("gtobar", Diode("empty gtobar", "full gtobar", "stroke gtobar")),
+    ("agtobar", Diode("empty agtobar", "full agtobar", "stroke agtobar")),
+    ("igct", Diode("empty igct", "full igct", "stroke igct")),
+    ("empty diode", Fixed("empty diode")),
+    ("Do", Fixed("empty diode")),
+    ("empty Schottky diode", Fixed("empty Schottky diode")),
+    ("sDo", Fixed("empty Schottky diode")),
+    ("empty Zener diode", Fixed("empty Zener diode")),
+    ("zDo", Fixed("empty Zener diode")),
+    ("empty ZZener diode", Fixed("empty ZZener diode")),
+    ("zzDo", Fixed("empty ZZener diode")),
+    ("empty tunnel diode", Fixed("empty tunnel diode")),
+    ("tDo", Fixed("empty tunnel diode")),
+    ("empty photodiode", Fixed("empty photodiode")),
+    ("pDo", Fixed("empty photodiode")),
+    ("empty led", Fixed("empty led")),
+    ("leDo", Fixed("empty led")),
+    ("empty laser diode", Fixed("empty laser diode")),
+    ("lasD", Fixed("empty laser diode")),
+    ("empty varcap", Fixed("empty varcap")),
+    ("VCo", Fixed("empty varcap")),
+    ("empty TVS diode", Fixed("empty TVS diode")),
+    ("tvsDo", Fixed("empty TVS diode")),
+    ("empty Shockley diode", Fixed("empty Shockley diode")),
+    ("shDo", Fixed("empty Shockley diode")),
+    ("empty bidirectionaldiode", Fixed("empty bidirectionaldiode")),
+    ("biDo", Fixed("empty bidirectionaldiode")),
+    ("full diode", Fixed("full diode")),
+    ("D*", Fixed("full diode")),
+    ("full Schottky diode", Fixed("full Schottky diode")),
+    ("sD*", Fixed("full Schottky diode")),
+    ("full Zener diode", Fixed("full Zener diode")),
+    ("zD*", Fixed("full Zener diode")),
+    ("full ZZener diode", Fixed("full ZZener diode")),
+    ("zzD*", Fixed("full ZZener diode")),
+    ("full tunnel diode", Fixed("full tunnel diode")),
+    ("tD*", Fixed("full tunnel diode")),
+    ("full photodiode", Fixed("full photodiode")),
+    ("pD*", Fixed("full photodiode")),
+    ("full led", Fixed("full led")),
+    ("leD*", Fixed("full led")),
+    ("full laser diode", Fixed("full laser diode")),
+    ("lasD*", Fixed("full laser diode")),
+    ("full varcap", Fixed("full varcap")),
+    ("VC*", Fixed("full varcap")),
+    ("full TVS diode", Fixed("full TVS diode")),
+    ("tvsD*", Fixed("full TVS diode")),
+    ("full Shockley diode", Fixed("full Shockley diode")),
+    ("shD*", Fixed("full Shockley diode")),
+    ("full bidirectionaldiode", Fixed("full bidirectionaldiode")),
+    ("biD*", Fixed("full bidirectionaldiode")),
+    ("stroke diode", Fixed("stroke diode")),
+    ("D-", Fixed("stroke diode")),
+    ("stroke Schottky diode", Fixed("stroke Schottky diode")),
+    ("sD-", Fixed("stroke Schottky diode")),
+    ("stroke Zener diode", Fixed("stroke Zener diode")),
+    ("zD-", Fixed("stroke Zener diode")),
+    ("stroke ZZener diode", Fixed("stroke ZZener diode")),
+    ("zzD-", Fixed("stroke ZZener diode")),
+    ("stroke tunnel diode", Fixed("stroke tunnel diode")),
+    ("tD-", Fixed("stroke tunnel diode")),
+    ("stroke photodiode", Fixed("stroke photodiode")),
+    ("pD-", Fixed("stroke photodiode")),
+    ("stroke led", Fixed("stroke led")),
+    ("leD-", Fixed("stroke led")),
+    ("stroke laser diode", Fixed("stroke laser diode")),
+    ("lasD-", Fixed("stroke laser diode")),
+    ("stroke varcap", Fixed("stroke varcap")),
+    ("VC-", Fixed("stroke varcap")),
+    ("stroke TVS diode", Fixed("stroke TVS diode")),
+    ("tvsD-", Fixed("stroke TVS diode")),
+    ("empty triac", Fixed("empty triac")),
+    ("Tro", Fixed("empty triac")),
+    ("full triac", Fixed("full triac")),
+    ("Tr*", Fixed("full triac")),
+    ("empty thyristor", Fixed("empty thyristor")),
+    ("Tyo", Fixed("empty thyristor")),
+    ("full thyristor", Fixed("full thyristor")),
+    ("Ty*", Fixed("full thyristor")),
+    ("stroke thyristor", Fixed("stroke thyristor")),
+    ("Ty-", Fixed("stroke thyristor")),
+    ("empty put", Fixed("empty put")),
+    ("PUTo", Fixed("empty put")),
+    ("full put", Fixed("full put")),
+    ("PUT*", Fixed("full put")),
+    ("stroke put", Fixed("stroke put")),
+    ("PUT-", Fixed("stroke put")),
+    ("empty gto", Fixed("empty gto")),
+    ("GTOo", Fixed("empty gto")),
+    ("full gto", Fixed("full gto")),
+    ("GTO*", Fixed("full gto")),
+    ("stroke gto", Fixed("stroke gto")),
+    ("GTO-", Fixed("stroke gto")),
+    ("empty gtobar", Fixed("empty gtobar")),
+    ("GTObo", Fixed("empty gtobar")),
+    ("full gtobar", Fixed("full gtobar")),
+    ("GTOb*", Fixed("full gtobar")),
+    ("stroke gtobar", Fixed("stroke gtobar")),
+    ("GTOb-", Fixed("stroke gtobar")),
+    ("empty agtobar", Fixed("empty agtobar")),
+    ("aGTObo", Fixed("empty agtobar")),
+    ("full agtobar", Fixed("full agtobar")),
+    ("aGTOb*", Fixed("full agtobar")),
+    ("stroke agtobar", Fixed("stroke agtobar")),
+    ("aGTOb-", Fixed("stroke agtobar")),
+    ("empty igct", Fixed("empty igct")),
+    ("IGCTo", Fixed("empty igct")),
+    ("full igct", Fixed("full igct")),
+    ("IGCT*", Fixed("full igct")),
+    ("stroke igct", Fixed("stroke igct")),
+    ("IGCT-", Fixed("stroke igct")),
+];
 
 pub fn find(name: &str) -> Option<&'static Component> {
     GROUPS.iter().flat_map(|g| g.iter()).find(|c| c.name == name)
@@ -684,7 +916,7 @@ pub fn find(name: &str) -> Option<&'static Component> {
 
 /// Every key that names a component, and what it names.
 pub fn aliases() -> impl Iterator<Item = &'static (&'static str, Target)> {
-    ALIASES.iter().chain(SOURCE_ALIASES).chain(OTHER_ALIASES)
+    ALIASES.iter().chain(SOURCE_ALIASES).chain(OTHER_ALIASES).chain(DIODE_ALIASES)
 }
 
 pub fn target(key: &str) -> Option<Target> {

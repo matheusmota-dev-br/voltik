@@ -4,6 +4,17 @@ What changed in each release of voltik: the crates `voltik` and `voltik-cli`, `@
 
 Each release has a headline (the line under its title), what changed, and the figures of [`corpus/`](corpus) that show it (`Figures:`), drawn by the site with today's voltik. `scripts/release.sh` will not release a version without its section here, and makes the GitHub release from it.
 
+## Unreleased
+
+Diodes and the thyristors.
+
+- Every diode of the manual: plain, Schottky, Zener, ZZener, tunnel, photodiode, LED, laser, varcap, TVS, Shockley and bidirectional, empty, full and stroke (`D`, `D*`, `D-`…); the short keys follow the `diode` setting, the styles `empty diodes`, `full diodes`, `stroke diodes` and the package options `emptydiode`, `fulldiode`, `strokediode`.
+- The thyristor-like tripoles (`Tr`, `Ty`, `PUT`, `GTO`, `GTOb`, `aGTOb`, `IGCT`), legacy or `thyristor style=compact`, with their gate and anode and cathode anchors.
+- `led arrows from cathode`, `pd arrows to cathode` and `diode straight whiskers`, and their way back.
+- Their voltages as CircuiTikZ draws them, on each side: a voltage above an LED clears its arrows.
+
+Figures: `diodes` `rectifier-and-zener`
+
 ## 0.5.0 - 2026-10-28
 
 Sources, instruments and the other bipoles.
