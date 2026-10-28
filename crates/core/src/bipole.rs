@@ -20,7 +20,7 @@ pub fn setting(cx: &mut Context, key: &str) -> Result<String, Error> {
 }
 
 /// A circuitikz setting read as a number; `default` when empty or not a number.
-fn number(cx: &mut Context, key: &str, default: f64) -> f64 {
+pub fn number(cx: &mut Context, key: &str, default: f64) -> f64 {
     match setting(cx, key) {
         Ok(s) if !s.is_empty() && s != "none" => cx.number(Tokens::text(&s)).unwrap_or(default),
         _ => default,
@@ -389,6 +389,14 @@ fn anchors(cx: &mut Context, look: &Look, comp: &components::Component, name: &s
         ("north west", [-w, top]),
         ("south east", [w, bottom]),
         ("south west", [-w, bottom]),
+        ("n", [0.0, top]),
+        ("s", [0.0, bottom]),
+        ("e", [w, 0.0]),
+        ("w", [-w, 0.0]),
+        ("ne", [w, top]),
+        ("nw", [-w, top]),
+        ("se", [w, bottom]),
+        ("sw", [-w, bottom]),
     ];
     points.extend(comp.anchors.iter().copied());
     if comp.parts.iter().any(|p| matches!(p, Part::Wiper { .. })) {

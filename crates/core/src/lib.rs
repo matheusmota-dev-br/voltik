@@ -11,6 +11,7 @@
 pub mod bipole;
 pub mod components;
 pub mod label;
+pub mod nodes;
 pub mod vif;
 
 use tikra::extension::{Context, KeyFn, Library, Tokens};
@@ -29,6 +30,7 @@ const KEYS: &[(&str, KeyFn)] = &[
     ("/tikz/voltik/label", label::k_label),
     ("/tikz/voltik/ctikzset", k_ctikzset),
     ("/tikz/voltik/vif", vif::k_vif),
+    ("/tikz/voltik/shapes", nodes::k_shapes),
 ];
 
 /// The settings each class of components has (`resistors/scale`), with their initial values.
@@ -115,6 +117,10 @@ fn definitions() -> String {
         "i symbols/.style={/tikz/circuitikz/i symbols=true}".into(),
         "f symbols/.style={/tikz/circuitikz/f symbols=true}".into(),
     ];
+    // the node-style components, shapes of their own
+    for name in nodes::NODES.iter().map(|n| n.name).chain(nodes::TERMINALS.iter().copied()) {
+        keys.push(format!("{name}/.style={{shape={name}}}"));
+    }
     for (key, _) in components::ALIASES {
         keys.push(format!("{key}/.style={{voltik/component={{{key}}}{{#1}}}}"));
     }
@@ -167,7 +173,33 @@ fn definitions() -> String {
         "a2 halign".into(),
         "a2 valign".into(),
     ];
-    for class in ["resistors", "capacitors", "inductors"] {
+    // every class of the manual has them, even before voltik draws its components, so that
+    // `\ctikzset{diodes/scale=…}` is a setting and not TikZ's `scale`
+    for class in [
+        "resistors",
+        "capacitors",
+        "inductors",
+        "grounds",
+        "power supplies",
+        "connectors",
+        "diodes",
+        "batteries",
+        "sources",
+        "csources",
+        "instruments",
+        "mechanicals",
+        "misc",
+        "blocks",
+        "tubes",
+        "amplifiers",
+        "switches",
+        "logic ports",
+        "flipflops",
+        "muxdemuxes",
+        "chips",
+        "displays",
+        "default",
+    ] {
         for (key, initial) in CLASS_SETTINGS {
             s.push_str(&format!(",\n{class}/{key}/.initial={initial}"));
             settings.push(format!("{class}/{key}"));
@@ -184,6 +216,7 @@ fn definitions() -> String {
     // and its `name` names the component, whose anchors are then coordinates (`R1.north`)
     s.push_str("\\expandafter\\let\\csname pgfk@/tikz/voltik@name/.@cmd\\expandafter\\endcsname\\csname pgfk@/tikz/name/.@cmd\\endcsname\n");
     s.push_str("\\tikzset{name/.code={\\def\\voltik@name{#1}\\pgfkeys{/tikz/voltik@name={#1}}}}\n");
+    s.push_str("\\pgfkeys{/tikz/voltik/shapes}\n");
     s.push_str("\\tikzset{\n");
     for k in keys {
         s.push_str(&k);

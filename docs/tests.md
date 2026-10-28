@@ -5,7 +5,7 @@ Every circuit in the tests and in `corpus/` was written for this repository to e
 ## How to run
 
 ```console
-$ cargo test                                    # core, CLI and wasm (natively), 37 tests, under 3 s
+$ cargo test                                    # core, CLI and wasm (natively), 43 tests, under 3 s
 $ cargo llvm-cov --workspace --exclude voltik-python --summary-only   # coverage (cargo install cargo-llvm-cov)
 $ cargo clippy --all-targets -- -D warnings
 $ VOLTIK_UPDATE_BANNER=1 cargo test -p voltik --test banner   # redraws docs/banner.svg and docs/banner.png
@@ -27,6 +27,7 @@ Integration, in `crates/core/tests/`:
 |---|---:|---|
 | `bipoles.rs` | 14 | Every path-style component draws without warnings, in every style and filled; a component is its outline and two leads; `short` and `open` have no outline; `american`/`european` choose the resistor, the variable and the sensing components; `fill` fills the fillable components only; named components have anchors (`wiper`, `tip`, `label`, `midtap`…); poles by shorthand (`d-d`) and `bipole nodes`; class settings (`zigs`, `coils`, `width`) change the shape, the same in `\ctikzset`, in a `to[…]` and in a style defined with `\ctikzset`; labels and the siunitx shorthand; poles drawn over the wire; `mirror` and `invert` keep the leads outside; components inside a plain `tikzpicture`. |
 | `vif.rs` | 7 | Every voltage, current and flow variant draws in every voltage style and both directions, on a component and an open circuit; a current is an arrow head on the lead after the component, or before it with `>_`; the European arrow points by `voltage dir`, and `\usepackage[RPvoltages]{circuitikz}` sets it; American voltages are signs; the anchors (`R-Vfrom`, `R-Ipos`…), the labels' nodes and `\ctikzgetanchor`; a valueless `v` and `no v symbols`; `voltage shift`, `bump b`, `distance from node`, `current/distance` move them; two-line labels and `\SI`, `\qty`. |
+| `nodes.rs` | 6 | Every node component draws, filled, with its compass anchors; placed by its own anchors (a BNC by `zero`), a ground hangs from its point; terminals full, white or filled, sized by `nodes width`; the classes scale their components, and a class's scale is not the picture's; the supplies' text counts in the picture's size, the connectors' does not; buses, crossings and the IEC connector on paths, with short anchors. |
 | `corpus.rs` | 1 | Every circuit in `corpus/<topic>/` converts without warnings to SVG and PNG. |
 | `banner.rs` | 1 | `docs/banner.svg` and `docs/banner.png` are what the code draws today from `docs/banner.tex`. |
 

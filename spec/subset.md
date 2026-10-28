@@ -28,6 +28,21 @@ The shapes are measured on what CircuiTikZ draws (`tools/oracle/`), at their def
 | inductors | `L` (`inductor`), `vL`, `sL` | cute, American or European by the `inductor` setting: `inductors/coils` arches with loops (5, at least 2), plain arches (4, at least 1), or a solid box; variable; inductive sensor |
 | inductors | `cute inductor`, `american inductor`, `european inductor`, `variable cute inductor`, `variable american inductor`, `variable european inductor`, `cute inductive sensor`, `american inductive sensor`, `european inductive sensor`, `cute choke` | the same, whatever the setting; the choke has a core line |
 
+## Node-style components
+
+`\draw (0,0) node[ground] (G) {};` draws a component as a node: a node shape of its own (declared to tikra), with the component's anchors (`G.south`, `B.zero`, `S.socket center`), placed by them (`node[bnc, anchor=zero]`), turned and mirrored with the node (`rotate`, `xscale=-1`), and filled with its `fill` where the manual makes it fillable. Every node component has the compass anchors of its drawing (`north`, `south west`…, and `n`, `sw`, `left`, `right`); its `center` is the point it hangs from. Lines to it reach that point (to a terminal, its border).
+
+| Class (`…/scale`) | Keys |
+|---|---|
+| grounds | `ground`, `tlground`, `rground`, `sground`, `tground`, `nground`, `pground`, `cground`, `eground`, `eground2` |
+| power supplies | `vcc`, `vee` (the text above or below the arrow, at `text`) |
+| connectors | `bnc` (`hot`, `zero`, `shield`), `iecconnshape`, `iecsocketL`, `iecsocketR`, `iecplugL`, `iecplugR` (`plug center`, `socket center`) |
+| — | the terminals `circ`, `ocirc`, `diamondpole`, `odiamondpole`, `squarepole`, `osquarepole`, `rectjoinfill` (`nodes width`; the open ones white unless filled), the crossings `jump crossing`, `plain crossing`, the arrows `currarrow`, `inputarrow`, `trarrow`, `flowarrow` (`tip`, `btip`) |
+
+What counts in the picture's size is what CircuiTikZ counts: the drawing, the text of the supplies (not of the connectors), the BNC's square.
+
+Path-style, with the bipoles: `multiwire`, `bmultiwire`, `tmultiwire` (buses), `crossing` (`xing`), `iec connector` (`iecconn`, in the `connectors` class).
+
 ## Named components and their anchors
 
 `to[R, name=R1]` names the component, and its anchors become coordinates: `(R1.north)`, `(R1.wiper)`. Every component has `center`, `north`, `south`, `east`, `west` (and `left`, `right`), and the four corners of its band. Variable components have `wiper` and `tip` (the ends of the arrow); potentiometers `wiper` and `tip` (the ends of the wiper); sensors `wiper`, `tip` and `label` (the ends and the corner of the bar); the ferroelectric capacitor `kink left`, `kink right`, `curve left`, `curve right`; inductors `midtap` (on the coil, above or below as the coils fall), `core west` and `core east` (`bipoles/inductors/core distance` above the coil, 2pt) and the dots of mutual inductance `ul dot`, `ur dot`, `ll dot`, `lr dot` (`bipoles/inductors/dot x distance` and `dot y distance`, 4pt and 1pt, beyond the corners). The anchors are mirrored and inverted with the component. `(R1)` alone is not a coordinate.
@@ -66,6 +81,6 @@ The shapes are measured on what CircuiTikZ draws (`tools/oracle/`), at their def
 
 - Sources, batteries, diodes, transistors, op-amps, grounds and every other component of chapter 4 of the manual after the dynamical bipoles.
 - Voltages and currents of sources and batteries, which follow their own rules (`bipole/is voltage`, `override source vif`), and the experimental automatic voltages (`vif queue`, `\fixedvlen`).
-- Node-style components (`node[resistorshape]`, `node[ocirc]`), and a named bipole as a node of its own (`(R1)`).
+- Bipoles as nodes (`node[resistorshape]`), and a named bipole as a node of its own (`(R1)`); the customizations of the supplies' arrows (`monopoles/vcc/arrow`) and the `Jack Tap` arrow tip.
 - The fill and opacity of open poles set apart (`open poles fill`, `open poles opacity`), the arrow tips of tunable components and potentiometers (`tunable end arrow`, `wiper end arrow`), the zig-zag joins (`resistors/zigzag hook`, `zigzag stub`), the choke's lines (`twolineschoke`, `cthick`).
 - Straight labels on lines at angles that are not multiples of 90° (15°, 75°…) are a few points from where CircuiTikZ puts them.
