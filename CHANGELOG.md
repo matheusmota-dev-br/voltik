@@ -4,6 +4,18 @@ What changed in each release of voltik: the crates `voltik` and `voltik-cli`, `@
 
 Each release has a headline (the line under its title), what changed, and the figures of [`corpus/`](corpus) that show it (`Figures:`), drawn by the site with today's voltik. `scripts/release.sh` will not release a version without its section here, and makes the GitHub release from it.
 
+## Unreleased
+
+Every resistive bipole, capacitor and inductor of the manual, drawn as CircuiTikZ draws them.
+
+- The resistive bipoles: the generic ones (crossed, slashed, sine, tunable, asymmetric), memristors, variable resistors, potentiometers with `wiper pos`, resistive sensors, light-dependent resistors, varistors, photoresistors and thermistors, American and European.
+- The capacitors (curved, electrolytic, variable, sensing, piezoelectric, constant phase, ferroelectric) and the inductors in the three styles, cute, American and European, variable and sensing, and the cute choke.
+- `fill=` on a `to` fills the components the manual makes fillable; `name=` gives a component its anchors as coordinates (`P.wiper`, `L1.midtap`, `L1.core west`).
+- Poles `d`, and `bipole nodes={…}{…}` with circles, diamonds and squares; the class keys `height` and `modifier thickness`; the class keys in a `to[…]`, and styles defined with `\ctikzset`.
+- Labels keep out of each component's own band, above and below: a potentiometer's wiper pushes the label up, not the annotation down.
+
+Figures: `resistive-bipoles` `american-and-european-resistors` `capacitors` `inductors` `thermistor-bridge` `fills-and-poles` `class-settings`
+
 ## 0.1.0 - 2026-10-28
 
 The first components of CircuiTikZ, drawn as a library of tikra.

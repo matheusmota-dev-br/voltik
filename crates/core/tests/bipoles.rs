@@ -18,9 +18,60 @@ fn quiet(body: &str) -> voltik::Output {
 
 #[test]
 fn every_component_draws_without_warnings() {
-    for key in ["R", "resistor", "american resistor", "european resistor", "generic", "C", "capacitor", "L", "inductor", "cute inductor", "short", "open"] {
-        quiet(&format!("\\draw (0,0) to[{key}] (2,0);"));
+    for (key, _) in voltik::components::ALIASES {
+        for style in ["american", "european", "cute inductors"] {
+            quiet(&format!("\\draw[{style}] (0,0) to[{key}=$x$, fill=yellow] (2,0);"));
+        }
     }
+}
+
+#[test]
+fn the_style_chooses_the_variable_and_sensing_components() {
+    let american = paths(&quiet(r"\draw[american] (0,0) to[vR] (2,0) to[sL] (4,0);").svg);
+    let european = paths(&quiet(r"\draw[european] (0,0) to[vR] (2,0) to[sL] (4,0);").svg);
+    assert_ne!(american, european);
+}
+
+#[test]
+fn fill_fills_the_component_and_not_its_strokes() {
+    let filled = quiet(r"\draw (0,0) to[generic, fill=red] (2,0) to[C, fill=blue] (4,0);").svg;
+    assert!(filled.contains("fill=\"#ff0000\""), "{filled}");
+    assert!(filled.contains("fill=\"#0000ff\""), "{filled}");
+    // the American resistor is not fillable, the solid parts keep the stroke's color
+    let plain = quiet(r"\draw (0,0) to[R, fill=red] (2,0) to[ageneric] (4,0);").svg;
+    assert!(!plain.contains("fill=\"#ff0000\""), "{plain}");
+    assert!(plain.contains("fill=\"#000000\""), "{plain}");
+}
+
+#[test]
+fn named_components_have_anchors() {
+    let r = quiet(r"\draw (0,0) to[pR, name=P] (2,0); \draw[red] (P.wiper) -- (P.tip);");
+    // the wiper is straight above its tip, in the middle of the potentiometer
+    let d = r.svg.split("<path d=\"").find(|p| p.contains("stroke=\"#ff0000\"")).expect("the wire between the anchors");
+    let n: Vec<f64> = d[..d.find('"').unwrap()].split(['M', 'L', ' ']).filter_map(|t| t.parse().ok()).collect();
+    assert_eq!(n.len(), 4, "{d}");
+    assert!((n[0] - n[2]).abs() < 1e-3 && n[1] < n[3], "{n:?}");
+    // the others answer too, and a component without a name has none
+    quiet(r"\draw (0,0) to[sL, name=S] (2,0); \draw (S.label) -- (S.midtap) -- (S.core west) -- (S.ur dot) -- (S.north east);");
+    assert!(!convert(r"\draw (0,0) to[pR] (2,0); \draw (P.wiper) -- (0,1);").warnings.is_empty());
+}
+
+#[test]
+fn poles_by_shorthand_and_bipole_nodes() {
+    for poles in ["d-d", "o-d", "*-d", "bipole nodes={squarepole}{osquarepole}", "bipole nodes={odiamondpole, fill=red}{circ}"] {
+        let r = quiet(&format!(r"\draw (0,0) to[R, {poles}] (2,0);"));
+        assert!(r.svg.matches("<path").count() >= 4, "{poles}: {}", r.svg);
+    }
+}
+
+#[test]
+fn class_settings_in_a_to_and_ctikzset_styles() {
+    let wide = paths(&quiet(r"\draw (0,0) to[R, resistors/width=1.6] (4,0);").svg);
+    let set = paths(&quiet(r"\ctikzset{resistors/width=1.6} \draw (0,0) to[R] (4,0);").svg);
+    let styled = paths(&quiet(r"\ctikzset{wide/.style={resistors/width=1.6}} \draw (0,0) to[R, wide] (4,0);").svg);
+    assert_eq!(wide, set);
+    assert_eq!(wide, styled);
+    assert_ne!(wide, paths(&quiet(r"\draw (0,0) to[R] (4,0);").svg));
 }
 
 #[test]
