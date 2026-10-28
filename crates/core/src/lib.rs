@@ -71,7 +71,7 @@ fn definitions() -> String {
          bipoles/length/.initial=1.4cm, bipoles/thickness/.initial=2,\n\
          resistors/zigs/.initial=3, inductors/coils/.initial=, wiper pos/.initial=0.5, quadpoles style/.initial=, nodes width/.initial=0.04,\n\
          bipoles/inductors/core distance/.initial=2pt, bipoles/inductors/dot x distance/.initial=4pt, bipoles/inductors/dot y distance/.initial=1pt,\n\
-         resistor/.initial=american, inductor/.initial=cute, diode/.initial=empty, thyristor style/.initial=legacy, led arrows/.initial=anode, pd arrows/.initial=anode, diode whiskers/.initial=sloped,\n\
+         resistor/.initial=american, inductor/.initial=cute, diode/.initial=empty, thyristor style/.initial=legacy, led arrows/.initial=anode, pd arrows/.initial=anode, diode whiskers/.initial=sloped, tjumper connections/.initial=00,\n\
          led arrows from cathode/.style={led arrows=cathode}, led arrows from anode/.style={led arrows=anode}, pd arrows to cathode/.style={pd arrows=cathode},\n\
          pd arrows to anode/.style={pd arrows=anode}, diode straight whiskers/.style={diode whiskers=straight}, diode sloped whiskers/.style={diode whiskers=sloped}, voltage/.initial=european, current/.initial=european, voltage dir/.initial=noold,\n\
          voltage/distance from node/.initial=, voltage/bump b/.initial=, l2 halign/.initial=l, l2 valign/.initial=c, a2 halign/.initial=l, a2 valign/.initial=c, bipole/is voltage/.initial=true, bipole/is current/.initial=true, bipole/override source vif/.initial=false,\n\
@@ -162,6 +162,8 @@ fn definitions() -> String {
     ] {
         keys.push(format!("{key}/.style={{voltik/label={{{which}}}{{{side}}}{{#1}}}}"));
     }
+    // `n=R1`: a component's name, as `name=R1`
+    keys.push("n/.style={name={#1}}".into());
     // `t=…`: the text inside an instrument
     keys.push("t/.code={\\def\\voltik@t{#1}}".into());
     for (a, start) in POLES {
@@ -203,6 +205,7 @@ fn definitions() -> String {
         "led arrows".into(),
         "pd arrows".into(),
         "diode whiskers".into(),
+        "tjumper connections".into(),
     ];
     // every class of the manual has them, even before voltik draws its components, so that
     // `\ctikzset{diodes/scale=…}` is a setting and not TikZ's `scale`

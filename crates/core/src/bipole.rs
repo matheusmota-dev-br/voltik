@@ -127,6 +127,13 @@ fn component(cx: &mut Context) -> Result<Option<&'static components::Component>,
             return Ok(components::find(&format!("{name}{suffix}")));
         }
     }
+    // a three-pins jumper's connections
+    if name == "three-pins jumper" {
+        let connections = setting(cx, "tjumper connections")?;
+        if let Some(jumper) = components::find(&format!("{name}@{connections}")) {
+            return Ok(Some(jumper));
+        }
+    }
     Ok(components::find(name))
 }
 
@@ -400,6 +407,8 @@ fn draw_part(cx: &mut Context, look: &Look, comp: &components::Component, part: 
         Part::Modifier(ops) => format!("{}{};", stroke(look.modifier, "fill=none,"), look.path(ops)),
         Part::Stroke(k, ops) => format!("{}{};", stroke(k / 2.0 * look.thick, "fill=none,"), look.path(ops)),
         Part::Paint(color, ops) => format!("\\path[fill={{{color}}}]{};", look.path(ops)),
+        Part::Pole(ops) => format!("\\path[{}]{};", look.fill.clone().unwrap_or_else(|| "fill=white".into()), look.path(ops)),
+        Part::Lever(k, ops) => format!("{}{};", stroke(k * look.thin, "fill=none,line cap=round,"), look.path(ops)),
         Part::Thin(ops) => format!("{}{};", stroke(look.thin, "fill=none,"), look.path(ops)),
         Part::Solid(ops) => format!("\\fill[color=.]{};", look.path(ops)),
         Part::Arrow { from, to, thin } => arrow(look, from, to, if thin { look.thin } else { look.modifier }),

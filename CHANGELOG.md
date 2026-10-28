@@ -4,6 +4,16 @@ What changed in each release of voltik: the crates `voltik` and `voltik-cli`, `@
 
 Each release has a headline (the line under its title), what changed, and the figures of [`corpus/`](corpus) that show it (`Figures:`), drawn by the site with today's voltik. `scripts/release.sh` will not release a version without its section here, and makes the GitHub release from it.
 
+## Unreleased
+
+Switches, buttons and jumpers.
+
+- Every path-style switch of the manual: traditional (`spst`, `nos`, `ncs`, `cnos`…), push buttons, the toggle switch, the reed switch, the cute switches, the inline proximeter, the jumpers (`three-pins jumper` with `tjumper connections`) and the solder jumpers, with their anchors; their poles white unless filled.
+- The node-style `spdt`, `cute spdt up`, `cute spdt mid`, `cute spdt down` (and their `… arrow`) and `proximeter`, with their anchors, in the `switches` class.
+- `n=…`, the short form of a component's `name`.
+
+Figures: `switches`
+
 ## 0.6.0 - 2026-10-28
 
 Diodes and the thyristors.

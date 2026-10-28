@@ -4,14 +4,14 @@ How far voltik is from CircuiTikZ, measured by its manual (CircuiTikZ 1.8.7): ev
 shows and every entry of its list of components, drawn by pdflatex (TeX Live, CircuiTikZ 1.8.7) and by
 voltik, and compared. How it works and how to run it: [tools/conformance](../tools/conformance/README.md).
 
-**231 of 541 components (42.7%) and 214 of 505 examples (42.4%) match TeX.** Of all 1046 items, 53 are close, 548 differ and 0 fail in voltik; 27 of the ones that do not match came out with no warning.
+**272 of 541 components (50.3%) and 224 of 505 examples (44.4%) match TeX.** Of all 1046 items, 58 are close, 492 differ and 0 fail in voltik; 29 of the ones that do not match came out with no warning.
 
 | | Items | Match | Close | Different | Fails | Mean F1 |
 |---|---:|---:|---:|---:|---:|---:|
-| All | 1046 | 445 (42.5%) | 53 (5.1%) | 548 (52.4%) | 0 (0.0%) | 0.58 |
-| Examples of the manual | 505 | 214 (42.4%) | 50 (9.9%) | 241 (47.7%) | 0 (0.0%) | 0.59 |
-| Path-style components | 306 | 200 (65.4%) | 1 (0.3%) | 105 (34.3%) | 0 (0.0%) | 0.84 |
-| Node-style components | 235 | 31 (13.2%) | 2 (0.9%) | 202 (86.0%) | 0 (0.0%) | 0.20 |
+| All | 1046 | 496 (47.4%) | 58 (5.5%) | 492 (47.0%) | 0 (0.0%) | 0.60 |
+| Examples of the manual | 505 | 224 (44.4%) | 55 (10.9%) | 226 (44.8%) | 0 (0.0%) | 0.61 |
+| Path-style components | 306 | 232 (75.8%) | 1 (0.3%) | 73 (23.9%) | 0 (0.0%) | 0.86 |
+| Node-style components | 235 | 40 (17.0%) | 2 (0.9%) | 193 (82.1%) | 0 (0.0%) | 0.24 |
 
 *Match*: same shape (F1 ≥ 0.9 on the edges, with 0.5 mm of tolerance), no missing or extra piece, the same colors and size. *Close*: F1 ≥ 0.75.
 *Fails*: voltik returned an error, panicked or took more than 10 s. Mean F1 counts a failure as 0.
@@ -30,11 +30,9 @@ Sorted by how many items do not match, the work left.
 | The components: list › Block diagram components <sub>path</sub> | 64 | 0 (0.0%) | 0 (0.0%) | 64 (100.0%) | 0 (0.0%) | 0.40 |
 | The components: list › Transistors <sub>example</sub> | 44 | 0 (0.0%) | 0 (0.0%) | 44 (100.0%) | 0 (0.0%) | 0.10 |
 | The components: list › Logic gates <sub>node</sub> | 34 | 0 (0.0%) | 0 (0.0%) | 34 (100.0%) | 0 (0.0%) | 0.01 |
-| The components: list › Switches, buttons and jumpers <sub>path</sub> | 32 | 0 (0.0%) | 0 (0.0%) | 32 (100.0%) | 0 (0.0%) | 0.80 |
 | The components: list › Logic gates <sub>example</sub> | 30 | 0 (0.0%) | 1 (3.3%) | 29 (96.7%) | 0 (0.0%) | 0.12 |
 | The components: list › Block diagram components <sub>example</sub> | 26 | 0 (0.0%) | 1 (3.8%) | 25 (96.2%) | 0 (0.0%) | 0.26 |
 | The components: list › Amplifiers <sub>example</sub> | 20 | 0 (0.0%) | 0 (0.0%) | 20 (100.0%) | 0 (0.0%) | 0.03 |
-| The components: list › Switches, buttons and jumpers <sub>example</sub> | 19 | 0 (0.0%) | 1 (5.3%) | 18 (94.7%) | 0 (0.0%) | 0.32 |
 | The components: list › RF components <sub>node</sub> | 14 | 0 (0.0%) | 0 (0.0%) | 14 (100.0%) | 0 (0.0%) | 0.18 |
 | The components: list › Sources and generators <sub>example</sub> | 21 | 7 (33.3%) | 8 (38.1%) | 6 (28.6%) | 0 (0.0%) | 0.84 |
 | The components: list › Block diagram components <sub>node</sub> | 13 | 0 (0.0%) | 0 (0.0%) | 13 (100.0%) | 0 (0.0%) | 0.01 |
@@ -43,9 +41,9 @@ Sorted by how many items do not match, the work left.
 | The components: list › Electronic Tubes <sub>node</sub> | 12 | 0 (0.0%) | 0 (0.0%) | 12 (100.0%) | 0 (0.0%) | 0.04 |
 | The components: list › Flip-flops <sub>node</sub> | 12 | 0 (0.0%) | 0 (0.0%) | 12 (100.0%) | 0 (0.0%) | 0.05 |
 | The components: list › Amplifiers <sub>node</sub> | 11 | 0 (0.0%) | 0 (0.0%) | 11 (100.0%) | 0 (0.0%) | 0.01 |
+| The components: list › Switches, buttons and jumpers <sub>example</sub> | 19 | 8 (42.1%) | 4 (21.1%) | 7 (36.8%) | 0 (0.0%) | 0.68 |
 | The components: list › Instruments <sub>example</sub> | 18 | 8 (44.4%) | 6 (33.3%) | 4 (22.2%) | 0 (0.0%) | 0.82 |
 | The components: list › Double bipoles (transformers) <sub>node</sub> | 9 | 0 (0.0%) | 0 (0.0%) | 9 (100.0%) | 0 (0.0%) | 0.04 |
-| The components: list › Switches, buttons and jumpers <sub>node</sub> | 9 | 0 (0.0%) | 0 (0.0%) | 9 (100.0%) | 0 (0.0%) | 0.06 |
 | The components: list › Electronic Tubes <sub>example</sub> | 7 | 0 (0.0%) | 1 (14.3%) | 6 (85.7%) | 0 (0.0%) | 0.25 |
 | The components: list › Chips (integrated circuits) <sub>example</sub> | 6 | 0 (0.0%) | 0 (0.0%) | 6 (100.0%) | 0 (0.0%) | 0.12 |
 | The components: list › Logic gates <sub>path</sub> | 6 | 0 (0.0%) | 0 (0.0%) | 6 (100.0%) | 0 (0.0%) | 0.42 |
@@ -57,14 +55,13 @@ Sorted by how many items do not match, the work left.
 | Colors › Fill colors <sub>example</sub> | 8 | 4 (50.0%) | 0 (0.0%) | 4 (50.0%) | 0 (0.0%) | 0.55 |
 | Colors › Shape colors <sub>example</sub> | 7 | 3 (42.9%) | 1 (14.3%) | 3 (42.9%) | 0 (0.0%) | 0.57 |
 | The components: list › Flip-flops <sub>example</sub> | 4 | 0 (0.0%) | 0 (0.0%) | 4 (100.0%) | 0 (0.0%) | 0.04 |
-| The components: usage › Node-style components <sub>node</sub> | 4 | 0 (0.0%) | 0 (0.0%) | 4 (100.0%) | 0 (0.0%) | 0.00 |
-| Using bipoles in circuits › Mirroring and Inverting <sub>example</sub> | 7 | 3 (42.9%) | 0 (0.0%) | 4 (57.1%) | 0 (0.0%) | 0.73 |
 | Labels, voltages and currents › Currents <sub>example</sub> | 15 | 12 (80.0%) | 3 (20.0%) | 0 (0.0%) | 0 (0.0%) | 0.98 |
 | Labels, voltages and currents › Currents and voltages <sub>example</sub> | 12 | 9 (75.0%) | 3 (25.0%) | 0 (0.0%) | 0 (0.0%) | 0.97 |
 | The components: list › Arrows (fake and real) <sub>example</sub> | 4 | 1 (25.0%) | 1 (25.0%) | 2 (50.0%) | 0 (0.0%) | 0.69 |
 | The components: list › Electro-Mechanical Devices <sub>example</sub> | 3 | 0 (0.0%) | 0 (0.0%) | 3 (100.0%) | 0 (0.0%) | 0.52 |
 | The components: list › RF components <sub>example</sub> | 3 | 0 (0.0%) | 0 (0.0%) | 3 (100.0%) | 0 (0.0%) | 0.28 |
 | The components: list › RF components <sub>path</sub> | 3 | 0 (0.0%) | 0 (0.0%) | 3 (100.0%) | 0 (0.0%) | 0.44 |
+| The components: usage › Node-style components <sub>node</sub> | 4 | 1 (25.0%) | 0 (0.0%) | 3 (75.0%) | 0 (0.0%) | 0.25 |
 | Tutorials › A logic circuit <sub>example</sub> | 3 | 0 (0.0%) | 0 (0.0%) | 3 (100.0%) | 0 (0.0%) | 0.00 |
 | Colors <sub>example</sub> | 2 | 0 (0.0%) | 2 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0.97 |
 | Introduction › Scale factor inaccuracies <sub>example</sub> | 2 | 0 (0.0%) | 2 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0.93 |
@@ -76,6 +73,7 @@ Sorted by how many items do not match, the work left.
 | The components: usage › Node-style components <sub>example</sub> | 2 | 0 (0.0%) | 0 (0.0%) | 2 (100.0%) | 0 (0.0%) | 0.35 |
 | The components: usage › Path-style components <sub>example</sub> | 11 | 9 (81.8%) | 1 (9.1%) | 1 (9.1%) | 0 (0.0%) | 0.90 |
 | Tutorials › A transistor-based amplifier <sub>example</sub> | 2 | 0 (0.0%) | 0 (0.0%) | 2 (100.0%) | 0 (0.0%) | 0.15 |
+| Using bipoles in circuits › Mirroring and Inverting <sub>example</sub> | 7 | 5 (71.4%) | 2 (28.6%) | 0 (0.0%) | 0 (0.0%) | 0.98 |
 | Defining new components › Path-style component <sub>example</sub> | 3 | 2 (66.7%) | 1 (33.3%) | 0 (0.0%) | 0 (0.0%) | 0.98 |
 | Examples › 3-phases block schematic <sub>example</sub> | 1 | 0 (0.0%) | 0 (0.0%) | 1 (100.0%) | 0 (0.0%) | 0.10 |
 | Examples › A Sallen-Key cell <sub>example</sub> | 1 | 0 (0.0%) | 0 (0.0%) | 1 (100.0%) | 0 (0.0%) | 0.12 |
@@ -91,11 +89,12 @@ Sorted by how many items do not match, the work left.
 | Labels, voltages and currents › Advanced voltages, currents and flows <sub>example</sub> | 6 | 5 (83.3%) | 1 (16.7%) | 0 (0.0%) | 0 (0.0%) | 0.99 |
 | Labels, voltages and currents › Changing the style of labels, voltages, and other text ornaments <sub>example</sub> | 1 | 0 (0.0%) | 1 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0.93 |
 | The components: list › Connectors <sub>example</sub> | 8 | 7 (87.5%) | 1 (12.5%) | 0 (0.0%) | 0 (0.0%) | 0.98 |
-| The components: list › Diodes and such <sub>example</sub> | 6 | 5 (83.3%) | 1 (16.7%) | 0 (0.0%) | 0 (0.0%) | 0.95 |
+| The components: list › Diodes and such <sub>example</sub> | 6 | 5 (83.3%) | 1 (16.7%) | 0 (0.0%) | 0 (0.0%) | 0.96 |
 | The components: list › Grounds and supply voltages <sub>example</sub> | 2 | 1 (50.0%) | 0 (0.0%) | 1 (50.0%) | 0 (0.0%) | 0.52 |
 | The components: list › Miscellaneous bipoles and symbols <sub>path</sub> | 23 | 22 (95.7%) | 1 (4.3%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Resistive bipoles <sub>example</sub> | 6 | 5 (83.3%) | 1 (16.7%) | 0 (0.0%) | 0 (0.0%) | 0.99 |
 | The components: list › Seven segment displays <sub>node</sub> | 1 | 0 (0.0%) | 0 (0.0%) | 1 (100.0%) | 0 (0.0%) | 0.00 |
+| The components: list › Switches, buttons and jumpers <sub>node</sub> | 9 | 8 (88.9%) | 0 (0.0%) | 1 (11.1%) | 0 (0.0%) | 0.88 |
 | The components: usage › Styling circuits and components <sub>example</sub> | 1 | 0 (0.0%) | 0 (0.0%) | 1 (100.0%) | 0 (0.0%) | 0.20 |
 | Tutorials › A non-inverting op-amp amplifier <sub>node</sub> | 1 | 0 (0.0%) | 0 (0.0%) | 1 (100.0%) | 0 (0.0%) | 0.00 |
 | Tutorials › Getting started with : a current shunt <sub>example</sub> | 7 | 6 (85.7%) | 1 (14.3%) | 0 (0.0%) | 0 (0.0%) | 0.98 |
@@ -104,7 +103,7 @@ Sorted by how many items do not match, the work left.
 | Defining new components › Suggested setup <sub>example</sub> | 1 | 1 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | Defining new components › Suggested setup <sub>path</sub> | 1 | 1 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | Examples › A red diode <sub>example</sub> | 1 | 1 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0.99 |
-| Examples › Mixing circuits and graphs <sub>example</sub> | 1 | 1 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0.98 |
+| Examples › Mixing circuits and graphs <sub>example</sub> | 1 | 1 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0.99 |
 | Examples › Using the (experimental) siunitx syntax <sub>example</sub> | 2 | 2 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | FAQ: Frequently asked questions › Labels, voltages and currents woes <sub>example</sub> | 1 | 1 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | FAQ: Frequently asked questions › Using named nodes in circuits <sub>example</sub> | 4 | 4 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
@@ -129,6 +128,7 @@ Sorted by how many items do not match, the work left.
 | The components: list › Multiple wires (buses) <sub>path</sub> | 3 | 3 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Resistive bipoles <sub>path</sub> | 24 | 24 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Sources and generators <sub>path</sub> | 38 | 38 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
+| The components: list › Switches, buttons and jumpers <sub>path</sub> | 32 | 32 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Terminal shapes <sub>example</sub> | 1 | 1 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Terminal shapes <sub>node</sub> | 7 | 7 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0.99 |
 | The components: usage › Path-style components <sub>path</sub> | 3 | 3 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
@@ -143,7 +143,7 @@ The manual's list of components, group by group, with the ones voltik draws as T
 |---|---:|---:|---:|---|
 | Tutorials › A non-inverting op-amp amplifier | 1 | 0 | 0 |  |
 | The components: usage › Path-style components | 3 | 3 | 0 | `resistor` `pR` `ammeter` |
-| The components: usage › Node-style components | 4 | 0 | 0 |  |
+| The components: usage › Node-style components | 4 | 1 | 0 | `cute spdt down arrow` |
 | The components: list › Grounds and supply voltages | 12 | 12 | 0 | `ground` `tlground` `rground` `sground` `tground` `nground` `pground` `cground` `eground` `eground2` `vcc` `vee` |
 | The components: list › Resistive bipoles | 24 | 24 | 0 | `short` `generic` `xgeneric` `sgeneric` `singeneric` `tgeneric` `ageneric` `memristor` `R` `vR` `pR` `sR` `ldR` `R` `vR` `pR` `sR` `ldR` `varistor` `mov` `phR` `thR` `thRp` `thRn` |
 | The components: list › Capacitors and inductors: dynamical bipoles | 18 | 18 | 0 | `capacitor` `curved capacitor` `ecapacitor` `variable capacitor` `capacitive sensor` `piezoelectric` `cpe` `feC` `L` `vL` `sL` `L` `vL` `sL` `L` `vL` `sL` `cute choke` |
@@ -164,7 +164,7 @@ The manual's list of components, group by group, with the ones voltik draws as T
 | The components: list › Electro-Mechanical Devices | 2 | 0 | 0 |  |
 | The components: list › Double bipoles (transformers) | 9 | 0 | 0 |  |
 | The components: list › Amplifiers | 11 | 0 | 0 |  |
-| The components: list › Switches, buttons and jumpers | 41 | 0 | 0 |  |
+| The components: list › Switches, buttons and jumpers | 41 | 40 | 0 | `switch` `closing switch` `opening switch` `normal open switch` `normal closed switch` `opening normal closed switch` `closing normal closed switch` `opening normal open switch` `closing normal open switch` `push button` `normally closed push button` `normally open push button closed` `normally closed push button open` `toggle switch` `reed` `spdt` `cute closed switch` `cute open switch` `cute closing switch` `cute opening switch` `cute spdt up` `cute spdt mid` `cute spdt down` `cute spdt up arrow` `cute spdt mid arrow` `cute spdt down arrow` `proximeter` `inline proximeter` `bare jumper` `open jumper` `closed jumper` `three-pins jumper` `three-pins jumper` `three-pins jumper` `open solder jumper` `closed solder jumper` `open double solder jumper` `left double solder jumper` `right double solder jumper` `closed double solder jumper` |
 | The components: list › Logic gates | 40 | 0 | 0 |  |
 | The components: list › Flip-flops | 12 | 0 | 0 |  |
 | The components: list › Multiplexer and de-multiplexer | 6 | 0 | 0 |  |
@@ -179,9 +179,9 @@ Warnings, by how many items they appear in (the varying part replaced by …):
 
 | Items | Warning |
 |---:|---|
-| 586 | `option … not supported: ignored` |
-| 37 | `\draw: figure: unknown coordinate: (…); statement ignored` |
-| 29 | `unknown anchor …: center used` |
+| 535 | `option … not supported: ignored` |
+| 30 | `\draw: figure: unknown coordinate: (…); statement ignored` |
+| 28 | `unknown anchor …: center used` |
 | 11 | `\node: figure: unknown coordinate: (…); statement ignored` |
 | 10 | `\draw: figure: unknown anchor: C.pin N; statement ignored` |
 | 8 | `\draw: figure: unknown anchor: opamp.+; statement ignored` |
@@ -200,8 +200,8 @@ Warnings, by how many items they appear in (the varying part replaced by …):
 | 2 | `E-REC-N column N: unsupported text command: \height; written as is` |
 | 2 | `\draw: figure: unknown anchor: FF.pin N; statement ignored` |
 | 2 | `E-REC-N column N: unsupported text command: \ctikzflipy; written as is` |
-| 2 | `E-REC-N column N: unsupported text command: \ctikzflipx; written as is` |
 | 2 | `E-REC-N column N: unsupported text command: \ctikzflipxy; written as is` |
+| 2 | `E-REC-N column N: unsupported text command: \ctikzflipx; written as is` |
 | 2 | `unrecognized path fragment: …` |
 | 2 | `E-REC-N column N: unsupported text command: \qty; written as is` |
 | 2 | `\draw: figure: unknown anchor: PN.D; statement ignored` |
@@ -242,7 +242,6 @@ Components voltik does not know yet, by how many items use them:
 | 6 | `nmosd` |
 | 6 | `pmosd` |
 | 6 | `nigfetebulk` |
-| 6 | `cute spdt up` |
 | 5 | `nigbt` |
 | 5 | `pigbt` |
 | 5 | `pigfete` |
@@ -259,7 +258,6 @@ Components voltik does not know yet, by how many items use them:
 | 4 | `elmech` |
 | 4 | `double bipole` |
 | 4 | `fd op amp` |
-| 4 | `three-pins jumper` |
 | 4 | `qfpchip` |
 | 3 | `oscillator` |
 | 3 | `wilkinson` |
@@ -278,12 +276,14 @@ Components voltik does not know yet, by how many items use them:
 | 3 | `dynode` |
 | 3 | `inst amp` |
 | 3 | `fd inst amp` |
-| 3 | `open jumper` |
-| 3 | `closed jumper` |
 | 3 | `american and port` |
 | 3 | `american or port` |
-| 2 | `cute spdt down arrow` |
 | 2 | `rotaryswitch` |
+| 2 | `waves` |
+| 2 | `adder` |
+| 2 | `vco` |
+| 2 | `highpass` |
+| 2 | `allpass` |
 
 Other options voltik does not know, likewise:
 
@@ -320,7 +320,6 @@ Other options voltik does not know, likewise:
 | 6 | `bodydiode` |
 | 6 | `num pins` |
 | 6 | `outer label font` |
-| 5 | `n` |
 | 5 | `oscopeshape` |
 | 5 | `emitters` |
 | 5 | `nobase` |
@@ -329,6 +328,7 @@ Other options voltik does not know, likewise:
 | 5 | `number inputs` |
 | 4 | `arrow` |
 | 4 | `tert` |
+| 4 | `bjtnpn` |
 
 Errors of the items that fail:
 
