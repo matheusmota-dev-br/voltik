@@ -71,8 +71,9 @@ fn definitions() -> String {
          bipoles/length/.initial=1.4cm, bipoles/thickness/.initial=2,\n\
          resistors/zigs/.initial=3, inductors/coils/.initial=, wiper pos/.initial=0.5, quadpoles style/.initial=, nodes width/.initial=0.04,\n\
          bipoles/inductors/core distance/.initial=2pt, bipoles/inductors/dot x distance/.initial=4pt, bipoles/inductors/dot y distance/.initial=1pt,\n\
-         resistor/.initial=american, inductor/.initial=cute, voltage/.initial=european, voltage dir/.initial=noold,\n\
-         voltage/distance from node/.initial=, voltage/bump b/.initial=, l2 halign/.initial=l, l2 valign/.initial=c, a2 halign/.initial=l, a2 valign/.initial=c, voltage shift/.initial=0, current/distance/.initial=, flow/distance/.initial=, v symbols/.initial=true, i symbols/.initial=true, f symbols/.initial=true,\n\
+         resistor/.initial=american, inductor/.initial=cute, voltage/.initial=european, current/.initial=european, voltage dir/.initial=noold,\n\
+         voltage/distance from node/.initial=, voltage/bump b/.initial=, l2 halign/.initial=l, l2 valign/.initial=c, a2 halign/.initial=l, a2 valign/.initial=c, bipole/is voltage/.initial=true, bipole/is current/.initial=true, bipole/override source vif/.initial=false,\n\
+         voltage shift/.initial=0, current/distance/.initial=, flow/distance/.initial=, v symbols/.initial=true, i symbols/.initial=true, f symbols/.initial=true,\n\
          bipole label style/.style={}, bipole annotation style/.style={}, bipole voltage style/.style={}, bipole current style/.style={}, bipole flow style/.style={},\n\
          no v symbols/.style={v symbols=false}, no i symbols/.style={i symbols=false}, no f symbols/.style={f symbols=false},\n\
          voltage/american label distance/.initial=1.4, voltage/american font/.initial=, voltage/american plus/.initial=$+$, voltage/american minus/.initial=$\\vphantom{+}-$,\n\
@@ -92,11 +93,13 @@ fn definitions() -> String {
         "cute inductors/.style={/tikz/circuitikz/inductor=cute}".into(),
         "voltage dir/.style={/tikz/circuitikz/voltage dir=#1}".into(),
         "american voltages/.style={/tikz/circuitikz/voltage=american}".into(),
+        "american currents/.style={/tikz/circuitikz/current=american}".into(),
+        "european currents/.style={/tikz/circuitikz/current=european}".into(),
         "european voltages/.style={/tikz/circuitikz/voltage=european}".into(),
         "straight voltages/.style={/tikz/circuitikz/voltage=straight}".into(),
         "raised voltages/.style={/tikz/circuitikz/voltage=raised}".into(),
-        "american/.style={american resistors, american inductors, american voltages}".into(),
-        "european/.style={european resistors, european inductors, european voltages}".into(),
+        "american/.style={american resistors, american inductors, american voltages, american currents}".into(),
+        "european/.style={european resistors, european inductors, european voltages, european currents}".into(),
         "straight labels/.style={/tikz/circuitikz/label/align=straight}".into(),
         "rotate labels/.style={/tikz/circuitikz/label/align=rotate}".into(),
         "smart labels/.style={/tikz/circuitikz/label/align=smart}".into(),
@@ -121,8 +124,16 @@ fn definitions() -> String {
     for name in nodes::NODES.iter().map(|n| n.name).chain(nodes::TERMINALS.iter().copied()) {
         keys.push(format!("{name}/.style={{shape={name}}}"));
     }
-    for (key, _) in components::ALIASES {
-        keys.push(format!("{key}/.style={{voltik/component={{{key}}}{{#1}}}}"));
+    for (key, target) in components::aliases() {
+        keys.push(format!("{key}/.style={{voltik/component={{{key}}}{{#1}}{{}}}}"));
+        // a source's key takes the variants of its voltage or current (`I<=1A`, `V_>=…`)
+        if let components::Target::Fixed(n) | components::Target::Voltage(n, _) | components::Target::Current(n, _) = target {
+            if components::find(n).is_some_and(|c| c.source() != components::Source::Not) {
+                for variant in ["^", "_", ">", "<", "^>", "^<", "_>", "_<", ">^", ">_", "<^", "<_"] {
+                    keys.push(format!("{key}{variant}/.style={{voltik/component={{{key}}}{{#1}}{{{variant}}}}}"));
+                }
+            }
+        }
     }
     for (key, which, side) in [
         ("l", "l", 0),
@@ -140,6 +151,8 @@ fn definitions() -> String {
     ] {
         keys.push(format!("{key}/.style={{voltik/label={{{which}}}{{{side}}}{{#1}}}}"));
     }
+    // `t=…`: the text inside an instrument
+    keys.push("t/.code={\\def\\voltik@t{#1}}".into());
     for (a, start) in POLES {
         for (b, end) in POLES {
             if a.is_empty() && b.is_empty() {
@@ -172,6 +185,9 @@ fn definitions() -> String {
         "l2 valign".into(),
         "a2 halign".into(),
         "a2 valign".into(),
+        "bipole/is voltage".into(),
+        "bipole/is current".into(),
+        "bipole/override source vif".into(),
     ];
     // every class of the manual has them, even before voltik draws its components, so that
     // `\ctikzset{diodes/scale=…}` is a setting and not TikZ's `scale`
@@ -225,7 +241,7 @@ fn definitions() -> String {
     s.push_str("}\n");
     // the circuit's own defaults, reset at each `to`
     s.push_str(
-        "\\def\\voltik@kind{short}\\def\\voltik@ps{}\\def\\voltik@pe{}\\def\\voltik@mirror{0}\\def\\voltik@invert{0}\\def\\voltik@l{}\\def\\voltik@a{}\\def\\voltik@fill{}\\def\\voltik@name{}\\def\\voltik@v{}\\def\\voltik@i{}\\def\\voltik@f{}\\def\\voltik@llines{1}\\def\\voltik@alines{1}\\def\\voltik@von{0}\\def\\voltik@ion{0}\\def\\voltik@fon{0}\n",
+        "\\def\\voltik@kind{short}\\def\\voltik@ps{}\\def\\voltik@pe{}\\def\\voltik@mirror{0}\\def\\voltik@invert{0}\\def\\voltik@l{}\\def\\voltik@t{}\\def\\voltik@a{}\\def\\voltik@fill{}\\def\\voltik@name{}\\def\\voltik@v{}\\def\\voltik@i{}\\def\\voltik@f{}\\def\\voltik@llines{1}\\def\\voltik@alines{1}\\def\\voltik@von{0}\\def\\voltik@ion{0}\\def\\voltik@fon{0}\n",
     );
     s
 }
@@ -273,6 +289,8 @@ fn option_style(option: &str) -> Option<&'static str> {
         "european" => "european",
         "americanvoltages" | "americanvoltage" => "american voltages",
         "europeanvoltages" | "europeanvoltage" => "european voltages",
+        "americancurrents" | "americancurrent" => "american currents",
+        "europeancurrents" | "europeancurrent" => "european currents",
         "straightvoltages" => "straight voltages",
         "americanresistors" | "americanresistor" => "american resistors",
         "europeanresistors" | "europeanresistor" => "european resistors",

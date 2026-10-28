@@ -8,7 +8,7 @@
 
 use tikra::extension::{Context, Error, Point, Tokens, Transform, PT};
 
-use crate::components::{self, Leads, Op, Part, Target};
+use crate::components::{self, Leads, Op, Part, Source, Target};
 use crate::{label, vif};
 
 /// The `to path` of every component: place it, then the rest of the path.
@@ -39,11 +39,24 @@ fn present(value: &Option<Tokens>) -> Option<Tokens> {
 
 /// `voltik/component={name}{value}`: the `to` draws this component; the value, if any, is its label.
 pub fn k_component(cx: &mut Context, v: Option<Tokens>) -> Result<(), Error> {
-    let a = v.unwrap_or_default().arguments(2);
+    let a = v.unwrap_or_default().arguments(3);
     let name = cx.expand(a[0].clone())?;
-    cx.define("voltik@kind", Tokens::text(&name));
+    let variant = cx.expand(a[2].clone())?;
+    // a spark gap's circle keeps the dot given before it
+    if !(name == "sparkgap/circle" && cx.macro_text("voltik@kind") == "sparkgap/dot") {
+        cx.define("voltik@kind", Tokens::text(&name));
+    }
     if let Some(value) = present(&Some(a[1].clone())) {
-        label::set(cx, "l", 1, value);
+        // a source's value is its voltage or its current, with the key's variant (`I<=…`)
+        let kind = match components::target(&name) {
+            Some(Target::Fixed(n) | Target::Voltage(n, _) | Target::Current(n, _)) => components::find(n).map(|c| c.source()),
+            _ => None,
+        };
+        match kind {
+            Some(Source::Voltage) => vif::set(cx, "v", &variant, value),
+            Some(Source::Current) => vif::set(cx, "i", &variant, value),
+            _ => label::set(cx, "l", 1, value),
+        }
     }
     cx.keys(Tokens::text(TO_PATH))
 }
@@ -79,6 +92,14 @@ fn component(cx: &mut Context) -> Result<Option<&'static components::Component>,
             "american" => american,
             "european" => european,
             _ => cute,
+        },
+        Some(Target::Voltage(european, american)) => match setting(cx, "voltage")?.as_str() {
+            "american" | "raised" => american,
+            _ => european,
+        },
+        Some(Target::Current(european, american)) => match setting(cx, "current")?.as_str() {
+            "american" => american,
+            _ => european,
         },
         None => {
             cx.warn(format!("voltik: unknown component {kind}; drawn as a short"));
@@ -207,6 +228,10 @@ pub fn k_place(cx: &mut Context, _v: Option<Tokens>) -> Result<(), Error> {
 
     if !comp.parts.is_empty() {
         let mut code = String::new();
+        if comp.extent > 0.0 {
+            // room CircuiTikZ makes around it, beyond what it draws
+            code.push_str(&format!("\\path {} {};", look.at([0.0, comp.extent]), look.at([0.0, -comp.extent])));
+        }
         for part in comp.parts {
             code.push_str(&draw_part(cx, &look, comp, *part));
         }
@@ -230,6 +255,13 @@ pub fn k_place(cx: &mut Context, _v: Option<Tokens>) -> Result<(), Error> {
         ),
     };
     path.push_str(&label::nodes(cx, &placed, &frame, unit)?);
+    // `t=…`: upright in the middle of the component (below it on a screen's meter)
+    let t = cx.macro_body("voltik@t");
+    if !t.to_text().trim().is_empty() {
+        let low = if comp.name == "smeter" { 0.15 } else { 0.0 };
+        let at = placed.mid.minus(placed.normal.scale(low * y));
+        path.push_str(&format!(" node[anchor=center] at {} {{{}}}", frame.coordinate(at), label::units(&t.to_text())));
+    }
     let span = vif::Span { placed: &placed, frame: &frame, start, length, unit: unit * scale, y, half: width / 2.0, volts_half: comp.volts().half.map_or(width / 2.0, |h| h * x) };
     // a component voltik does not draw yet gets no voltage nor current: its convention is its own
     let drawn = if known.is_some() { vif::vif(cx, comp, &span, &name)? } else { vif::Drawn::default() };
@@ -345,6 +377,8 @@ fn draw_part(cx: &mut Context, look: &Look, comp: &components::Component, part: 
         }
         Part::Line(ops) => format!("{}{};", stroke(look.thick, "fill=none,"), look.path(ops)),
         Part::Modifier(ops) => format!("{}{};", stroke(look.modifier, "fill=none,"), look.path(ops)),
+        Part::Stroke(k, ops) => format!("{}{};", stroke(k / 2.0 * look.thick, "fill=none,"), look.path(ops)),
+        Part::Paint(color, ops) => format!("\\path[fill={{{color}}}]{};", look.path(ops)),
         Part::Thin(ops) => format!("{}{};", stroke(look.thin, "fill=none,"), look.path(ops)),
         Part::Solid(ops) => format!("\\fill[color=.]{};", look.path(ops)),
         Part::Arrow { from, to, thin } => arrow(look, from, to, if thin { look.thin } else { look.modifier }),
@@ -366,9 +400,26 @@ fn draw_part(cx: &mut Context, look: &Look, comp: &components::Component, part: 
             let ops = if part == Part::Coil { components::coil(half, h, count) } else { components::arches(half, h, count) };
             format!("{}{};", stroke(look.thick, "line join=bevel,fill=none,"), look.path_cm(&ops))
         }
-        Part::Text { at, shift, size, text } => {
+        Part::Text { at, shift, size, text, turn } => {
             let at = [at[0] + shift[0] * look.unit / look.x.max(1e-9), at[1] + shift[1] * look.unit / look.y.max(1e-9)];
-            format!("\\node[anchor=base west,inner sep=0pt,font=\\fontsize{{{size}}}{{{}}}\\selectfont] at {} {{{text}}};", size * 1.2, look.at(at))
+            // turned with the line, and with the component's mirror and inversion
+            let base = look.placed.angle + turn;
+            // upright text keeps its middle where it is on the component, wherever that turns
+            let point = if turn == 0.0 {
+                let pt = tikra::extension::PT;
+                let chars = text.chars().filter(|c| c.is_alphanumeric()).count().max(1) as f64;
+                let half = Point { x: 0.3 * size * chars * pt, y: 0.34 * size * pt };
+                let middle = look.canvas([at[0] + half.x / look.x.max(1e-9), at[1] + half.y / look.y.max(1e-9)]);
+                look.frame.coordinate(middle.minus(half))
+            } else {
+                look.at(at)
+            };
+            format!(
+                "\\node[anchor=base west,inner sep=0pt,rotate={},font=\\fontsize{{{size}}}{{{}}}\\selectfont] at {} {{{text}}};",
+                if turn == 0.0 { 0.0 } else { base },
+                size * 1.2,
+                point
+            )
         }
     }
 }

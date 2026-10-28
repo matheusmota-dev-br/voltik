@@ -20,7 +20,7 @@ test("every input form", () => {
 
 test("render returns the svg and the warnings", () => {
   assert.deepEqual(render(FIGURE).warnings, []);
-  const r = render(String.raw`\begin{circuitikz}\draw (0,0) to[V] (2,0);\end{circuitikz}`);
+  const r = render(String.raw`\begin{circuitikz}\draw (0,0) to[R, no such option] (2,0);\end{circuitikz}`);
   assert.match(r.svg, /^<svg/);
   assert.ok(r.warnings.length > 0);
   assert.equal(typeof r.warnings[0], "string");

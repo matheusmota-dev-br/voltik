@@ -25,7 +25,7 @@ def test_every_input_form():
 def test_render_reports_warnings():
     r = voltik.render(FIGURE)
     assert r["warnings"] == []
-    r = voltik.render(r"\begin{circuitikz}\draw (0,0) to[V] (2,0);\end{circuitikz}")
+    r = voltik.render(r"\begin{circuitikz}\draw (0,0) to[R, no such option] (2,0);\end{circuitikz}")
     assert r["svg"].startswith("<svg")
     assert r["warnings"]
 

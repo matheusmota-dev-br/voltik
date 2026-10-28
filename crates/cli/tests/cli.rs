@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::process::{Command, Output, Stdio};
 
 const FIGURE: &str = r"\begin{circuitikz} \draw (0,0) to[R=$R$] (2,0); \end{circuitikz}";
-const WITH_WARNING: &str = r"\begin{circuitikz} \draw (0,0) to[V] (2,0); \end{circuitikz}";
+const WITH_WARNING: &str = r"\begin{circuitikz} \draw (0,0) to[R, no such option] (2,0); \end{circuitikz}";
 
 fn voltik(args: &[&str], stdin: Option<&[u8]>) -> Output {
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_voltik"));
