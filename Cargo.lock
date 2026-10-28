@@ -645,9 +645,9 @@ checksum = "adb6935a6f5c20170eeceb1a3835a49e12e19d792f6dd344ccc76a985ca5a6ca"
 
 [[package]]
 name = "tikra"
-version = "1.4.1"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c19e7be6de0cc7102d182a4da20fa65302559f764cd6b3ccf8b4b0c1fdf457e7"
+checksum = "025c650292ac775e2c7dc7e4114507ec7ac8464a9b912a1521dc6d0759daf0db"
 dependencies = [
  "mathra",
  "resvg",

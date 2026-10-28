@@ -200,8 +200,8 @@ Warnings, by how many items they appear in (the varying part replaced by …):
 | 2 | `E-REC-N column N: unsupported text command: \height; written as is` |
 | 2 | `\draw: figure: unknown anchor: FF.pin N; statement ignored` |
 | 2 | `E-REC-N column N: unsupported text command: \ctikzflipy; written as is` |
-| 2 | `E-REC-N column N: unsupported text command: \ctikzflipxy; written as is` |
 | 2 | `E-REC-N column N: unsupported text command: \ctikzflipx; written as is` |
+| 2 | `E-REC-N column N: unsupported text command: \ctikzflipxy; written as is` |
 | 2 | `unrecognized path fragment: …` |
 | 2 | `E-REC-N column N: unsupported text command: \qty; written as is` |
 | 2 | `\draw: figure: unknown anchor: PN.D; statement ignored` |
