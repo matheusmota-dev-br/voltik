@@ -4,6 +4,17 @@ What changed in each release of voltik: the crates `voltik` and `voltik-cli`, `@
 
 Each release has a headline (the line under its title), what changed, and the figures of [`corpus/`](corpus) that show it (`Figures:`), drawn by the site with today's voltik. `scripts/release.sh` will not release a version without its section here, and makes the GitHub release from it.
 
+## Unreleased
+
+Sources, instruments and the other bipoles.
+
+- Every source of the manual: independent and controlled, voltage and current, American, European and cute (`american currents`, `european currents` and their package options), sinusoidal, square, triangle, noise, DC, the `oosource`s, `nullator` and `norator`; the batteries and solar cells.
+- Their voltages and currents as CircuiTikZ draws a source's: `V=…` and `I<=…` are the voltage and the current, a voltage source's voltage is a straight arrow across it, a current source's turns the other way; `bipole/is voltage`, `bipole/is current` and `bipole/override source vif`.
+- The instruments (`rmeter`, `smeter`, `ammeter`, `voltmeter`, `oscope`, the probes, `iloop`…) with `t=…`, the mechanical analogies (`spring`, `damper`, `mass`, `inerter`, `viscoe`), and the other bipoles: fuses, lamps, bulbs, spark gaps, loudspeaker, microphones, buzzers, `squid`, barriers, `relais`, `thermocouple`, surge arresters; the `dc symbol` and `ac symbol` nodes.
+- A component's built-in text stays upright and in its middle when the component turns.
+
+Figures: `sources` `instruments-and-more` `source-and-load`
+
 ## 0.4.0 - 2026-10-28
 
 Components as nodes, with anchors of their own.

@@ -26,6 +26,12 @@ The shapes are measured on what CircuiTikZ draws (`tools/oracle/`), at their def
 | resistors | `varistor`, `mov`, `phR` (`photoresistor`), `thR` (`thermistor`), `thRp` (`thermistor ptc`), `thRn` (`thermistor ntc`) | varistors, photoresistor, thermistors |
 | capacitors | `C` (`capacitor`), `cC` (`curved capacitor`), `eC` (`elko`, `ecapacitor`), `vC` (`variable capacitor`), `sC` (`capacitive sensor`), `PZ` (`piezoelectric`), `cpe`, `feC` (`ferrocap`) | plates 0.2 apart and 0.6 high (0.5 the electrolytic, 0.7 the piezoelectric) |
 | inductors | `L` (`inductor`), `vL`, `sL` | cute, American or European by the `inductor` setting: `inductors/coils` arches with loops (5, at least 2), plain arches (4, at least 1), or a solid box; variable; inductive sensor |
+| batteries | `battery`, `battery1`, `battery2`, `solar` (`pvmodule`'s cells)… | cells of plates, as the manual draws them |
+| sources | `V` (`vsource`), `I` (`isource`), `sV`, `sI`, `nV`, `nI`, `sqV`, `vsourcetri`, `esource`, `pvsource`, `pvmodule`, `dcvsource`, `dcisource`, `ioosource`, `voosource`, `oosourcetrans`, `nullator`, `norator`… | every independent source of the manual, American, European or cute by the `voltage` and `current` settings (`american currents`, `european currents`, and their package options); the noise sources gray |
+| csources | `cV`, `cI`, `cvsource`, `cisource`, `csV`, `csI`, `ecsource`… | the controlled sources, diamonds |
+| instruments | `rmeter`, `rmeterwa`, `smeter`, `ammeter`, `voltmeter`, `ohmmeter`, `qiprobe`, `qvprobe`, `qpprobe`, `oscope`, `iloop`, `iloop2`, `currtap` | `t=…` writes upright in the middle of the meter (below the screen's) |
+| mechanicals | `spring`, `damper`, `mass`, `inerter`, `viscoe` | the mechanical analogies |
+| misc | `fuse`, `afuse`, `wfuse`, `lamp`, `bulb`, `wbulb`, `neonlampcc`, `neonlampac`, `sparkgap` (`sparkgap/dot`, `sparkgap/circle`), `loudspeaker`, `mic`, `tlmic`, `buzzer`, `rbuzzer`, `squid`, `barrier`, `openbarrier`, `relais`, `thermocouple`, `european gas filled surge arrester`… | the other bipoles |
 | inductors | `cute inductor`, `american inductor`, `european inductor`, `variable cute inductor`, `variable american inductor`, `variable european inductor`, `cute inductive sensor`, `american inductive sensor`, `european inductive sensor`, `cute choke` | the same, whatever the setting; the choke has a core line |
 
 ## Node-style components
@@ -37,7 +43,7 @@ The shapes are measured on what CircuiTikZ draws (`tools/oracle/`), at their def
 | grounds | `ground`, `tlground`, `rground`, `sground`, `tground`, `nground`, `pground`, `cground`, `eground`, `eground2` |
 | power supplies | `vcc`, `vee` (the text above or below the arrow, at `text`) |
 | connectors | `bnc` (`hot`, `zero`, `shield`), `iecconnshape`, `iecsocketL`, `iecsocketR`, `iecplugL`, `iecplugR` (`plug center`, `socket center`) |
-| — | the terminals `circ`, `ocirc`, `diamondpole`, `odiamondpole`, `squarepole`, `osquarepole`, `rectjoinfill` (`nodes width`; the open ones white unless filled), the crossings `jump crossing`, `plain crossing`, the arrows `currarrow`, `inputarrow`, `trarrow`, `flowarrow` (`tip`, `btip`) |
+| — | the terminals `circ`, `ocirc`, `diamondpole`, `odiamondpole`, `squarepole`, `osquarepole`, `rectjoinfill` (`nodes width`; the open ones white unless filled), the crossings `jump crossing`, `plain crossing`, the arrows `currarrow`, `inputarrow`, `trarrow`, `flowarrow` (`tip`, `btip`), the symbols `dc symbol`, `ac symbol` |
 
 What counts in the picture's size is what CircuiTikZ counts: the drawing, the text of the supplies (not of the connectors), the BNC's square.
 
@@ -63,7 +69,8 @@ Path-style, with the bipoles: `multiwire`, `bmultiwire`, `tmultiwire` (buses), `
 - **Voltages,** `voltage` = `european` (a curved arrow under the component, bent by the component's own bump; `voltage/bump b`), `straight`, `american` (`+` and `-` at the ends, `voltage/american plus`, `american minus`, `american font`, `american label distance`) or `raised` (the signs at the label's height); the styles `european voltages`, `straight voltages`, `american voltages`, `raised voltages`, and `american`/`european`. A voltage spans from `voltage/distance from node` of the way between each end and the component; an open circuit's lies on the line. `voltage shift` moves it all away from the component.
 - **Direction:** `voltage dir` = `noold` (the package's default) and `EF` point the arrow from `+` to `-`, `RP` and `old` from `-` to `+`; with no `>` nor `<`, a passive component's voltage points to the end with the former, to the start with the latter. The document's `\usepackage[RPvoltages, american…]{circuitikz}` sets them (the voltage directions and the style options).
 - **Anchors:** a named component's voltage, current and flow have `R1-Vfrom`, `R1-Vto`, `R1-Vcont1`, `R1-Vcont2`, `R1-Vlab`, `R1-Ifrom`, `R1-Ito`, `R1-Ipos`, `R1-Ffrom`, `R1-Fto`, `R1-Fpos`, their labels are the nodes `R1voltage`, `R1current`, `R1flow` (`bipole voltage style`…), and `\ctikzgetanchor{R1}{Vlab}` gives the label's anchor. `no v symbols`, `no i symbols`, `no f symbols` keep only the labels.
-- The shapes and places are measured on what CircuiTikZ draws, component by component (`components::VOLTS`).
+- **Sources:** a source's value is its voltage or its current (`V=$u$` is `V, v=$u$`; `I<=$a$` is `I, i<=$a$`); a component's own value stays its label. A voltage source's voltage (a battery's too) is a straight arrow across it, above it, pointing to its end in every convention, or `+` and `-` in the American styles; a current source's is the curved arrow the other way round from a passive component's; a voltage source's current goes out of its end. `bipole/is voltage=false`, `bipole/is current=false` and `bipole/override source vif` draw them as a passive component's.
+- The shapes and places are measured on what CircuiTikZ draws, component by component (`components::VOLTS`, `SOURCE_VOLTS`).
 
 ## Poles and orientation
 
@@ -79,8 +86,8 @@ Path-style, with the bipoles: `multiwire`, `bmultiwire`, `tmultiwire` (buses), `
 
 ## Out, for now
 
-- Sources, batteries, diodes, transistors, op-amps, grounds and every other component of chapter 4 of the manual after the dynamical bipoles.
-- Voltages and currents of sources and batteries, which follow their own rules (`bipole/is voltage`, `override source vif`), and the experimental automatic voltages (`vif queue`, `\fixedvlen`).
+- Diodes, transistors, op-amps, the transformers and the other components of chapter 4 of the manual after the miscellaneous bipoles.
+- The sources' own keys (`prim`, `sec`, `tert` and the windings of the `oosource`s, `sign rotation`), the oscilloscope's `waveform`, the instruments' `rotated instruments`, the `sparkgap end arrow`, and the experimental automatic voltages (`vif queue`, `\fixedvlen`).
 - Bipoles as nodes (`node[resistorshape]`), and a named bipole as a node of its own (`(R1)`); the customizations of the supplies' arrows (`monopoles/vcc/arrow`) and the `Jack Tap` arrow tip.
 - The fill and opacity of open poles set apart (`open poles fill`, `open poles opacity`), the arrow tips of tunable components and potentiometers (`tunable end arrow`, `wiper end arrow`), the zig-zag joins (`resistors/zigzag hook`, `zigzag stub`), the choke's lines (`twolineschoke`, `cthick`).
 - Straight labels on lines at angles that are not multiples of 90° (15°, 75°…) are a few points from where CircuiTikZ puts them.

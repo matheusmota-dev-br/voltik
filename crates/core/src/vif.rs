@@ -13,7 +13,7 @@
 use tikra::extension::{Context, Error, Point, Tokens, PT};
 
 use crate::bipole::{setting, Frame, Placed};
-use crate::components::{self, Component, Leads};
+use crate::components::{self, Component, Leads, Source};
 use crate::label;
 
 /// Records a voltage, current or flow: `voltik/vif={kind}{variant}{text}`. Without a value
@@ -27,6 +27,25 @@ pub fn k_vif(cx: &mut Context, v: Option<Tokens>) -> Result<(), Error> {
     cx.define_text(&format!("voltik@{kind}on"), "1", false);
     cx.define_text(&format!("voltik@{kind}spec"), &variant, false);
     Ok(())
+}
+
+/// What a component is for its voltages and currents: a source, unless `bipole/is voltage=false`,
+/// `bipole/is current=false` or `bipole/override source vif` make it a passive one.
+fn source(cx: &mut Context, comp: &Component) -> Result<Source, Error> {
+    let off = |cx: &mut Context, key: &str| setting(cx, key).map(|v| v == "false");
+    Ok(match comp.source() {
+        _ if setting(cx, "bipole/override source vif")? == "true" => Source::Not,
+        Source::Voltage if off(cx, "bipole/is voltage")? => Source::Not,
+        Source::Current if off(cx, "bipole/is current")? => Source::Not,
+        s => s,
+    })
+}
+
+/// Records a voltage (`v`) or a current (`i`) of a variant, as a source's value does.
+pub fn set(cx: &mut Context, kind: &str, variant: &str, text: Tokens) {
+    cx.define(&format!("voltik@{kind}"), text);
+    cx.define_text(&format!("voltik@{kind}spec"), variant, false);
+    cx.define_text(&format!("voltik@{kind}on"), "1", false);
 }
 
 /// A variant read: the side (1 the left of the path), the direction (1 toward its end) and whether
@@ -132,7 +151,11 @@ pub fn vif(cx: &mut Context, comp: &Component, span: &Span, name: &str) -> Resul
         }
         let text = label::units(&cx.macro_body(&format!("voltik@{kind}")).to_text());
         let symbols = setting(cx, &format!("{kind} symbols"))? != "false";
-        let spec = cx.macro_text(&format!("voltik@{kind}spec"));
+        let mut spec = cx.macro_text(&format!("voltik@{kind}spec"));
+        // a voltage source's current goes out of it the other way with electric-field voltages
+        if kind == "i" && spec.is_empty() && source(cx, comp)? == Source::Voltage && !matches!(setting(cx, "voltage dir")?.as_str(), "RP" | "old") {
+            spec = "<".into();
+        }
         let v = if kind == "i" { current_variant(&spec) } else { variant(&spec, 1.0, true) };
         let (a, b) = if v.at_start { leads[0] } else { leads[1] };
         // `current/distance` and `flow/distance` (0.5) of the way along the lead, in the path's way
@@ -194,7 +217,14 @@ fn voltage(cx: &mut Context, comp: &Component, span: &Span, name: &str, out: &mu
     // the arrow points to the start by default with rising-potential voltages (`RP`, `old`), to the
     // end with electric-field ones (`EF`, `noold`, the package's default); `>` and `<` say it
     let rising = matches!(setting(cx, "voltage dir")?.as_str(), "RP" | "old");
-    let v = variant(&cx.macro_text("voltik@vspec"), -1.0, !rising);
+    // a source's voltage is the other way round from a passive component's; a voltage source's
+    // is a straight arrow above it, pointing to its end
+    let source = source(cx, comp)?;
+    let v = match source {
+        Source::Voltage => variant(&cx.macro_text("voltik@vspec"), 1.0, true),
+        Source::Current => variant(&cx.macro_text("voltik@vspec"), -1.0, rising),
+        Source::Not => variant(&cx.macro_text("voltik@vspec"), -1.0, !rising),
+    };
     let volts = comp.volts();
     let style = setting(cx, "voltage")?;
     let from_node = match (volts.from_node, number(cx, "voltage/distance from node")) {
@@ -219,7 +249,7 @@ fn voltage(cx: &mut Context, comp: &Component, span: &Span, name: &str, out: &mu
     let (minus, plus) = if rising { (tail, tip) } else { (tip, tail) };
     let y = span.y;
     // `voltage shift` moves everything of the voltage out by that many times 0.08
-    let push = number(cx, "voltage shift").unwrap_or(0.0) * VOLTAGE_SHIFT * u;
+    let push = number(cx, "voltage shift").unwrap_or(0.0) * VOLTAGE_SHIFT * u + volts.shift * y;
     let straight = push + if open { 0.0 } else { (1.1 * volts.south + VOLTAGE_SHIFT) * y };
     // how far the straight and American labels' nodes are from their line
     let straight_label = if open { CURRENT_LABEL } else { STRAIGHT_LABEL } * u - VOLTAGE_SEP;
@@ -229,7 +259,28 @@ fn voltage(cx: &mut Context, comp: &Component, span: &Span, name: &str, out: &mu
     let sep = format!("inner sep={}cm,", num(VOLTAGE_SEP));
     let label_options = options(name, "voltage", &sep);
     let (from, to, cont, lab, lab_anchor);
-    match style.as_str() {
+    let style = match (source, style.as_str()) {
+        (Source::Voltage, "american" | "raised") => "source label",
+        (Source::Voltage, _) => "source",
+        (_, s) => s,
+    };
+    match style {
+        "source" | "source label" => {
+            // across the source, `half` each side of its middle, `above` the line
+            let [half, above, gap] = comp.source_volts().unwrap_or([0.2286, 0.396, 0.1153]);
+            let across = side * (above * y + push);
+            let (a, b) = if v.forward { (mid - half * u, mid + half * u) } else { (mid + half * u, mid - half * u) };
+            from = span.at(a, across);
+            to = span.at(b, across);
+            cont = [from.lerp(to, 0.5), from.lerp(to, 0.5)];
+            if symbols && style == "source" {
+                out.draw.push_str(&format!("\\draw[-,solid,line width={}cm] {} -- {};", num(thin), span.frame.coordinate(from), span.frame.coordinate(to)));
+                let dir = if v.forward { 1.0 } else { -1.0 };
+                out.draw.push_str(&head(span, to, span.placed.along.scale(dir), u, thin));
+            }
+            lab = span.at(mid, across + side * (gap * y - VOLTAGE_SEP));
+            lab_anchor = anchor.clone();
+        }
         "american" | "raised" => {
             let raised = style == "raised" || open;
             let across = if raised && !open { side * (straight + (STRAIGHT_LABEL + RAISED) * u) } else { side * push };

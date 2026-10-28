@@ -22,7 +22,8 @@ fn render_carries_svg_and_warnings() {
     assert_eq!(json["description"], "図中のテキスト：R。");
     assert_eq!(svg(FIGURE, Some("ja".into()), None, None).unwrap().split("</metadata>").nth(1), svg(FIGURE, None, None, None).unwrap().split("</metadata>").nth(1));
     assert_eq!(json["warnings"], serde_json::json!([]));
-    let json: serde_json::Value = serde_json::from_str(&convert_json(r"\begin{circuitikz}\draw (0,0) to[V] (2,0);\end{circuitikz}", None, None, None).unwrap()).unwrap();
+    let json: serde_json::Value =
+        serde_json::from_str(&convert_json(r"\begin{circuitikz}\draw (0,0) to[R, no such option] (2,0);\end{circuitikz}", None, None, None).unwrap()).unwrap();
     assert!(!json["warnings"].as_array().unwrap().is_empty());
 }
 

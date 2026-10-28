@@ -46,9 +46,13 @@ pub enum Part {
     Coil,
     /// Plain arches side by side (the American inductor), `inductors/coils` of them.
     Arches,
-    /// Text in a font of `size` pt, its baseline starting at the point, `shift` away from it: the
-    /// point stretches with the component, the shift does not.
-    Text { at: [f64; 2], shift: [f64; 2], size: f64, text: &'static str },
+    /// Stroked `k` times as wide as the component's outline (a battery's thick plate, 3).
+    Stroke(f64, &'static [Op]),
+    /// Filled with a color of its own (a noise source's gray, a fuse's white).
+    Paint(&'static str, &'static [Op]),
+    /// Text in a font of `size` pt, its baseline starting at the point, `shift` away from it, turned
+    /// by `turn` degrees: the point stretches with the component, the shift does not.
+    Text { at: [f64; 2], shift: [f64; 2], size: f64, text: &'static str, turn: f64 },
 }
 
 use Part::{Arrow, Body, Fill, Line, Modifier, Solid, Text, Thin};
@@ -61,6 +65,12 @@ pub enum Class {
     Capacitors,
     Inductors,
     Connectors,
+    Batteries,
+    Sources,
+    CSources,
+    Instruments,
+    Mechanicals,
+    Misc,
 }
 
 impl Class {
@@ -71,6 +81,12 @@ impl Class {
             Class::Capacitors => "capacitors",
             Class::Inductors => "inductors",
             Class::Connectors => "connectors",
+            Class::Batteries => "batteries",
+            Class::Sources => "sources",
+            Class::CSources => "csources",
+            Class::Instruments => "instruments",
+            Class::Mechanicals => "mechanicals",
+            Class::Misc => "misc",
         }
     }
 }
@@ -103,20 +119,27 @@ pub struct Component {
     pub leads: Leads,
     pub parts: &'static [Part],
     pub anchors: &'static [(&'static str, [f64; 2])],
+    /// how far above and below the line it counts in the picture's size beyond its drawing
+    pub extent: f64,
 }
 
-const fn bipole(name: &'static str, class: Class, width: f64, height: f64, parts: &'static [Part]) -> Component {
-    Component { name, class, width, height, ratio: 1.0, top: height / 2.0, bottom: height / 2.0, leads: Leads::Ends, parts, anchors: &[] }
+pub(crate) const fn bipole(name: &'static str, class: Class, width: f64, height: f64, parts: &'static [Part]) -> Component {
+    Component { name, class, width, height, ratio: 1.0, top: height / 2.0, bottom: height / 2.0, leads: Leads::Ends, parts, anchors: &[], extent: 0.0 }
 }
 
 impl Component {
     /// How far it reaches above and below the line, when that is not its height.
-    const fn band(self, top: f64, bottom: f64) -> Component {
+    pub(crate) const fn band(self, top: f64, bottom: f64) -> Component {
         Component { top, bottom, ..self }
     }
 
-    const fn anchors(self, anchors: &'static [(&'static str, [f64; 2])]) -> Component {
+    pub(crate) const fn anchors(self, anchors: &'static [(&'static str, [f64; 2])]) -> Component {
         Component { anchors, ..self }
+    }
+
+    /// How far above and below the line it counts in the picture's size.
+    pub(crate) const fn extent(self, extent: f64) -> Component {
+        Component { extent, ..self }
     }
 
     /// The width over a `width` setting.
@@ -169,7 +192,7 @@ const CIRCLE: &[Op] = &[
 const LIGHT: [Part; 2] = [Arrow { from: [0.56, 0.56], to: [0.32, 0.32], thin: false }, Arrow { from: [0.64, 0.48], to: [0.4, 0.24], thin: false }];
 /// The wire inside a light-dependent resistor, from its circle to the resistor inside.
 const INNER_LEADS: &[Op] = &[M(-0.408, 0.0), L(-0.328, 0.0), M(0.408, 0.0), L(0.328, 0.0)];
-const THETA: Part = Text { at: [-0.3937, -0.3684], shift: [0.0, 0.0], size: 5.0, text: "$\\vartheta$" };
+const THETA: Part = Text { at: [-0.3937, -0.3684], shift: [0.0, 0.0], size: 5.0, text: "$\\vartheta$", turn: 0.0 };
 const EURO_INDUCTOR: [Part; 2] = [Solid(BOX), Line(BOX)];
 const EURO_VARIABLE_INDUCTOR: [Part; 2] = [Solid(TBOX), Line(TBOX)];
 /// The plates of the electrolytic capacitor: the positive one open, the negative one solid.
@@ -234,7 +257,7 @@ pub const COMPONENTS: &[Component] = &[
     bipole("variable european resistor", Class::Resistors, 0.8, 0.28, &[Body(TBOX), TUNABLE]).band(0.35, 0.35).anchors(&[("wiper", [-0.2, -0.35]), ("tip", [0.2, 0.35])]),
     resistor("european potentiometer", &[Body(BOX), Part::Wiper { thin: true }]).band(0.4, 0.15),
     bipole("european light dependent resistor", Class::Resistors, 0.8, 0.8, &[Body(CIRCLE), LIGHT[0], LIGHT[1], Line(INNER_LEADS), Line(rect!(0.32, 0.12))]),
-    resistor("varistor", &[Body(BOX), Modifier(VARISTOR_BAR), Text { at: [-0.3058, -0.344], shift: [0.0, 0.0], size: 5.0, text: "U" }]).band(0.214, 0.214),
+    resistor("varistor", &[Body(BOX), Modifier(VARISTOR_BAR), Text { at: [-0.3058, -0.344], shift: [0.0, 0.0], size: 5.0, text: "U", turn: 0.0 }]).band(0.214, 0.214),
     resistor("mov", &[Body(BOX), Modifier(&[M(0.4, 0.2353), L(0.28, 0.2353), L(-0.28, -0.2354), L(-0.4, -0.2354)])]).band(0.214, 0.214),
     resistor("photoresistor", &[Body(BOX), Arrow { from: [0.28, 0.3], to: [0.12, 0.18], thin: true }, Arrow { from: [0.18, 0.3], to: [0.02, 0.18], thin: true }]).band(0.3, 0.15),
     resistor("thermistor", &[Body(BOX), Modifier(THERMAL_BAR)]).band(0.214, 0.214).anchors(&[("wiper", [-0.4, -0.2568]), ("tip", [0.4, 0.214]), ("label", [-0.16, -0.2568])]),
@@ -282,7 +305,7 @@ pub const COMPONENTS: &[Component] = &[
         Class::Capacitors,
         0.2,
         0.5,
-        &[Body(ELKO_PLUS), Solid(ELKO_MINUS), Line(ELKO_MINUS), Text { at: [-0.12, 0.15], shift: [-0.1609, -0.0376], size: 6.0, text: "+" }],
+        &[Body(ELKO_PLUS), Solid(ELKO_MINUS), Line(ELKO_MINUS), Text { at: [-0.12, 0.15], shift: [-0.1609, -0.0376], size: 6.0, text: "+", turn: 0.0 }],
     ),
     capacitor("variable capacitor", &[Fill(BETWEEN_PLATES), Line(PLATES), Arrow { from: [-0.3, -0.3], to: [0.3, 0.3], thin: false }])
         .anchors(&[("wiper", [-0.3, -0.3]), ("tip", [0.3, 0.3])]),
@@ -382,9 +405,13 @@ pub enum Target {
     Resistor(&'static str, &'static str),
     /// cute, American, European
     Inductor(&'static str, &'static str, &'static str),
+    /// European, American, by the `voltage` style
+    Voltage(&'static str, &'static str),
+    /// European, American, by the `current` style
+    Current(&'static str, &'static str),
 }
 
-use Target::{Fixed, Inductor, Resistor};
+use Target::{Current, Fixed, Inductor, Resistor, Voltage};
 
 /// The keys that name a component, and what they name: the short names (`R`, `vR`, `L`) follow the
 /// `resistor` and `inductor` styles (`\ctikzset{resistor=european}`, the `european` style).
@@ -477,10 +504,12 @@ pub struct Volts {
     pub south: f64,
     pub bump: f64,
     pub label: f64,
+    /// a `voltage shift` of its own, in `bipoles/length` (a square meter's, 0.08)
+    pub shift: f64,
 }
 
 const fn volts(south: f64, bump: f64, label: f64) -> Volts {
-    Volts { half: None, from_node: 0.5, south, bump, label }
+    Volts { half: None, from_node: 0.5, south, bump, label, shift: 0.0 }
 }
 
 /// The voltages of the generic bipoles start nearer their ends.
@@ -540,7 +569,99 @@ const VOLTS: &[(&str, Volts)] = &[
     ("european inductor", inductor_volts(0.075, 0.1125, 0.2591)),
     ("variable european inductor", inductor_volts(0.15, 0.225, 0.3828)),
     ("european inductive sensor", inductor_volts(0.195, 0.2925, 0.457)),
+    ("european current source", volts(0.3, 0.45, 0.6303)),
+    ("cute european current source", volts(0.3, 0.45, 0.6303)),
+    ("american current source", volts(0.3, 0.45, 0.6303)),
+    ("sinusoidal current source", volts(0.3, 0.45, 0.6303)),
+    ("european controlled current source", volts(0.35, 0.525, 0.7128)),
+    ("cute european controlled current source", volts(0.35, 0.525, 0.7128)),
+    ("american controlled current source", volts(0.35, 0.525, 0.7128)),
+    ("controlled sinusoidal current source", volts(0.35, 0.525, 0.7128)),
+    ("noise current source", volts(0.3, 0.45, 0.6303)),
+    ("ioosource", volts(0.195, 0.2925, 0.4571)),
+    ("nullator", volts(0.15, 0.225, 0.3828)),
+    ("norator", volts(0.125, 0.1875, 0.3416)),
+    ("dcisource", volts(0.3001, 0.45, 0.6304)),
+    ("rmeter", volts(0.3, 0.45, 0.6303)),
+    ("rmeterwa", volts(0.3001, 0.45, 0.6304)),
+    ("ammeter", volts(0.3, 0.45, 0.6303)),
+    ("voltmeter", volts(0.3, 0.45, 0.6303)),
+    ("ohmmeter", volts(0.3, 0.45, 0.6303)),
+    ("smeter", Volts { shift: 0.08, ..volts(0.3, 0.45, 0.6303) }),
+    ("qiprobe", Volts { shift: 0.04, ..volts(0.2, 0.2999, 0.4653) }),
+    ("qvprobe", Volts { shift: 0.04, ..volts(0.2, 0.2999, 0.4653) }),
+    ("qpprobe", Volts { shift: 0.04, ..volts(0.2, 0.2999, 0.4653) }),
+    ("oscope", Volts { shift: 0.08, ..volts(0.3, 0.45, 0.6303) }),
+    ("iloop", volts(0.3001, 0.45, 0.6304)),
+    ("iloop2", volts(0.3001, 0.45, 0.6304)),
+    ("currtap", volts(0.2, 0.3001, 0.4653)),
+    ("damper", volts(0.175, 0.2625, 0.4241)),
+    ("inerter", volts(0.35, 0.3607, 0.5321)),
+    ("spring", volts(0.2499, 0.375, 0.5478)),
+    ("viscoe", volts(0.175, 0.2625, 0.4241)),
+    ("mass", volts(0.2, 0.3, 0.4653)),
+    ("thermocouple", volts(0.3, 0.2886, 0.4527)),
+    ("fuse", volts(0.1, 0.15, 0.3003)),
+    ("afuse", volts(0.1, 0.15, 0.3003)),
+    ("wfuse", volts(0.1, 0.15, 0.3003)),
+    ("relais", volts(0.4, 0.6, 0.7953)),
+    ("squid", volts(0.3001, 0.45, 0.6304)),
+    ("barrier", volts(0.105, 0.0, 0.1353)),
+    ("openbarrier", volts(0.105, 0.1575, 0.3085)),
+    ("european gas filled surge arrester", volts(0.15, 0.225, 0.3828)),
+    ("american gas filled surge arrester", volts(0.3, 0.45, 0.6303)),
+    ("lamp", volts(0.3, 0.45, 0.6303)),
+    ("bulb", volts(0.4, 0.6, 0.7953)),
+    ("wbulb", volts(0.4, 0.6, 0.7953)),
+    ("neonlampcc", volts(0.3, 0.45, 0.6303)),
+    ("neonlampac", volts(0.3, 0.45, 0.6303)),
+    ("sparkgap", volts(0.15, 0.225, 0.3828)),
+    ("sparkgap circle", volts(0.3, 0.45, 0.6303)),
+    ("sparkgap dot circle", volts(0.3, 0.45, 0.6303)),
+    ("loudspeaker", volts(0.15, 0.225, 0.3828)),
+    ("mic", volts(0.05, 0.075, 0.2178)),
+    ("tlmic", volts(0.25, 0.375, 0.5479)),
+    ("buzzer", volts(0.0, 0.0, 0.1353)),
+    ("rbuzzer", volts(0.0, 0.0, 0.1353)),
 ];
+
+/// The voltage of a voltage source (and of a battery): a straight arrow across it, `[half its
+/// length, how far above the line, how far the label's text is above the arrow]`, in
+/// `bipoles/length`. Measured on what CircuiTikZ draws.
+const SOURCE_VOLTS: &[(&str, [f64; 3])] = &[
+    ("battery", [0.231, 0.4, 0.1153]),
+    ("battery1", [0.198, 0.3429, 0.1153]),
+    ("battery2", [0.198, 0.3429, 0.1153]),
+    ("solar", [0.198, 0.3429, 0.1153]),
+    ("baertty", [0.198, 0.3429, 0.1552]),
+    ("european voltage source", [0.2286, 0.396, 0.1153]),
+    ("cute european voltage source", [0.2286, 0.396, 0.1552]),
+    ("american voltage source", [0.2286, 0.396, 0.1552]),
+    ("sinusoidal voltage source", [0.2286, 0.396, 0.1153]),
+    ("european controlled voltage source", [0.2667, 0.462, 0.1252]),
+    ("cute european controlled voltage source", [0.2667, 0.4619, 0.1552]),
+    ("american controlled voltage source", [0.2667, 0.4619, 0.1552]),
+    ("empty controlled source", [0.2667, 0.462, 0.1252]),
+    ("controlled sinusoidal voltage source", [0.2667, 0.462, 0.1252]),
+    ("noise voltage source", [0.2286, 0.396, 0.1552]),
+    ("square voltage source", [0.2286, 0.396, 0.1153]),
+    ("vsourcetri", [0.2286, 0.396, 0.1153]),
+    ("esource", [0.2286, 0.396, 0.1153]),
+    ("pvsource", [0.2286, 0.396, 0.1153]),
+    ("pvmodule", [0.2286, 0.396, 0.1153]),
+    ("voosource", [0.1486, 0.2574, 0.0942]),
+    ("oosourceatrans", [0.1372, 0.2376, 0.0913]),
+    ("oosourcetrans", [0.1372, 0.2376, 0.0913]),
+    ("ooosource", [0.2286, 0.396, 0.1153]),
+    ("dcvsource", [0.2286, 0.396, 0.1153]),
+];
+
+impl Component {
+    /// Where a voltage source's voltage goes.
+    pub fn source_volts(&self) -> Option<[f64; 3]> {
+        SOURCE_VOLTS.iter().find(|(n, _)| *n == self.name).map(|(_, v)| *v)
+    }
+}
 
 impl Component {
     /// Where its voltage goes.
@@ -549,13 +670,183 @@ impl Component {
     }
 }
 
+mod instruments;
+mod mechanicals;
+mod misc;
+mod sources;
+
+/// The tables of components, by group of the manual.
+const GROUPS: &[&[Component]] = &[COMPONENTS, sources::COMPONENTS, instruments::COMPONENTS, mechanicals::COMPONENTS, misc::COMPONENTS];
+
 pub fn find(name: &str) -> Option<&'static Component> {
-    COMPONENTS.iter().find(|c| c.name == name)
+    GROUPS.iter().flat_map(|g| g.iter()).find(|c| c.name == name)
+}
+
+/// Every key that names a component, and what it names.
+pub fn aliases() -> impl Iterator<Item = &'static (&'static str, Target)> {
+    ALIASES.iter().chain(SOURCE_ALIASES).chain(OTHER_ALIASES)
 }
 
 pub fn target(key: &str) -> Option<Target> {
-    ALIASES.iter().find(|(k, _)| *k == key).map(|(_, t)| *t)
+    aliases().find(|(k, _)| *k == key).map(|(_, t)| *t)
 }
+
+/// Whether a component is a source: its value (`V=…`, `I=…`) is its voltage or its current, not a
+/// label, and its voltages and currents follow the rules of generators.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Source {
+    Not,
+    Voltage,
+    Current,
+}
+
+impl Component {
+    pub fn source(&self) -> Source {
+        if self.source_volts().is_some() {
+            Source::Voltage
+        } else if matches!(self.class, Class::Sources | Class::CSources) && !matches!(self.name, "nullator" | "norator") {
+            Source::Current
+        } else {
+            Source::Not
+        }
+    }
+}
+
+/// The sources' keys: `V`, `vsource` and `voltage source` follow the `voltage` style (European or
+/// American), `I`, `isource` and `current source` the `current` style.
+const SOURCE_ALIASES: &[(&str, Target)] = &[
+    ("battery", Fixed("battery")),
+    ("battery1", Fixed("battery1")),
+    ("battery2", Fixed("battery2")),
+    ("solar", Fixed("solar")),
+    ("baertty", Fixed("baertty")),
+    ("V", Voltage("european voltage source", "american voltage source")),
+    ("vsource", Voltage("european voltage source", "american voltage source")),
+    ("voltage source", Voltage("european voltage source", "american voltage source")),
+    ("european voltage source", Fixed("european voltage source")),
+    ("vsourceEU", Fixed("european voltage source")),
+    ("cute european voltage source", Fixed("cute european voltage source")),
+    ("vsourceC", Fixed("cute european voltage source")),
+    ("ceV", Fixed("cute european voltage source")),
+    ("american voltage source", Fixed("american voltage source")),
+    ("vsourceAM", Fixed("american voltage source")),
+    ("I", Current("european current source", "american current source")),
+    ("isource", Current("european current source", "american current source")),
+    ("current source", Current("european current source", "american current source")),
+    ("european current source", Fixed("european current source")),
+    ("isourceEU", Fixed("european current source")),
+    ("cute european current source", Fixed("cute european current source")),
+    ("isourceC", Fixed("cute european current source")),
+    ("ceI", Fixed("cute european current source")),
+    ("american current source", Fixed("american current source")),
+    ("isourceAM", Fixed("american current source")),
+    ("sinusoidal voltage source", Fixed("sinusoidal voltage source")),
+    ("vsourcesin", Fixed("sinusoidal voltage source")),
+    ("sV", Fixed("sinusoidal voltage source")),
+    ("sinusoidal current source", Fixed("sinusoidal current source")),
+    ("isourcesin", Fixed("sinusoidal current source")),
+    ("sI", Fixed("sinusoidal current source")),
+    ("cV", Voltage("european controlled voltage source", "american controlled voltage source")),
+    ("cvsource", Voltage("european controlled voltage source", "american controlled voltage source")),
+    ("controlled voltage source", Voltage("european controlled voltage source", "american controlled voltage source")),
+    ("european controlled voltage source", Fixed("european controlled voltage source")),
+    ("cvsourceEU", Fixed("european controlled voltage source")),
+    ("cute european controlled voltage source", Fixed("cute european controlled voltage source")),
+    ("cvsourceC", Fixed("cute european controlled voltage source")),
+    ("cceV", Fixed("cute european controlled voltage source")),
+    ("american controlled voltage source", Fixed("american controlled voltage source")),
+    ("cvsourceAM", Fixed("american controlled voltage source")),
+    ("cI", Current("european controlled current source", "american controlled current source")),
+    ("cisource", Current("european controlled current source", "american controlled current source")),
+    ("controlled current source", Current("european controlled current source", "american controlled current source")),
+    ("european controlled current source", Fixed("european controlled current source")),
+    ("cisourceEU", Fixed("european controlled current source")),
+    ("cute european controlled current source", Fixed("cute european controlled current source")),
+    ("cisourceC", Fixed("cute european controlled current source")),
+    ("cceI", Fixed("cute european controlled current source")),
+    ("american controlled current source", Fixed("american controlled current source")),
+    ("cisourceAM", Fixed("american controlled current source")),
+    ("empty controlled source", Fixed("empty controlled source")),
+    ("ecsource", Fixed("empty controlled source")),
+    ("controlled sinusoidal voltage source", Fixed("controlled sinusoidal voltage source")),
+    ("controlled vsourcesin", Fixed("controlled sinusoidal voltage source")),
+    ("cvsourcesin", Fixed("controlled sinusoidal voltage source")),
+    ("csV", Fixed("controlled sinusoidal voltage source")),
+    ("controlled sinusoidal current source", Fixed("controlled sinusoidal current source")),
+    ("controlled isourcesin", Fixed("controlled sinusoidal current source")),
+    ("cisourcesin", Fixed("controlled sinusoidal current source")),
+    ("csI", Fixed("controlled sinusoidal current source")),
+    ("noise voltage source", Fixed("noise voltage source")),
+    ("vsourceN", Fixed("noise voltage source")),
+    ("nV", Fixed("noise voltage source")),
+    ("noise current source", Fixed("noise current source")),
+    ("isourceN", Fixed("noise current source")),
+    ("nI", Fixed("noise current source")),
+    ("square voltage source", Fixed("square voltage source")),
+    ("vsourcesquare", Fixed("square voltage source")),
+    ("sqV", Fixed("square voltage source")),
+    ("vsourcetri", Fixed("vsourcetri")),
+    ("tV", Fixed("vsourcetri")),
+    ("esource", Fixed("esource")),
+    ("pvsource", Fixed("pvsource")),
+    ("pvmodule", Fixed("pvmodule")),
+    ("ioosource", Fixed("ioosource")),
+    ("voosource", Fixed("voosource")),
+    ("oosourceatrans", Fixed("oosourceatrans")),
+    ("oosourcetrans", Fixed("oosourcetrans")),
+    ("ooosource", Fixed("ooosource")),
+    ("nullator", Fixed("nullator")),
+    ("norator", Fixed("norator")),
+    ("dcvsource", Fixed("dcvsource")),
+    ("dcisource", Fixed("dcisource")),
+];
+
+/// The instruments', the mechanical elements' and the miscellaneous ones' keys.
+const OTHER_ALIASES: &[(&str, Target)] = &[
+    ("rmeter", Fixed("rmeter")),
+    ("rmeterwa", Fixed("rmeterwa")),
+    ("ammeter", Fixed("ammeter")),
+    ("voltmeter", Fixed("voltmeter")),
+    ("ohmmeter", Fixed("ohmmeter")),
+    ("smeter", Fixed("smeter")),
+    ("qiprobe", Fixed("qiprobe")),
+    ("qvprobe", Fixed("qvprobe")),
+    ("qpprobe", Fixed("qpprobe")),
+    ("oscope", Fixed("oscope")),
+    ("iloop", Fixed("iloop")),
+    ("iloop2", Fixed("iloop2")),
+    ("currtap", Fixed("currtap")),
+    ("damper", Fixed("damper")),
+    ("inerter", Fixed("inerter")),
+    ("spring", Fixed("spring")),
+    ("viscoe", Fixed("viscoe")),
+    ("mass", Fixed("mass")),
+    ("thermocouple", Fixed("thermocouple")),
+    ("fuse", Fixed("fuse")),
+    ("afuse", Fixed("afuse")),
+    ("asymmetric fuse", Fixed("afuse")),
+    ("wfuse", Fixed("wfuse")),
+    ("wiggly fuse", Fixed("wfuse")),
+    ("relais", Fixed("relais")),
+    ("squid", Fixed("squid")),
+    ("barrier", Fixed("barrier")),
+    ("openbarrier", Fixed("openbarrier")),
+    ("european gas filled surge arrester", Fixed("european gas filled surge arrester")),
+    ("american gas filled surge arrester", Fixed("american gas filled surge arrester")),
+    ("lamp", Fixed("lamp")),
+    ("bulb", Fixed("bulb")),
+    ("wbulb", Fixed("wbulb")),
+    ("neonlampcc", Fixed("neonlampcc")),
+    ("neonlampac", Fixed("neonlampac")),
+    ("sparkgap", Fixed("sparkgap")),
+    ("sparkgap/circle", Fixed("sparkgap circle")),
+    ("sparkgap/dot", Fixed("sparkgap dot circle")),
+    ("loudspeaker", Fixed("loudspeaker")),
+    ("mic", Fixed("mic")),
+    ("tlmic", Fixed("tlmic")),
+    ("buzzer", Fixed("buzzer")),
+    ("rbuzzer", Fixed("rbuzzer")),
+];
 
 /// A zig-zag of `count` teeth from `-half` to `half`, `high` on each side, the first tooth up, from
 /// half a stroke (`thick`) before `-half` to as much after `half`.
