@@ -6,12 +6,14 @@ Each release has a headline (the line under its title), what changed, and the fi
 
 ## Unreleased
 
-Chips.
+Chips and multiplexers.
 
 - The DIP and QFP chips (`dipchip`, `qfpchip`) with any number of pins (`num pins`), their leads or pads (`external pins width`, `external pad fraction`, `no input leads`, `draw only pins`), the orientation mark (`no topmark`) and the pins' numbers (`hide numbers`, `multipoles/font`), sized by `multipoles/dipchip/width`, `pin spacing` and `chips/scale`, with their anchors (`pin 1`, `bpin 1`, `dot`).
+- The multiplexers (`muxdemux`) shaped by `muxdemux def`, with or without an inset, their pins on four sides (`square pins`, `draw only left pins`…) and all their anchors (`lpin 1`, `bbpin 2`, `inset top`, `narrow center`…); the package's `demux`, `one bit adder` and `ALU`; the class `muxdemuxes`.
+- `muxdemux label`: texts by the pins, inside and outside (`L1`, `LU1`, `BR2`…), by the borders (`N`, `Si`), clock wedges (`cL2`), negation circles as nodes (`M-nL1`) and wedges (`wiB1`, `woR1`); the inversion marks `wedgeinv` and `circleinv`.
 - Drawn with tikra 1.6.0 and its math labels by mathra 1.7.1.
 
-Figures: `chips`
+Figures: `chips`, `multiplexers`
 
 ## 0.13.0 - 2026-10-29
 

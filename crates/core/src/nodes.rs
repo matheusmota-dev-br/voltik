@@ -14,6 +14,7 @@ mod amplifiers;
 mod chips;
 mod doubles;
 mod logic;
+mod muxdemux;
 mod transistors;
 mod tubes;
 use crate::components::Op;
@@ -1740,6 +1741,23 @@ pub fn k_rotary(cx: &mut Context, v: Option<Tokens>) -> Result<(), Error> {
     )))
 }
 
+/// `muxdemux def={Lh=4, NL=2}`: the shape of the `muxdemux`es, as `multipoles/muxdemux/…`.
+pub fn k_muxdemux_def(cx: &mut Context, v: Option<Tokens>) -> Result<(), Error> {
+    let mut list = Tokens::new();
+    for (key, value) in v.unwrap_or_default().key_list() {
+        // a drawing behind it, in pgf's own commands
+        if key.starts_with("bgpicture") {
+            cx.warn("voltik: muxdemux bgpicture not drawn yet; ignored");
+            continue;
+        }
+        list = match value {
+            Some(value) => list.and_text(&format!("{key}={{")).and(value).and_text("},"),
+            None => list.and_text(&format!("{key},")),
+        };
+    }
+    cx.keys_at("/tikz/circuitikz/multipoles/muxdemux", list)
+}
+
 /// `voltik/logic port={and}`: the port of the `logic ports` style (`ieee` draws `ieeestd and port`).
 pub fn k_logic_port(cx: &mut Context, v: Option<Tokens>) -> Result<(), Error> {
     let kind = cx.expand(v.unwrap_or_default())?;
@@ -1761,6 +1779,9 @@ pub fn k_shapes(cx: &mut Context, _v: Option<Tokens>) -> Result<(), Error> {
     cx.declare_shape("rotaryswitch", rotary_shape);
     cx.declare_shape("dipchip", chips::chip_shape);
     cx.declare_shape("qfpchip", chips::chip_shape);
+    cx.declare_shape("muxdemux", muxdemux::muxdemux_shape);
+    cx.declare_shape("wedgeinv", muxdemux::inversion_shape);
+    cx.declare_shape("circleinv", muxdemux::inversion_shape);
     cx.declare_shape("voltik pole", pole_shape);
     for name in variant_shapes() {
         cx.declare_shape(name, shape);

@@ -167,6 +167,7 @@ pub fn chip_shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Err
             texts.push(ShapeText { text: k.to_string(), at: point, anchor, font: Some(font.clone()) });
         }
     }
+    turned_texts(cx, input, &texts)?;
     if !leads_path.is_empty() {
         paths.push(ShapePath { segments: leads_path, paint: ShapePaint::Stroke(thin), ..Default::default() });
     }
@@ -182,7 +183,7 @@ pub fn chip_shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Err
 }
 
 /// The pins `multipoles/draw only pins` keeps (`1, 3, 5-8`); `None` for all of them.
-fn drawn_pins(spec: &str) -> Option<Vec<usize>> {
+pub(super) fn drawn_pins(spec: &str) -> Option<Vec<usize>> {
     let spec = spec.trim();
     if spec.is_empty() || spec == "all" {
         return None;
@@ -200,4 +201,14 @@ fn drawn_pins(spec: &str) -> Option<Vec<usize>> {
         }
     }
     Some(pins)
+}
+
+/// Warns that a turned chip's texts turn with it, where CircuiTikZ keeps them upright
+/// (`straight numbers`, the default).
+pub(super) fn turned_texts(cx: &mut Context, input: &ShapeInput, texts: &[ShapeText]) -> Result<(), Error> {
+    let t = &input.transform;
+    if !texts.is_empty() && (t.b.abs() > 1e-9 || t.c.abs() > 1e-9) && setting(cx, "multipoles/straight numbers")? != "false" {
+        cx.warn(format!("voltik: {} turned with straight numbers not drawn yet; its texts turn with it", input.name));
+    }
+    Ok(())
 }

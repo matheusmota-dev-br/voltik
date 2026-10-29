@@ -34,6 +34,7 @@ const KEYS: &[(&str, KeyFn)] = &[
     ("/tikz/voltik/class fill", nodes::k_class_fill),
     ("/tikz/voltik/rotary", nodes::k_rotary),
     ("/tikz/voltik/logic port", nodes::k_logic_port),
+    ("/tikz/muxdemux def", nodes::k_muxdemux_def),
 ];
 
 /// The settings each class of components has (`resistors/scale`), with their initial values.
@@ -76,7 +77,11 @@ fn definitions() -> String {
          bipoles/inductors/core distance/.initial=2pt, bipoles/inductors/dot x distance/.initial=4pt, bipoles/inductors/dot y distance/.initial=1pt,\n\
          resistor/.initial=american, inductor/.initial=cute, diode/.initial=empty, thyristor style/.initial=legacy, led arrows/.initial=anode, pd arrows/.initial=anode, diode whiskers/.initial=sloped, tjumper connections/.initial=00, tr/no input leads/.initial=false, tr/no output leads/.initial=false, tr/no leads/.initial=false, tr/number inputs/.initial=,\n\
          logic ports/.initial=american, american ports/.style={logic ports=american}, european ports/.style={logic ports=european}, ieee ports/.style={logic ports=ieee}, tubes/anodes/.initial=3, transistor circle/scale circle radius/.initial=1, transistor circle/relative thickness/.initial=1, tr/ferroel gate/.initial=false, transistors/arrow pos/.initial=mid, tr/legacy text/.initial=false, legacy transistors text/.style={tr/legacy text=true}, bipoles/cuteswitch/shape/.initial=ocirc, bipoles/cuteswitch/height/.initial=.6, bipoles/cuteswitch/thickness/.initial=1, bipoles/jumper/shape/.initial=ocirc, multipoles/rotary/channels/.initial=5, multipoles/rotary/angle/.initial=60, multipoles/rotary/wiper/.initial=20,\n\
-         multipoles/rotary/arrow/.initial=none, multipoles/rotary/thickness/.initial=1, multipoles/rotary/shape/.initial=ocirc, multipoles/num pins/.initial=8, multipoles/dipchip/width/.initial=1.2, multipoles/dipchip/pin spacing/.initial=0.4, multipoles/qfpchip/pin spacing/.initial=0.4, chips/scale/.initial=1, multipoles/thickness/.initial=2, multipoles/external pins thickness/.initial=1, multipoles/external pins width/.initial=0.2, multipoles/external pad fraction/.initial=0, multipoles/topmark/.initial=true, multipoles/numbers/.initial=true, multipoles/draw only pins/.initial=all, multipoles/font/.initial=\\tiny, tripoles/spdt/width/.initial=.85, double bipole L/.initial=, double bipole R/.initial=, db/L invert/.initial=false, db/R invert/.initial=false,\n\
+         multipoles/rotary/arrow/.initial=none, multipoles/rotary/thickness/.initial=1, multipoles/rotary/shape/.initial=ocirc, multipoles/num pins/.initial=8, multipoles/dipchip/width/.initial=1.2, multipoles/dipchip/pin spacing/.initial=0.4, multipoles/qfpchip/pin spacing/.initial=0.4, multipoles/thickness/.initial=2, multipoles/external pins thickness/.initial=1, multipoles/external pins width/.initial=0.2, multipoles/external pad fraction/.initial=0, multipoles/topmark/.initial=true, multipoles/numbers/.initial=true, multipoles/draw only pins/.initial=all, multipoles/straight numbers/.initial=true, multipoles/font/.initial=\\tiny,
+         multipoles/muxdemux/Lh/.initial=8, multipoles/muxdemux/Rh/.initial=6, multipoles/muxdemux/w/.initial=3, multipoles/muxdemux/NL/.initial=8, multipoles/muxdemux/NR/.initial=1, multipoles/muxdemux/NB/.initial=3, multipoles/muxdemux/NT/.initial=0, multipoles/muxdemux/inset w/.initial=0, multipoles/muxdemux/inset Lh/.initial=0, multipoles/muxdemux/inset Rh/.initial=0, multipoles/muxdemux/square pins/.initial=0, multipoles/muxdemux/base len/.initial=0.4,
+         multipoles/draw only left pins/.initial=all, multipoles/draw only right pins/.initial=all, multipoles/draw only bottom pins/.initial=all, multipoles/draw only top pins/.initial=all,
+         muxdemux/inner label font/.initial=\\tiny, muxdemux/outer label font/.initial=\\tiny, muxdemux/border label font/.initial=\\tiny, muxdemux/inner label xsep/.initial=2pt, muxdemux/inner label ysep/.initial=2pt, muxdemux/outer label xsep/.initial=2pt, muxdemux/outer label ysep/.initial=2pt, muxdemux/border label xsep/.initial=2pt, muxdemux/border label ysep/.initial=2pt,
+         muxdemux/inner label sep/.style={muxdemux/inner label xsep=#1, muxdemux/inner label ysep=#1}, muxdemux/outer label sep/.style={muxdemux/outer label xsep=#1, muxdemux/outer label ysep=#1}, muxdemux/border label sep/.style={muxdemux/border label xsep=#1, muxdemux/border label ysep=#1}, muxdemux/clock wedge size/.initial=0.2, wedge inversion mark/width/.initial=0.2, wedge inversion mark/height/.initial=0.1, tripoles/spdt/width/.initial=.85, double bipole L/.initial=, double bipole R/.initial=, db/L invert/.initial=false, db/R invert/.initial=false,\n\
          double bipole L invert/.code={\\pgfkeys{/tikz/circuitikz/db/L invert=true}}, double bipole R invert/.code={\\pgfkeys{/tikz/circuitikz/db/R invert=true}},\n\
          every double bipole L/.style={}, every double bipole R/.style={}, transformer L1/.style={}, transformer L2/.style={}, en amp text/.initial=, component text/.initial=center, left text distance/.initial=.3em, tr/noinv input up/.initial=false, tr/noinv input down/.initial=false, tr/noinv output up/.initial=false,\n\
          tr/noinv output down/.initial=false, tr/filament/.initial=false, tr/nocathode/.initial=false, tr/fullcathode/.initial=false, tr/nixieanode/.initial=false,\n\
@@ -207,17 +212,31 @@ fn definitions() -> String {
     for (style, arrow) in [("rotary switch", ""), ("rotary switch -", "none"), ("rotary switch <-", "ccw"), ("rotary switch ->", "cw"), ("rotary switch <->", "both")] {
         keys.push(format!("{style}/.style={{voltik/rotary={{{arrow}}}{{#1}}}}, {style}/.default={{}}"));
     }
+    // the multiplexers, and the ones the package defines
+    keys.push("muxdemux/.style={shape=muxdemux, voltik/class fill=muxdemuxes, append after command={\\voltik@md}}".into());
+    keys.push("muxdemux label/.code={\\expandafter\\def\\expandafter\\voltik@mdl\\expandafter{\\voltik@mdl,#1}}".into());
+    keys.push("wedgeinv/.style={shape=wedgeinv}".into());
+    keys.push("circleinv/.style={shape=circleinv, voltik/class fill=muxdemuxes}".into());
+    for (name, def) in [
+        ("demux", "Lh=4, Rh=8, NL=1, NB=3, NR=8"),
+        ("one bit adder", "Lh=4, NL=2, Rh=2, NR=1, NB=1, w=1.5, inset w=0.5, inset Lh=2, inset Rh=1.5"),
+        ("ALU", "Lh=5, NL=2, Rh=2, NR=1, NB=2, NT=1, w=2, inset w=1, inset Lh=2, inset Rh=0, square pins=1"),
+    ] {
+        keys.push(format!("{name}/.style={{muxdemux, muxdemux def={{{def}}}}}"));
+    }
     // the chips, and their options
     keys.push("dipchip/.style={shape=dipchip, voltik/class fill=chips}".into());
     keys.push("qfpchip/.style={shape=qfpchip, voltik/class fill=chips}".into());
-    for key in ["num pins", "external pins width", "external pad fraction", "draw only pins"] {
+    for key in
+        ["num pins", "external pins width", "external pad fraction", "draw only pins", "draw only left pins", "draw only right pins", "draw only bottom pins", "draw only top pins"]
+    {
         keys.push(format!("{key}/.style={{/tikz/circuitikz/multipoles/{key}={{#1}}}}"));
     }
     for (key, setting) in [("hide numbers", "numbers=false"), ("show numbers", "numbers=true"), ("no topmark", "topmark=false"), ("topmark", "topmark=true")] {
         keys.push(format!("{key}/.style={{/tikz/circuitikz/multipoles/{setting}}}"));
     }
-    keys.push("straight numbers/.style={}".into());
-    keys.push("rotated numbers/.style={}".into());
+    keys.push("straight numbers/.style={/tikz/circuitikz/multipoles/straight numbers=true}".into());
+    keys.push("rotated numbers/.style={/tikz/circuitikz/multipoles/straight numbers=false}".into());
     keys.push("legacy transistors text/.style={/tikz/circuitikz/tr/legacy text=true}".into());
     keys.push("no ferroel gate/.style={/tikz/circuitikz/tr/ferroel gate=false}".into());
     // `tripoles/mos style/arrows`: every MOSFET with its arrow (`arrowmos`)
@@ -341,7 +360,9 @@ fn definitions() -> String {
     // and `transform shape` scales the components on paths too, as it does nodes
     s.push_str("\\def\\voltik@ts{0}\\expandafter\\let\\csname pgfk@/tikz/voltik@ts/.@cmd\\expandafter\\endcsname\\csname pgfk@/tikz/transform shape/.@cmd\\endcsname\n");
     s.push_str("\\tikzset{transform shape/.code={\\def\\voltik@ts{1}\\pgfkeys{/tikz/voltik@ts}}}\n");
-    s.push_str("\\def\\voltik@cs{}\\def\\voltik@rs{}\\def\\voltik@bp{}\\def\\voltik@db{}\\def\\voltik@tr{}\\def\\voltik@bn{}\\def\\voltik@coil{-0}\n");
+    s.push_str(
+        "\\def\\voltik@cs{}\\def\\voltik@rs{}\\def\\voltik@md{}\\def\\voltik@mdl{}\\def\\voltik@bp{}\\def\\voltik@db{}\\def\\voltik@tr{}\\def\\voltik@bn{}\\def\\voltik@coil{-0}\n",
+    );
     s.push_str("\\pgfkeys{/tikz/voltik/shapes}\n");
     // the node components' sizes (`tripoles/op amp/width`), at their defaults
     // (the defaults of the measured sizes, not of a tube's wide measures)

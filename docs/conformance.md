@@ -4,14 +4,14 @@ How far voltik is from CircuiTikZ, measured by its manual (CircuiTikZ 1.8.7): ev
 shows and every entry of its list of components, drawn by pdflatex (TeX Live, CircuiTikZ 1.8.7) and by
 voltik, and compared. How it works and how to run it: [tools/conformance](../tools/conformance/README.md).
 
-**425 of 541 components (78.6%) and 358 of 505 examples (70.9%) match TeX.** Of all 1046 items, 75 are close, 188 differ and 0 fail in voltik; 38 of the ones that do not match came out with no warning.
+**431 of 541 components (79.7%) and 369 of 505 examples (73.1%) match TeX.** Of all 1046 items, 78 are close, 168 differ and 0 fail in voltik; 38 of the ones that do not match came out with no warning.
 
 | | Items | Match | Close | Different | Fails | Mean F1 |
 |---|---:|---:|---:|---:|---:|---:|
-| All | 1046 | 783 (74.9%) | 75 (7.2%) | 188 (18.0%) | 0 (0.0%) | 0.86 |
-| Examples of the manual | 505 | 358 (70.9%) | 72 (14.3%) | 75 (14.9%) | 0 (0.0%) | 0.87 |
+| All | 1046 | 800 (76.5%) | 78 (7.5%) | 168 (16.1%) | 0 (0.0%) | 0.88 |
+| Examples of the manual | 505 | 369 (73.1%) | 75 (14.9%) | 61 (12.1%) | 0 (0.0%) | 0.90 |
 | Path-style components | 306 | 238 (77.8%) | 1 (0.3%) | 67 (21.9%) | 0 (0.0%) | 0.87 |
-| Node-style components | 235 | 187 (79.6%) | 2 (0.9%) | 46 (19.6%) | 0 (0.0%) | 0.82 |
+| Node-style components | 235 | 193 (82.1%) | 2 (0.9%) | 40 (17.0%) | 0 (0.0%) | 0.84 |
 
 *Match*: same shape (F1 ≥ 0.9 on the edges, with 0.5 mm of tolerance), no missing or extra piece, the same colors and size. *Close*: F1 ≥ 0.75.
 *Fails*: voltik returned an error, panicked or took more than 10 s. Mean F1 counts a failure as 0.
@@ -31,25 +31,23 @@ Sorted by how many items do not match, the work left.
 | The components: list › Logic gates <sub>example</sub> | 30 | 11 (36.7%) | 12 (40.0%) | 7 (23.3%) | 0 (0.0%) | 0.83 |
 | The components: list › RF components <sub>node</sub> | 14 | 0 (0.0%) | 0 (0.0%) | 14 (100.0%) | 0 (0.0%) | 0.18 |
 | The components: list › Block diagram components <sub>node</sub> | 13 | 0 (0.0%) | 0 (0.0%) | 13 (100.0%) | 0 (0.0%) | 0.01 |
-| The components: list › Multiplexer and de-multiplexer <sub>example</sub> | 13 | 0 (0.0%) | 0 (0.0%) | 13 (100.0%) | 0 (0.0%) | 0.07 |
 | The components: list › Sources and generators <sub>example</sub> | 21 | 8 (38.1%) | 11 (52.4%) | 2 (9.5%) | 0 (0.0%) | 0.90 |
 | The components: list › Flip-flops <sub>node</sub> | 12 | 0 (0.0%) | 0 (0.0%) | 12 (100.0%) | 0 (0.0%) | 0.05 |
 | The components: list › Instruments <sub>example</sub> | 18 | 10 (55.6%) | 7 (38.9%) | 1 (5.6%) | 0 (0.0%) | 0.95 |
 | The components: list › Miscellaneous bipoles and symbols <sub>example</sub> | 7 | 1 (14.3%) | 4 (57.1%) | 2 (28.6%) | 0 (0.0%) | 0.83 |
-| The components: list › Multiplexer and de-multiplexer <sub>node</sub> | 6 | 0 (0.0%) | 0 (0.0%) | 6 (100.0%) | 0 (0.0%) | 0.10 |
 | Labels, voltages and currents › Voltages <sub>example</sub> | 44 | 39 (88.6%) | 5 (11.4%) | 0 (0.0%) | 0 (0.0%) | 0.99 |
 | The components: list › Flip-flops <sub>example</sub> | 4 | 0 (0.0%) | 0 (0.0%) | 4 (100.0%) | 0 (0.0%) | 0.09 |
 | The components: usage › Subcircuits <sub>example</sub> | 7 | 3 (42.9%) | 0 (0.0%) | 4 (57.1%) | 0 (0.0%) | 0.46 |
 | Labels, voltages and currents › Currents <sub>example</sub> | 15 | 12 (80.0%) | 3 (20.0%) | 0 (0.0%) | 0 (0.0%) | 0.98 |
 | Labels, voltages and currents › Currents and voltages <sub>example</sub> | 12 | 9 (75.0%) | 3 (25.0%) | 0 (0.0%) | 0 (0.0%) | 0.97 |
 | The components: list › Double bipoles (transformers) <sub>example</sub> | 12 | 9 (75.0%) | 3 (25.0%) | 0 (0.0%) | 0 (0.0%) | 0.98 |
+| The components: list › Multiplexer and de-multiplexer <sub>example</sub> | 13 | 10 (76.9%) | 3 (23.1%) | 0 (0.0%) | 0 (0.0%) | 0.98 |
 | The components: list › RF components <sub>example</sub> | 3 | 0 (0.0%) | 0 (0.0%) | 3 (100.0%) | 0 (0.0%) | 0.29 |
 | The components: list › RF components <sub>path</sub> | 3 | 0 (0.0%) | 0 (0.0%) | 3 (100.0%) | 0 (0.0%) | 0.44 |
 | The components: list › Transistors <sub>example</sub> | 44 | 41 (93.2%) | 3 (6.8%) | 0 (0.0%) | 0 (0.0%) | 0.99 |
 | Tutorials › A logic circuit <sub>example</sub> | 3 | 0 (0.0%) | 0 (0.0%) | 3 (100.0%) | 0 (0.0%) | 0.00 |
 | Colors <sub>example</sub> | 2 | 0 (0.0%) | 2 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0.97 |
 | Labels, voltages and currents › Labels and Annotations <sub>example</sub> | 11 | 9 (81.8%) | 2 (18.2%) | 0 (0.0%) | 0 (0.0%) | 0.99 |
-| The components: list › Amplifiers <sub>example</sub> | 20 | 18 (90.0%) | 1 (5.0%) | 1 (5.0%) | 0 (0.0%) | 0.95 |
 | The components: list › Arrows (fake and real) <sub>example</sub> | 4 | 2 (50.0%) | 2 (50.0%) | 0 (0.0%) | 0 (0.0%) | 0.93 |
 | The components: list › Miscellaneous bipoles and symbols <sub>node</sub> | 2 | 0 (0.0%) | 2 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0.79 |
 | The components: list › Seven segment displays <sub>example</sub> | 2 | 0 (0.0%) | 0 (0.0%) | 2 (100.0%) | 0 (0.0%) | 0.00 |
@@ -68,6 +66,7 @@ Sorted by how many items do not match, the work left.
 | Labels, voltages and currents › Accessing labels text nodes <sub>example</sub> | 2 | 1 (50.0%) | 0 (0.0%) | 1 (50.0%) | 0 (0.0%) | 0.84 |
 | Labels, voltages and currents › Advanced voltages, currents and flows <sub>example</sub> | 6 | 5 (83.3%) | 1 (16.7%) | 0 (0.0%) | 0 (0.0%) | 0.99 |
 | Labels, voltages and currents › Changing the style of labels, voltages, and other text ornaments <sub>example</sub> | 1 | 0 (0.0%) | 1 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0.93 |
+| The components: list › Amplifiers <sub>example</sub> | 20 | 19 (95.0%) | 1 (5.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Electronic Tubes <sub>example</sub> | 7 | 6 (85.7%) | 1 (14.3%) | 0 (0.0%) | 0 (0.0%) | 0.98 |
 | The components: list › Miscellaneous bipoles and symbols <sub>path</sub> | 23 | 22 (95.7%) | 1 (4.3%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Resistive bipoles <sub>example</sub> | 6 | 5 (83.3%) | 1 (16.7%) | 0 (0.0%) | 0 (0.0%) | 0.99 |
@@ -117,6 +116,7 @@ Sorted by how many items do not match, the work left.
 | The components: list › Mechanical Analogy <sub>path</sub> | 5 | 5 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Multiple wires (buses) <sub>example</sub> | 1 | 1 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Multiple wires (buses) <sub>path</sub> | 3 | 3 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
+| The components: list › Multiplexer and de-multiplexer <sub>node</sub> | 6 | 6 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Resistive bipoles <sub>path</sub> | 24 | 24 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Sources and generators <sub>path</sub> | 38 | 38 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Switches, buttons and jumpers <sub>example</sub> | 19 | 19 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
@@ -167,7 +167,7 @@ The manual's list of components, group by group, with the ones voltik draws as T
 | The components: list › Switches, buttons and jumpers | 41 | 41 | 0 | `switch` `closing switch` `opening switch` `normal open switch` `normal closed switch` `opening normal closed switch` `closing normal closed switch` `opening normal open switch` `closing normal open switch` `push button` `normally closed push button` `normally open push button closed` `normally closed push button open` `toggle switch` `reed` `spdt` `cute closed switch` `cute open switch` `cute closing switch` `cute opening switch` `cute spdt up` `cute spdt mid` `cute spdt down` `cute spdt up arrow` `cute spdt mid arrow` `cute spdt down arrow` `proximeter` `inline proximeter` `rotaryswitch` `bare jumper` `open jumper` `closed jumper` `three-pins jumper` `three-pins jumper` `three-pins jumper` `open solder jumper` `closed solder jumper` `open double solder jumper` `left double solder jumper` `right double solder jumper` `closed double solder jumper` |
 | The components: list › Logic gates | 40 | 40 | 0 | `american and port` `american or port` `american nand port` `american nor port` `american xor port` `american xnor port` `american buffer port` `american not port` `schmitt` `invschmitt` `ieeestd and port` `ieeestd nand port` `ieeestd or port` `ieeestd nor port` `ieeestd xor port` `ieeestd xnor port` `ieeestd buffer port` `ieeestd not port` `ieeestd schmitt port` `ieeestd invschmitt port` `ieee tgate` `ieee double tgate` `notcirc` `schmitt symbol` `european and port` `european or port` `european nand port` `european nor port` `european xor port` `european xnor port` `european buffer port` `european not port` `european blank port` `european blank not port` `inline not` `inline buffer` `inline schmitt` `inline invschmitt` `inline tgate` `inline double tgate` |
 | The components: list › Flip-flops | 12 | 0 | 0 |  |
-| The components: list › Multiplexer and de-multiplexer | 6 | 0 | 0 |  |
+| The components: list › Multiplexer and de-multiplexer | 6 | 6 | 0 | `muxdemux` `wedgeinv, scale=2` `circleinv, scale=2` `demux` `one bit adder` `ALU` |
 | The components: list › Chips (integrated circuits) | 2 | 2 | 0 | `dipchip` `qfpchip` |
 | The components: list › Seven segment displays | 1 | 0 | 0 |  |
 | Defining new components › Suggested setup | 1 | 1 | 0 | `damper` |
@@ -179,16 +179,18 @@ Warnings, by how many items they appear in (the varying part replaced by …):
 
 | Items | Warning |
 |---:|---|
-| 269 | `option … not supported: ignored` |
-| 16 | `\draw: figure: unknown coordinate: (…); statement ignored` |
+| 249 | `option … not supported: ignored` |
+| 14 | `\draw: figure: unknown coordinate: (…); statement ignored` |
 | 6 | `\node: figure: unknown coordinate: (…); statement ignored` |
-| 5 | `unknown anchor …: center used` |
 | 3 | `\draw: figure: unknown anchor: FF.bup; statement ignored` |
+| 3 | `unknown anchor …: center used` |
 | 2 | `\draw: figure: unknown anchor: FF.pin N; statement ignored` |
 | 2 | `unrecognized path fragment: …` |
 | 2 | `\path: figure: unknown coordinate: (…); statement ignored` |
-| 2 | `\draw: figure: unknown anchor: B.in N; statement ignored` |
 | 2 | `\node: figure: unknown anchor: B.in N; statement ignored` |
+| 2 | `\draw: figure: unknown anchor: B.in N; statement ignored` |
+| 2 | `voltik: muxdemux turned with straight numbers not drawn yet; its texts turn with it` |
+| 2 | `voltik: muxdemux bgpicture not drawn yet; ignored` |
 | 1 | `\draw: figure: unknown anchor: P.wiper; statement ignored` |
 | 1 | `\ctikzsubcircuitactivate not supported: … ignored` |
 | 1 | `\ChopperByTerminals not supported: … ignored` |
@@ -216,15 +218,12 @@ Warnings, by how many items they appear in (the varying part replaced by …):
 | 1 | `voltik: ieeestd nor port, number inputs=N not drawn yet; drawn as a plain ieeestd nor port` |
 | 1 | `voltik: ieeestd nand port, no input leads, number inputs=N not drawn yet; drawn as a plain` |
 | 1 | `\draw: figure: unknown anchor: A.pin N; statement ignored` |
-| 1 | `\node: figure: unknown anchor: B.bpin N; statement ignored` |
-| 1 | `\draw: figure: unknown anchor: mdemux.brpin N; statement ignored` |
-| 1 | `\draw: figure: unknown anchor: mdemux.blpin N; statement ignored` |
+| 1 | `voltik: dipchip turned with straight numbers not drawn yet; its texts turn with it` |
 
 Components voltik does not know yet, by how many items use them:
 
 | Items | Component |
 |---:|---|
-| 15 | `muxdemux` |
 | 8 | `flipflop JK` |
 | 7 | `amp` |
 | 7 | `mixer` |
@@ -266,7 +265,6 @@ Components voltik does not know yet, by how many items use them:
 | 2 | `mslstub` |
 | 2 | `msrstub` |
 | 2 | `TL` |
-| 2 | `one bit adder` |
 | 1 | `circulator` |
 | 1 | `splitter` |
 | 1 | `genericsplitter` |
@@ -284,17 +282,17 @@ Components voltik does not know yet, by how many items use them:
 | 1 | `tattenuator` |
 | 1 | `vtattenuator` |
 | 1 | `phaseshifter` |
+| 1 | `vphaseshifter` |
+| 1 | `biast` |
 
 Other options voltik does not know, likewise:
 
 | Items | Option |
 |---:|---|
-| 14 | `muxdemux def` |
 | 12 | `dash` |
-| 11 | `width` |
 | 10 | `color` |
+| 10 | `width` |
 | 9 | `height` |
-| 8 | `muxdemux label` |
 | 7 | `prim` |
 | 7 | `thickness` |
 | 7 | `boxed` |
@@ -302,16 +300,15 @@ Other options voltik does not know, likewise:
 | 6 | `flipflop def` |
 | 6 | `relative thickness` |
 | 6 | `sec` |
-| 6 | `outer label font` |
 | 5 | `inner inputs` |
 | 4 | `tert` |
 | 3 | `opto end arrow` |
 | 3 | `angle` |
 | 3 | `fillcolor` |
-| 3 | `upper` |
 | 3 | `oo upper winding` |
-| 3 | `t2` |
+| 3 | `upper` |
 | 3 | `t1` |
+| 3 | `t2` |
 | 3 | `partial borders` |
 | 3 | `european not symbol` |
 | 3 | `add async SR` |
@@ -323,12 +320,15 @@ Other options voltik does not know, likewise:
 | 2 | `-latexslim` |
 | 2 | `nodes width` |
 | 2 | `box` |
-| 2 | `inner color` |
 | 2 | `inner thickness` |
 | 2 | `block right anchors pos` |
-| 2 | `dashed blocks pattern` |
+| 2 | `inner color` |
 | 2 | `inner blocks dashed` |
+| 2 | `dashed blocks pattern` |
+| 2 | `mos style` |
 | 2 | `nocircle` |
+| 2 | `scale` |
+| 2 | `bare` |
 
 Errors of the items that fail:
 
