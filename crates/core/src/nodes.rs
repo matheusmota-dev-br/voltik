@@ -1894,6 +1894,11 @@ pub fn block_shapes() -> impl Iterator<Item = (&'static str, &'static str)> {
 pub fn k_shapes(cx: &mut Context, _v: Option<Tokens>) -> Result<(), Error> {
     // the package's old-style tip, as long and wide as measured at the default line width
     cx.declare_arrow_tip("latexslim", "Latex[length=4pt,width=3pt]");
+    // the jack taps' shorthands: `^` up, `v` down (swapped), `f` filled
+    cx.declare_arrow_tip("^", "Jack Tap");
+    cx.declare_arrow_tip("^f", "Jack Tap[fill]");
+    cx.declare_arrow_tip("v", "Jack Tap[swap]");
+    cx.declare_arrow_tip("vf", "Jack Tap[swap,fill]");
     for n in NODES {
         cx.declare_shape(n.name, shape);
     }

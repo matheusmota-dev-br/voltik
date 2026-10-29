@@ -145,6 +145,8 @@ fn definitions() -> String {
     let mut s = String::new();
     s.push_str("\\def\\ctikzset#1{\\pgfkeys{/tikz/voltik/ctikzset={#1}}}\n");
     s.push_str("\\def\\ctikzvalof#1{\\pgfkeysvalueof{/tikz/circuitikz/#1}}\n");
+    // the release of CircuiTikZ that voltik draws as
+    s.push_str("\\def\\pgfcircversion{1.8.7}\n");
     // the anchors that labels were placed by, and their rotation
     s.push_str("\\def\\ctikzgetanchor#1#2{\\csname voltik@anchor@#1@#2\\endcsname}\n");
     s.push_str("\\def\\ctikzgetdirection#1{\\csname voltik@direction@#1\\endcsname}\n");
