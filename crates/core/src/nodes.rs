@@ -393,6 +393,7 @@ pub const NODES: &[Node] = &[
     },
     // switches
     Node {
+        params: &[Param { setting: "bipoles/cuteswitch/height", default: 0.6, step: 0.2, name: "cute spdt down@height" }],
         anchors: &[("in", [-0.2525, 0.0]), ("out 1", [0.2525, 0.3]), ("out 2", [0.2525, -0.3]), ("mid", [0.0, -0.12])],
         ..node(
             "cute spdt down",
@@ -451,6 +452,7 @@ pub const NODES: &[Node] = &[
         )
     },
     Node {
+        params: &[Param { setting: "bipoles/cuteswitch/height", default: 0.6, step: 0.2, name: "cute spdt down arrow@height" }],
         anchors: &[("in", [-0.2525, 0.0]), ("out 1", [0.2525, 0.3]), ("out 2", [0.2525, -0.3]), ("mid", [0.0, -0.12])],
         ..node(
             "cute spdt down arrow",
@@ -517,6 +519,7 @@ pub const NODES: &[Node] = &[
         )
     },
     Node {
+        params: &[Param { setting: "bipoles/cuteswitch/height", default: 0.6, step: 0.2, name: "cute spdt mid@height" }],
         anchors: &[("in", [-0.2525, 0.0]), ("out 1", [0.2525, 0.3]), ("out 2", [0.2525, -0.3]), ("mid", [0.0, 0.0])],
         ..node(
             "cute spdt mid",
@@ -575,6 +578,7 @@ pub const NODES: &[Node] = &[
         )
     },
     Node {
+        params: &[Param { setting: "bipoles/cuteswitch/height", default: 0.6, step: 0.2, name: "cute spdt mid arrow@height" }],
         anchors: &[("in", [-0.2525, 0.0]), ("out 1", [0.2525, 0.3]), ("out 2", [0.2525, -0.3]), ("mid", [0.0, 0.0])],
         ..node(
             "cute spdt mid arrow",
@@ -648,6 +652,7 @@ pub const NODES: &[Node] = &[
         )
     },
     Node {
+        params: &[Param { setting: "bipoles/cuteswitch/height", default: 0.6, step: 0.2, name: "cute spdt up@height" }],
         anchors: &[("in", [-0.2525, 0.0]), ("out 1", [0.2525, 0.3]), ("out 2", [0.2525, -0.3]), ("mid", [0.0, 0.12])],
         ..node(
             "cute spdt up",
@@ -706,6 +711,7 @@ pub const NODES: &[Node] = &[
         )
     },
     Node {
+        params: &[Param { setting: "bipoles/cuteswitch/height", default: 0.6, step: 0.2, name: "cute spdt up arrow@height" }],
         anchors: &[("in", [-0.2525, 0.0]), ("out 1", [0.2525, 0.3]), ("out 2", [0.2525, -0.3]), ("mid", [0.0, 0.12])],
         ..node(
             "cute spdt up arrow",
@@ -843,6 +849,386 @@ pub const NODES: &[Node] = &[
             [-0.425, 0.425, -0.225, 0.225],
         )
     },
+    // the cute switches at `bipoles/cuteswitch/height=0.8`, to draw them at any height
+    Node {
+        anchors: &[("in", [-0.2525, 0.0]), ("out 1", [0.2525, 0.4]), ("out 2", [0.2525, -0.4]), ("mid", [0.0, 0.17])],
+        ..node(
+            "cute spdt up@height",
+            &[
+                Part::Stroke(7.9653, &[M(-0.2125, 0.0), L(0.2125, 0.34)]),
+                Part::Pole(&[
+                    M(0.2525, 0.4),
+                    C([0.2525, 0.4221], [0.2346, 0.44], [0.2125, 0.44]),
+                    C([0.1905, 0.44], [0.1726, 0.4221], [0.1726, 0.4]),
+                    C([0.1726, 0.3779], [0.1905, 0.3599], [0.2125, 0.3599]),
+                    C([0.2346, 0.3599], [0.2525, 0.3779], [0.2525, 0.4]),
+                    Z,
+                ]),
+                Part::Thin(&[
+                    M(0.2525, 0.4),
+                    C([0.2525, 0.4221], [0.2346, 0.44], [0.2125, 0.44]),
+                    C([0.1905, 0.44], [0.1726, 0.4221], [0.1726, 0.4]),
+                    C([0.1726, 0.3779], [0.1905, 0.3599], [0.2125, 0.3599]),
+                    C([0.2346, 0.3599], [0.2525, 0.3779], [0.2525, 0.4]),
+                    Z,
+                ]),
+                Part::Pole(&[
+                    M(0.2525, -0.4),
+                    C([0.2525, -0.3779], [0.2346, -0.3601], [0.2125, -0.3601]),
+                    C([0.1905, -0.3601], [0.1726, -0.3779], [0.1726, -0.4]),
+                    C([0.1726, -0.4221], [0.1905, -0.44], [0.2125, -0.44]),
+                    C([0.2346, -0.44], [0.2525, -0.4221], [0.2525, -0.4]),
+                    Z,
+                ]),
+                Part::Thin(&[
+                    M(0.2525, -0.4),
+                    C([0.2525, -0.3779], [0.2346, -0.3601], [0.2125, -0.3601]),
+                    C([0.1905, -0.3601], [0.1726, -0.3779], [0.1726, -0.4]),
+                    C([0.1726, -0.4221], [0.1905, -0.44], [0.2125, -0.44]),
+                    C([0.2346, -0.44], [0.2525, -0.4221], [0.2525, -0.4]),
+                    Z,
+                ]),
+                Part::Pole(&[
+                    M(-0.1724, 0.0),
+                    C([-0.1724, 0.0221], [-0.1904, 0.0399], [-0.2125, 0.0399]),
+                    C([-0.2346, 0.0399], [-0.2525, 0.0221], [-0.2525, 0.0]),
+                    C([-0.2525, -0.0221], [-0.2346, -0.0399], [-0.2125, -0.0399]),
+                    C([-0.1904, -0.0399], [-0.1724, -0.0221], [-0.1724, 0.0]),
+                    Z,
+                ]),
+                Part::Thin(&[
+                    M(-0.1724, 0.0),
+                    C([-0.1724, 0.0221], [-0.1904, 0.0399], [-0.2125, 0.0399]),
+                    C([-0.2346, 0.0399], [-0.2525, 0.0221], [-0.2525, 0.0]),
+                    C([-0.2525, -0.0221], [-0.2346, -0.0399], [-0.2125, -0.0399]),
+                    C([-0.1904, -0.0399], [-0.1724, -0.0221], [-0.1724, 0.0]),
+                    Z,
+                ]),
+            ],
+            [-0.2125, 0.2125, -0.4, 0.4],
+        )
+    },
+    Node {
+        anchors: &[("in", [-0.2525, 0.0]), ("out 1", [0.2525, 0.4]), ("out 2", [0.2525, -0.4]), ("mid", [0.0, 0.0])],
+        ..node(
+            "cute spdt mid@height",
+            &[
+                Part::Stroke(7.9653, &[M(-0.2125, 0.0), L(0.2125, 0.0)]),
+                Part::Pole(&[
+                    M(0.2525, 0.4),
+                    C([0.2525, 0.4221], [0.2346, 0.44], [0.2125, 0.44]),
+                    C([0.1905, 0.44], [0.1726, 0.4221], [0.1726, 0.4]),
+                    C([0.1726, 0.3779], [0.1905, 0.3599], [0.2125, 0.3599]),
+                    C([0.2346, 0.3599], [0.2525, 0.3779], [0.2525, 0.4]),
+                    Z,
+                ]),
+                Part::Thin(&[
+                    M(0.2525, 0.4),
+                    C([0.2525, 0.4221], [0.2346, 0.44], [0.2125, 0.44]),
+                    C([0.1905, 0.44], [0.1726, 0.4221], [0.1726, 0.4]),
+                    C([0.1726, 0.3779], [0.1905, 0.3599], [0.2125, 0.3599]),
+                    C([0.2346, 0.3599], [0.2525, 0.3779], [0.2525, 0.4]),
+                    Z,
+                ]),
+                Part::Pole(&[
+                    M(0.2525, -0.4),
+                    C([0.2525, -0.3779], [0.2346, -0.3601], [0.2125, -0.3601]),
+                    C([0.1905, -0.3601], [0.1726, -0.3779], [0.1726, -0.4]),
+                    C([0.1726, -0.4221], [0.1905, -0.44], [0.2125, -0.44]),
+                    C([0.2346, -0.44], [0.2525, -0.4221], [0.2525, -0.4]),
+                    Z,
+                ]),
+                Part::Thin(&[
+                    M(0.2525, -0.4),
+                    C([0.2525, -0.3779], [0.2346, -0.3601], [0.2125, -0.3601]),
+                    C([0.1905, -0.3601], [0.1726, -0.3779], [0.1726, -0.4]),
+                    C([0.1726, -0.4221], [0.1905, -0.44], [0.2125, -0.44]),
+                    C([0.2346, -0.44], [0.2525, -0.4221], [0.2525, -0.4]),
+                    Z,
+                ]),
+                Part::Pole(&[
+                    M(-0.1724, 0.0),
+                    C([-0.1724, 0.0221], [-0.1904, 0.0399], [-0.2125, 0.0399]),
+                    C([-0.2346, 0.0399], [-0.2525, 0.0221], [-0.2525, 0.0]),
+                    C([-0.2525, -0.0221], [-0.2346, -0.0399], [-0.2125, -0.0399]),
+                    C([-0.1904, -0.0399], [-0.1724, -0.0221], [-0.1724, 0.0]),
+                    Z,
+                ]),
+                Part::Thin(&[
+                    M(-0.1724, 0.0),
+                    C([-0.1724, 0.0221], [-0.1904, 0.0399], [-0.2125, 0.0399]),
+                    C([-0.2346, 0.0399], [-0.2525, 0.0221], [-0.2525, 0.0]),
+                    C([-0.2525, -0.0221], [-0.2346, -0.0399], [-0.2125, -0.0399]),
+                    C([-0.1904, -0.0399], [-0.1724, -0.0221], [-0.1724, 0.0]),
+                    Z,
+                ]),
+            ],
+            [-0.2125, 0.2125, -0.4, 0.4],
+        )
+    },
+    Node {
+        anchors: &[("in", [-0.2525, 0.0]), ("out 1", [0.2525, 0.4]), ("out 2", [0.2525, -0.4]), ("mid", [0.0, -0.17])],
+        ..node(
+            "cute spdt down@height",
+            &[
+                Part::Stroke(7.9653, &[M(-0.2125, 0.0), L(0.2125, -0.34)]),
+                Part::Pole(&[
+                    M(0.2525, 0.4),
+                    C([0.2525, 0.4221], [0.2346, 0.44], [0.2125, 0.44]),
+                    C([0.1905, 0.44], [0.1726, 0.4221], [0.1726, 0.4]),
+                    C([0.1726, 0.3779], [0.1905, 0.3599], [0.2125, 0.3599]),
+                    C([0.2346, 0.3599], [0.2525, 0.3779], [0.2525, 0.4]),
+                    Z,
+                ]),
+                Part::Thin(&[
+                    M(0.2525, 0.4),
+                    C([0.2525, 0.4221], [0.2346, 0.44], [0.2125, 0.44]),
+                    C([0.1905, 0.44], [0.1726, 0.4221], [0.1726, 0.4]),
+                    C([0.1726, 0.3779], [0.1905, 0.3599], [0.2125, 0.3599]),
+                    C([0.2346, 0.3599], [0.2525, 0.3779], [0.2525, 0.4]),
+                    Z,
+                ]),
+                Part::Pole(&[
+                    M(0.2525, -0.4),
+                    C([0.2525, -0.3779], [0.2346, -0.3601], [0.2125, -0.3601]),
+                    C([0.1905, -0.3601], [0.1726, -0.3779], [0.1726, -0.4]),
+                    C([0.1726, -0.4221], [0.1905, -0.44], [0.2125, -0.44]),
+                    C([0.2346, -0.44], [0.2525, -0.4221], [0.2525, -0.4]),
+                    Z,
+                ]),
+                Part::Thin(&[
+                    M(0.2525, -0.4),
+                    C([0.2525, -0.3779], [0.2346, -0.3601], [0.2125, -0.3601]),
+                    C([0.1905, -0.3601], [0.1726, -0.3779], [0.1726, -0.4]),
+                    C([0.1726, -0.4221], [0.1905, -0.44], [0.2125, -0.44]),
+                    C([0.2346, -0.44], [0.2525, -0.4221], [0.2525, -0.4]),
+                    Z,
+                ]),
+                Part::Pole(&[
+                    M(-0.1724, 0.0),
+                    C([-0.1724, 0.0221], [-0.1904, 0.0399], [-0.2125, 0.0399]),
+                    C([-0.2346, 0.0399], [-0.2525, 0.0221], [-0.2525, 0.0]),
+                    C([-0.2525, -0.0221], [-0.2346, -0.0399], [-0.2125, -0.0399]),
+                    C([-0.1904, -0.0399], [-0.1724, -0.0221], [-0.1724, 0.0]),
+                    Z,
+                ]),
+                Part::Thin(&[
+                    M(-0.1724, 0.0),
+                    C([-0.1724, 0.0221], [-0.1904, 0.0399], [-0.2125, 0.0399]),
+                    C([-0.2346, 0.0399], [-0.2525, 0.0221], [-0.2525, 0.0]),
+                    C([-0.2525, -0.0221], [-0.2346, -0.0399], [-0.2125, -0.0399]),
+                    C([-0.1904, -0.0399], [-0.1724, -0.0221], [-0.1724, 0.0]),
+                    Z,
+                ]),
+            ],
+            [-0.2125, 0.2125, -0.4, 0.4],
+        )
+    },
+    Node {
+        anchors: &[("in", [-0.2525, 0.0]), ("out 1", [0.2525, 0.4]), ("out 2", [0.2525, -0.4]), ("mid", [0.0, 0.17])],
+        ..node(
+            "cute spdt up arrow@height",
+            &[
+                Part::Stroke(7.9653, &[M(-0.2125, 0.0), L(0.2125, 0.34)]),
+                Part::Thick(&[M(-0.1034, 0.2995), C([0.062, 0.2393], [0.1473, 0.0564], [0.087, -0.1091]), C([0.0769, -0.1369], [0.0629, -0.1631], [0.0456, -0.1869])]),
+                Part::Solid(&[
+                    M(-0.0076, -0.2442),
+                    C([0.0177, -0.2226], [0.0644, -0.1846], [0.1117, -0.1719]),
+                    C([0.0633, -0.1754], [0.0428, -0.1593], [0.0349, -0.1114]),
+                    C([0.0336, -0.1604], [0.0075, -0.2145], [-0.0076, -0.2442]),
+                    Z,
+                ]),
+                Part::Pole(&[
+                    M(0.2525, 0.4),
+                    C([0.2525, 0.4221], [0.2346, 0.44], [0.2125, 0.44]),
+                    C([0.1905, 0.44], [0.1726, 0.4221], [0.1726, 0.4]),
+                    C([0.1726, 0.3779], [0.1905, 0.3599], [0.2125, 0.3599]),
+                    C([0.2346, 0.3599], [0.2525, 0.3779], [0.2525, 0.4]),
+                    Z,
+                ]),
+                Part::Thin(&[
+                    M(0.2525, 0.4),
+                    C([0.2525, 0.4221], [0.2346, 0.44], [0.2125, 0.44]),
+                    C([0.1905, 0.44], [0.1726, 0.4221], [0.1726, 0.4]),
+                    C([0.1726, 0.3779], [0.1905, 0.3599], [0.2125, 0.3599]),
+                    C([0.2346, 0.3599], [0.2525, 0.3779], [0.2525, 0.4]),
+                    Z,
+                ]),
+                Part::Pole(&[
+                    M(0.2525, -0.4),
+                    C([0.2525, -0.3779], [0.2346, -0.3601], [0.2125, -0.3601]),
+                    C([0.1905, -0.3601], [0.1726, -0.3779], [0.1726, -0.4]),
+                    C([0.1726, -0.4221], [0.1905, -0.44], [0.2125, -0.44]),
+                    C([0.2346, -0.44], [0.2525, -0.4221], [0.2525, -0.4]),
+                    Z,
+                ]),
+                Part::Thin(&[
+                    M(0.2525, -0.4),
+                    C([0.2525, -0.3779], [0.2346, -0.3601], [0.2125, -0.3601]),
+                    C([0.1905, -0.3601], [0.1726, -0.3779], [0.1726, -0.4]),
+                    C([0.1726, -0.4221], [0.1905, -0.44], [0.2125, -0.44]),
+                    C([0.2346, -0.44], [0.2525, -0.4221], [0.2525, -0.4]),
+                    Z,
+                ]),
+                Part::Pole(&[
+                    M(-0.1724, 0.0),
+                    C([-0.1724, 0.0221], [-0.1904, 0.0399], [-0.2125, 0.0399]),
+                    C([-0.2346, 0.0399], [-0.2525, 0.0221], [-0.2525, 0.0]),
+                    C([-0.2525, -0.0221], [-0.2346, -0.0399], [-0.2125, -0.0399]),
+                    C([-0.1904, -0.0399], [-0.1724, -0.0221], [-0.1724, 0.0]),
+                    Z,
+                ]),
+                Part::Thin(&[
+                    M(-0.1724, 0.0),
+                    C([-0.1724, 0.0221], [-0.1904, 0.0399], [-0.2125, 0.0399]),
+                    C([-0.2346, 0.0399], [-0.2525, 0.0221], [-0.2525, 0.0]),
+                    C([-0.2525, -0.0221], [-0.2346, -0.0399], [-0.2125, -0.0399]),
+                    C([-0.1904, -0.0399], [-0.1724, -0.0221], [-0.1724, 0.0]),
+                    Z,
+                ]),
+            ],
+            [-0.2125, 0.2125, -0.4, 0.4],
+        )
+    },
+    Node {
+        anchors: &[("in", [-0.2525, 0.0]), ("out 1", [0.2525, 0.4]), ("out 2", [0.2525, -0.4]), ("mid", [0.0, 0.0])],
+        ..node(
+            "cute spdt mid arrow@height",
+            &[
+                Part::Stroke(7.9653, &[M(-0.2125, 0.0), L(0.2125, 0.0)]),
+                Part::Thick(&[M(0.0094, -0.2289), C([0.112, -0.1296], [0.1382, 0.0301], [0.0636, 0.1594]), C([0.0487, 0.1851], [0.0304, 0.2085], [0.0093, 0.2289])]),
+                Part::Solid(&[
+                    M(-0.0531, -0.2761),
+                    C([-0.0244, -0.2591], [0.0281, -0.2299], [0.0769, -0.2257]),
+                    C([0.0286, -0.2206], [0.0112, -0.2012], [0.0117, -0.1526]),
+                    C([0.0021, -0.2006], [-0.0331, -0.2494], [-0.0531, -0.2761]),
+                    Z,
+                ]),
+                Part::Solid(&[
+                    M(-0.0531, 0.276),
+                    C([-0.0331, 0.2494], [0.0021, 0.2006], [0.0117, 0.1526]),
+                    C([0.0112, 0.2011], [0.0286, 0.2206], [0.0769, 0.2257]),
+                    C([0.0281, 0.2299], [-0.0244, 0.2591], [-0.0531, 0.276]),
+                    Z,
+                ]),
+                Part::Pole(&[
+                    M(0.2525, 0.4),
+                    C([0.2525, 0.4221], [0.2346, 0.44], [0.2125, 0.44]),
+                    C([0.1905, 0.44], [0.1726, 0.4221], [0.1726, 0.4]),
+                    C([0.1726, 0.3779], [0.1905, 0.3599], [0.2125, 0.3599]),
+                    C([0.2346, 0.3599], [0.2525, 0.3779], [0.2525, 0.4]),
+                    Z,
+                ]),
+                Part::Thin(&[
+                    M(0.2525, 0.4),
+                    C([0.2525, 0.4221], [0.2346, 0.44], [0.2125, 0.44]),
+                    C([0.1905, 0.44], [0.1726, 0.4221], [0.1726, 0.4]),
+                    C([0.1726, 0.3779], [0.1905, 0.3599], [0.2125, 0.3599]),
+                    C([0.2346, 0.3599], [0.2525, 0.3779], [0.2525, 0.4]),
+                    Z,
+                ]),
+                Part::Pole(&[
+                    M(0.2525, -0.4),
+                    C([0.2525, -0.3779], [0.2346, -0.3601], [0.2125, -0.3601]),
+                    C([0.1905, -0.3601], [0.1726, -0.3779], [0.1726, -0.4]),
+                    C([0.1726, -0.4221], [0.1905, -0.44], [0.2125, -0.44]),
+                    C([0.2346, -0.44], [0.2525, -0.4221], [0.2525, -0.4]),
+                    Z,
+                ]),
+                Part::Thin(&[
+                    M(0.2525, -0.4),
+                    C([0.2525, -0.3779], [0.2346, -0.3601], [0.2125, -0.3601]),
+                    C([0.1905, -0.3601], [0.1726, -0.3779], [0.1726, -0.4]),
+                    C([0.1726, -0.4221], [0.1905, -0.44], [0.2125, -0.44]),
+                    C([0.2346, -0.44], [0.2525, -0.4221], [0.2525, -0.4]),
+                    Z,
+                ]),
+                Part::Pole(&[
+                    M(-0.1724, 0.0),
+                    C([-0.1724, 0.0221], [-0.1904, 0.0399], [-0.2125, 0.0399]),
+                    C([-0.2346, 0.0399], [-0.2525, 0.0221], [-0.2525, 0.0]),
+                    C([-0.2525, -0.0221], [-0.2346, -0.0399], [-0.2125, -0.0399]),
+                    C([-0.1904, -0.0399], [-0.1724, -0.0221], [-0.1724, 0.0]),
+                    Z,
+                ]),
+                Part::Thin(&[
+                    M(-0.1724, 0.0),
+                    C([-0.1724, 0.0221], [-0.1904, 0.0399], [-0.2125, 0.0399]),
+                    C([-0.2346, 0.0399], [-0.2525, 0.0221], [-0.2525, 0.0]),
+                    C([-0.2525, -0.0221], [-0.2346, -0.0399], [-0.2125, -0.0399]),
+                    C([-0.1904, -0.0399], [-0.1724, -0.0221], [-0.1724, 0.0]),
+                    Z,
+                ]),
+            ],
+            [-0.2125, 0.2125, -0.4, 0.4],
+        )
+    },
+    Node {
+        anchors: &[("in", [-0.2525, 0.0]), ("out 1", [0.2525, 0.4]), ("out 2", [0.2525, -0.4]), ("mid", [0.0, -0.17])],
+        ..node(
+            "cute spdt down arrow@height",
+            &[
+                Part::Stroke(7.9653, &[M(-0.2125, 0.0), L(0.2125, -0.34)]),
+                Part::Thick(&[M(-0.0076, -0.2442), C([0.1273, -0.131], [0.1449, 0.07], [0.0317, 0.2049]), C([0.0126, 0.2276], [-0.0094, 0.2474], [-0.0339, 0.264])]),
+                Part::Solid(&[
+                    M(-0.1034, 0.2995),
+                    C([-0.0791, 0.2768], [-0.036, 0.2348], [-0.0182, 0.1892]),
+                    C([-0.0271, 0.2369], [-0.0133, 0.2591], [0.0333, 0.2724]),
+                    C([-0.0154, 0.2681], [-0.0722, 0.2879], [-0.1034, 0.2995]),
+                    Z,
+                ]),
+                Part::Pole(&[
+                    M(0.2525, 0.4),
+                    C([0.2525, 0.4221], [0.2346, 0.44], [0.2125, 0.44]),
+                    C([0.1905, 0.44], [0.1726, 0.4221], [0.1726, 0.4]),
+                    C([0.1726, 0.3779], [0.1905, 0.3599], [0.2125, 0.3599]),
+                    C([0.2346, 0.3599], [0.2525, 0.3779], [0.2525, 0.4]),
+                    Z,
+                ]),
+                Part::Thin(&[
+                    M(0.2525, 0.4),
+                    C([0.2525, 0.4221], [0.2346, 0.44], [0.2125, 0.44]),
+                    C([0.1905, 0.44], [0.1726, 0.4221], [0.1726, 0.4]),
+                    C([0.1726, 0.3779], [0.1905, 0.3599], [0.2125, 0.3599]),
+                    C([0.2346, 0.3599], [0.2525, 0.3779], [0.2525, 0.4]),
+                    Z,
+                ]),
+                Part::Pole(&[
+                    M(0.2525, -0.4),
+                    C([0.2525, -0.3779], [0.2346, -0.3601], [0.2125, -0.3601]),
+                    C([0.1905, -0.3601], [0.1726, -0.3779], [0.1726, -0.4]),
+                    C([0.1726, -0.4221], [0.1905, -0.44], [0.2125, -0.44]),
+                    C([0.2346, -0.44], [0.2525, -0.4221], [0.2525, -0.4]),
+                    Z,
+                ]),
+                Part::Thin(&[
+                    M(0.2525, -0.4),
+                    C([0.2525, -0.3779], [0.2346, -0.3601], [0.2125, -0.3601]),
+                    C([0.1905, -0.3601], [0.1726, -0.3779], [0.1726, -0.4]),
+                    C([0.1726, -0.4221], [0.1905, -0.44], [0.2125, -0.44]),
+                    C([0.2346, -0.44], [0.2525, -0.4221], [0.2525, -0.4]),
+                    Z,
+                ]),
+                Part::Pole(&[
+                    M(-0.1724, 0.0),
+                    C([-0.1724, 0.0221], [-0.1904, 0.0399], [-0.2125, 0.0399]),
+                    C([-0.2346, 0.0399], [-0.2525, 0.0221], [-0.2525, 0.0]),
+                    C([-0.2525, -0.0221], [-0.2346, -0.0399], [-0.2125, -0.0399]),
+                    C([-0.1904, -0.0399], [-0.1724, -0.0221], [-0.1724, 0.0]),
+                    Z,
+                ]),
+                Part::Thin(&[
+                    M(-0.1724, 0.0),
+                    C([-0.1724, 0.0221], [-0.1904, 0.0399], [-0.2125, 0.0399]),
+                    C([-0.2346, 0.0399], [-0.2525, 0.0221], [-0.2525, 0.0]),
+                    C([-0.2525, -0.0221], [-0.2346, -0.0399], [-0.2125, -0.0399]),
+                    C([-0.1904, -0.0399], [-0.1724, -0.0221], [-0.1724, 0.0]),
+                    Z,
+                ]),
+            ],
+            [-0.2125, 0.2125, -0.4, 0.4],
+        )
+    },
     // symbols
     node("dc symbol", &[Part::Thick(&[M(-0.21, 0.105), L(0.21, 0.105), M(-0.21, -0.105), L(-0.07, -0.105), M(0.07, -0.105), L(0.21, -0.105)])], [-0.21, 0.21, -0.105, 0.105]),
     node(
@@ -973,19 +1359,29 @@ fn bipole_shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error
     let scale = crate::bipole::number(cx, &format!("{}/scale", comp.class.name()), 1.0);
     let u = cx.length(Tokens::text(&length)).unwrap_or(1.4) * scale;
     let (w, top, bottom) = (comp.width / 2.0 * u, comp.top * u, comp.bottom * u);
+    // its ends on its line, its north and south its band's
     let mut anchors = compass(-w, w, -bottom, top);
+    for (name, at) in anchors.iter_mut() {
+        if matches!(name.as_str(), "west" | "w" | "left" | "east" | "e" | "right") {
+            at.y = 0.0;
+        }
+    }
     anchors.extend(comp.anchors.iter().map(|(name, p)| (name.to_string(), Point::new(p[0] * u, p[1] * u))));
     anchors.push(("text".into(), Point::new(0.0, 0.0)));
     // (globally: it runs after the node, out of its options' group)
-    cx.run(Tokens::text(&format!("\\gdef\\voltik@bp{{(\\tikzlastnode.west) to[{key}, voltik/fit] (\\tikzlastnode.east)}}")))?;
+    // (`voltik/up`: the node's north, for the bipole to be mirrored with it, `yscale=-1`)
+    cx.run(Tokens::text(&format!(
+        "\\gdef\\voltik@bp{{\\pgfextra{{\\xdef\\voltik@bn{{\\tikzlastnode}}}} (\\voltik@bn.west) to[{key}, voltik/fit, voltik/up=\\voltik@bn.north] (\\voltik@bn.east)}}"
+    )))?;
     let _ = input;
     Ok(NodeShape {
         center: Point::new(0.0, 0.0),
         anchors,
-        border: ShapeBorder::Rectangle(Point::new(w, top.max(bottom))),
+        border: ShapeBorder::Point,
         text: Point::new(0.0, 0.0),
         paths: Vec::new(),
-        extent: vec![Point::new(-w, -bottom), Point::new(w, top)],
+        // (its size is the bipole's, drawn after it: its box does not count)
+        extent: Vec::new(),
     })
 }
 
@@ -1089,6 +1485,179 @@ fn transformer(cx: &mut Context, base: &str) -> Result<bool, Error> {
     Ok(own)
 }
 
+/// A rotary switch's arrow at its default wiper (20°) and size, from its input pole's center (`cin`):
+/// the arc with a head at neither end shortened, one, or both; and its heads.
+const ROTARY_R: f64 = 0.5189;
+const ROTARY_ARC_CW: &[Op] = &[M(0.0887, 0.2437), C([0.1758, 0.212], [0.2394, 0.1364], [0.2555, 0.045]), C([0.2615, 0.0109], [0.2606, -0.0237], [0.2531, -0.057])];
+const ROTARY_ARC_CCW: &[Op] = &[M(0.1573, 0.2063), C([0.2084, 0.1674], [0.244, 0.1101], [0.2555, 0.045]), C([0.2661, -0.0151], [0.2552, -0.077], [0.2247, -0.1297])];
+const ROTARY_ARC_BOTH: &[Op] = &[M(0.1573, 0.2063), C([0.2083, 0.1673], [0.244, 0.1101], [0.2555, 0.045]), C([0.2615, 0.0109], [0.2606, -0.0237], [0.2531, -0.057])];
+const ROTARY_HEAD_CW: &[Op] = &[
+    M(0.2247, -0.1297),
+    C([0.2397, -0.1001], [0.2681, -0.0469], [0.3069, -0.0171]),
+    C([0.2636, -0.039], [0.2384, -0.0319], [0.2126, 0.0091]),
+    C([0.2303, -0.0364], [0.2271, -0.0966], [0.2247, -0.1297]),
+    Z,
+];
+const ROTARY_HEAD_CCW: &[Op] = &[
+    M(0.0887, 0.2437),
+    C([0.112, 0.2199], [0.153, 0.1759], [0.1686, 0.1296]),
+    C([0.1621, 0.1776], [0.1769, 0.1991], [0.2241, 0.2102]),
+    C([0.1751, 0.2082], [0.1194, 0.2307], [0.0887, 0.2437]),
+    Z,
+];
+
+/// `rotaryswitch`: `multipoles/rotary/channels` output poles on a circle around the input pole, from
+/// `angle` above to `angle` below, the wiper at `wiper`, an arrow (`arrow`: `cw`, `ccw`, `both`)
+/// around it; its poles are nodes of their own (`S-in`, `S-out 3`), drawn after it.
+fn rotary_shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
+    let num = |cx: &mut Context, key: &str, default: f64| crate::bipole::number(cx, &format!("multipoles/rotary/{key}"), default);
+    let n = num(cx, "channels", 5.0).round().max(1.0) as usize;
+    let a = num(cx, "angle", 60.0).to_radians();
+    let wiper = num(cx, "wiper", 20.0);
+    let thickness = num(cx, "thickness", 1.0);
+    let arrow = setting(cx, "multipoles/rotary/arrow")?;
+    let pole = setting(cx, "multipoles/rotary/shape")?;
+    let length = setting(cx, "bipoles/length")?;
+    let u = cx.length(Tokens::text(&length)).unwrap_or(1.4) * crate::bipole::number(cx, "switches/scale", 1.0);
+    let r = ROTARY_R * crate::bipole::number(cx, "tripoles/spdt/width", 0.85) / 0.85;
+    let half = crate::bipole::number(cx, "nodes width", 0.04);
+    // the input pole, so that the whole is centered across
+    let cin = -(r + r * a.cos().min(0.0)) / 2.0;
+    let p = |x: f64, y: f64| Point::new(x * u, y * u);
+    let angle = |i: usize| if n == 1 { 0.0 } else { a - 2.0 * a * i as f64 / (n - 1) as f64 };
+    let mut anchors: Vec<(String, Point)> = Vec::new();
+    let top = if a >= std::f64::consts::FRAC_PI_2 { r } else { r * a.sin() } + half;
+    let (west, east) = (cin + r * a.cos().min(0.0) - half, cin + r + half);
+    anchors.extend(compass(west * u, east * u, -top * u, top * u));
+    let ext = 1.25 * r;
+    for (name, x, y) in [
+        ("north", cin, ext),
+        ("south", cin, -ext),
+        ("east", cin + ext, 0.0),
+        ("west", cin - ext, 0.0),
+        ("north east", cin + ext, ext),
+        ("north west", cin - ext, ext),
+        ("south east", cin + ext, -ext),
+        ("south west", cin - ext, -ext),
+        ("center", cin, 0.0),
+    ] {
+        anchors.push((format!("ext {name}"), p(x, y)));
+    }
+    anchors.push(("in".into(), p(cin - half, 0.0)));
+    anchors.push(("cin".into(), p(cin, 0.0)));
+    let w = wiper.to_radians();
+    anchors.push(("mid".into(), p(cin + r / 2.0 * w.cos(), r / 2.0 * w.sin())));
+    let mut poles = vec![("in".to_string(), cin, 0.0)];
+    for i in 0..n {
+        let t = angle(i);
+        let (x, y) = (cin + r * t.cos(), r * t.sin());
+        let k = i + 1;
+        anchors.push((format!("out {k}"), p(x + half, y)));
+        anchors.push((format!("cout {k}"), p(x, y)));
+        anchors.push((format!("aout {k}"), p(x + half * t.cos(), y + half * t.sin())));
+        // on the square around the input pole, along the line from it
+        let reach = (ext / t.cos().abs().max(1e-9)).min(ext / t.sin().abs().max(1e-9));
+        anchors.push((format!("sqout {k}"), p(cin + reach * t.cos(), reach * t.sin())));
+        poles.push((format!("out {k}"), x, y));
+    }
+    anchors.push(("text".into(), p(0.0, 0.0)));
+    // the wiper and the arrow, turned from their default and sized
+    let mut paths = Vec::new();
+    let turn = |ops: &[Op]| -> Vec<Op> {
+        let (c, sn, k) = ((wiper - 20.0).to_radians().cos(), (wiper - 20.0).to_radians().sin(), r / ROTARY_R);
+        let q = |x: f64, y: f64| (cin + k * (x * c - y * sn), k * (x * sn + y * c));
+        ops.iter()
+            .map(|op| match *op {
+                Op::Move(x, y) => {
+                    let (a, b) = q(x, y);
+                    Op::Move(a, b)
+                }
+                Op::Line(x, y) => {
+                    let (a, b) = q(x, y);
+                    Op::Line(a, b)
+                }
+                Op::Curve(a1, b1, c1) => {
+                    let (a, b) = (q(a1[0], a1[1]), q(b1[0], b1[1]));
+                    let e = q(c1[0], c1[1]);
+                    Op::Curve([a.0, a.1], [b.0, b.1], [e.0, e.1])
+                }
+                Op::Close => Op::Close,
+            })
+            .collect()
+    };
+    let lw = input.line_width;
+    if thickness >= 0.0 {
+        let lever = [M(cin, 0.0), L(cin + r * w.cos(), r * w.sin())];
+        paths.push(ShapePath { segments: segments(&lever, u), paint: ShapePaint::Stroke(7.965 * thickness * lw) });
+    }
+    let (arc, heads): (&[Op], &[&[Op]]) = match arrow.as_str() {
+        "cw" => (ROTARY_ARC_CW, &[ROTARY_HEAD_CW]),
+        "ccw" => (ROTARY_ARC_CCW, &[ROTARY_HEAD_CCW]),
+        "both" => (ROTARY_ARC_BOTH, &[ROTARY_HEAD_CW, ROTARY_HEAD_CCW]),
+        _ => (&[], &[]),
+    };
+    if !arc.is_empty() {
+        let thick = crate::bipole::number(cx, "bipoles/thickness", 2.0);
+        paths.push(ShapePath { segments: segments(&turn(arc), u), paint: ShapePaint::Stroke(thick * lw) });
+        for head in heads {
+            paths.push(ShapePath { segments: segments(&turn(head), u), paint: ShapePaint::Solid });
+        }
+    }
+    // the poles, drawn here (in the node's colors) and nodes of their own after it, for their
+    // anchors (`S-out 2.n`)
+    for (_, x, y) in &poles {
+        let mut t = terminal(&pole, half * u, lw);
+        for path in t.paths.drain(..) {
+            let segments = path.segments.iter().map(|seg| shift(*seg, Point::new(x * u, y * u))).collect();
+            paths.push(ShapePath { segments, paint: path.paint });
+        }
+    }
+    let mut code = String::from("\\pgfextra{\\xdef\\voltik@tn{\\tikzlastnode}} ");
+    for (name, _, _) in &poles {
+        let anchor = if name == "in" { "cin".to_string() } else { format!("c{name}") };
+        code.push_str(&format!("(\\voltik@tn.{anchor}) node[shape=voltik pole, voltik/pole shape={pole}, name=\\voltik@tn-{name}] {{}} "));
+    }
+    cx.run(Tokens::text(&format!("\\gdef\\voltik@rs{{{code}}}")))?;
+    Ok(NodeShape { center: Point::new(0.0, 0.0), anchors, border: ShapeBorder::Point, text: Point::new(0.0, 0.0), paths, extent: vec![p(west, -top), p(east, top)] })
+}
+
+/// A segment moved by `d`.
+fn shift(seg: PathSegment, d: Point) -> PathSegment {
+    let m = |p: Point| Point::new(p.x + d.x, p.y + d.y);
+    match seg {
+        PathSegment::MoveTo(p) => PathSegment::MoveTo(m(p)),
+        PathSegment::LineTo(p) => PathSegment::LineTo(m(p)),
+        PathSegment::CurveTo(a, b, c) => PathSegment::CurveTo(m(a), m(b), m(c)),
+        PathSegment::Close => PathSegment::Close,
+    }
+}
+
+/// A pole drawn by its component, as a node with the pole's anchors and border but nothing drawn
+/// (`voltik/pole shape` the terminal it is).
+fn pole_shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
+    let length = setting(cx, "bipoles/length")?;
+    let half = crate::bipole::number(cx, "nodes width", 0.04) * cx.length(Tokens::text(&length)).unwrap_or(1.4);
+    let mut t = terminal(&cx.macro_text("voltik@pole"), half, input.line_width);
+    t.paths.clear();
+    Ok(t)
+}
+
+/// `rotary switch=8 in 120 wiper 40` (and `rotary switch <-=…`, `->`, `<->`, `-`): the rotary switch
+/// with these, or its defaults, and an arrow.
+pub fn k_rotary(cx: &mut Context, v: Option<Tokens>) -> Result<(), Error> {
+    let a = v.unwrap_or_default().arguments(2);
+    let arrow = cx.expand(a[0].clone())?;
+    let spec = cx.expand(a[1].clone())?;
+    let words: Vec<&str> = spec.split_whitespace().collect();
+    let pick = |i: usize, default: &str| words.get(i).copied().filter(|w| !w.is_empty()).unwrap_or(default).to_string();
+    let (n, angle, wiper) = (pick(0, "5"), pick(2, "60"), pick(4, "20"));
+    // (`rotary switch` alone keeps the arrow in force)
+    let arrow = if arrow.is_empty() { String::new() } else { format!(", /tikz/circuitikz/multipoles/rotary/arrow={arrow}") };
+    cx.keys(Tokens::text(&format!(
+        "shape=rotaryswitch, /tikz/circuitikz/multipoles/rotary/channels={n}, /tikz/circuitikz/multipoles/rotary/angle={angle}, /tikz/circuitikz/multipoles/rotary/wiper={wiper}{arrow}, voltik/class fill=switches, append after command={{\\voltik@rs}}"
+    )))
+}
+
 /// `voltik/shapes`: declares every node component to tikra.
 pub fn k_shapes(cx: &mut Context, _v: Option<Tokens>) -> Result<(), Error> {
     for n in NODES {
@@ -1096,6 +1665,8 @@ pub fn k_shapes(cx: &mut Context, _v: Option<Tokens>) -> Result<(), Error> {
     }
     cx.declare_shape("voltik bipole", bipole_shape);
     cx.declare_shape("voltik coil", coil_shape);
+    cx.declare_shape("rotaryswitch", rotary_shape);
+    cx.declare_shape("voltik pole", pole_shape);
     for name in variant_shapes() {
         cx.declare_shape(name, shape);
     }
@@ -1127,6 +1698,7 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
     let w = input.line_width;
     let filled = !cx.macro_text("voltik@fill").is_empty();
     let sized = sized(cx, n)?;
+    let lever = crate::bipole::number(cx, "bipoles/cuteswitch/thickness", 1.0);
     // an `en amp` with an `en amp text` does not draw its ▷∞, the solid parts at its top
     let own_text = input.name == "en amp" && !setting(cx, "en amp text")?.is_empty();
     let paths = sized
@@ -1150,6 +1722,8 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
                         ShapePaint::Solid
                     }
                 }
+                // a cute switch's lever, by `bipoles/cuteswitch/thickness`
+                Part::Stroke(k, _) if n.name.starts_with("cute") => ShapePaint::Stroke(k * w * lever),
                 Part::Stroke(k, _) => ShapePaint::Stroke(k * w),
             };
             ShapePath { segments: segments(ops, unit), paint }
@@ -1158,6 +1732,19 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
     let [left, right, bottom, top] = sized.bounds;
     let mut anchors = compass(left * unit, right * unit, bottom * unit, top * unit);
     anchors.extend(sized.anchors.iter().map(|(name, p)| (name.to_string(), at(*p))));
+    // a cute switch's poles are nodes of their own too (`S1-in`, `S1-out 2`), after it
+    if n.name.starts_with("cute spdt") {
+        let half = crate::bipole::number(cx, "nodes width", 0.04);
+        let pole = setting(cx, "bipoles/cuteswitch/shape")?;
+        let mut code = String::from("\\pgfextra{\\xdef\\voltik@tn{\\tikzlastnode}} ");
+        for (name, side) in [("in", 1.0), ("out 1", -1.0), ("out 2", -1.0)] {
+            if let Some((_, p)) = sized.anchors.iter().find(|(a, _)| *a == name) {
+                anchors.push((format!("c{name}"), at([p[0] + side * half, p[1]])));
+                code.push_str(&format!("(\\voltik@tn.c{name}) node[shape=voltik pole, voltik/pole shape={pole}, name=\\voltik@tn-{name}] {{}} "));
+            }
+        }
+        cx.run(Tokens::text(&format!("\\gdef\\voltik@cs{{{code}}}")))?;
+    }
     // the text: its box's origin (the left end of its baseline), from where its side goes
     let sy = input.inner_sep.y;
     let text = match n.text {
