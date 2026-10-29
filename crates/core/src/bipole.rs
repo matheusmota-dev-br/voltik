@@ -129,6 +129,10 @@ fn component(cx: &mut Context) -> Result<Option<&'static components::Component>,
             return Ok(components::find(&format!("{name}{suffix}")));
         }
     }
+    // a logic gate on a path in the `logic ports` style (`inline not` in IEEE style)
+    if let Some(styled) = components::find(&format!("{name}|{}", setting(cx, "logic ports")?)) {
+        return Ok(Some(styled));
+    }
     // a three-pins jumper's connections
     if name == "three-pins jumper" {
         let connections = setting(cx, "tjumper connections")?;

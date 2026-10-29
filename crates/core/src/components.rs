@@ -81,6 +81,7 @@ pub enum Class {
     Diodes,
     Switches,
     Transistors,
+    LogicPorts,
 }
 
 impl Class {
@@ -100,6 +101,7 @@ impl Class {
             Class::Diodes => "diodes",
             Class::Switches => "switches",
             Class::Transistors => "transistors",
+            Class::LogicPorts => "logic ports",
         }
     }
 }
@@ -979,6 +981,12 @@ const SWITCH_ALIASES: &[(&str, Target)] = &[
 /// The transistors on a path: `Tnpn=Q` writes `Q` in its middle, as `Telmech=M` does.
 const TRANSISTOR_ALIASES: &[(&str, Target)] = &[
     ("Telmech", Fixed("Telmech")),
+    ("inline not", Fixed("inline not")),
+    ("inline buffer", Fixed("inline buffer")),
+    ("inline schmitt", Fixed("inline schmitt")),
+    ("inline invschmitt", Fixed("inline invschmitt")),
+    ("inline tgate", Fixed("inline tgate")),
+    ("inline double tgate", Fixed("inline double tgate")),
     ("TLnigbt", Fixed("TLnigbt")),
     ("TLpigbt", Fixed("TLpigbt")),
     ("Themt", Fixed("Themt")),

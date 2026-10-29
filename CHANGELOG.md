@@ -4,6 +4,16 @@ What changed in each release of voltik: the crates `voltik` and `voltik-cli`, `@
 
 Each release has a headline (the line under its title), what changed, and the figures of [`corpus/`](corpus) that show it (`Figures:`), drawn by the site with today's voltik. `scripts/release.sh` will not release a version without its section here, and makes the GitHub release from it.
 
+## Unreleased
+
+Logic gates.
+
+- The logic ports in their three styles, American, European and IEEE (`american and port`, `european xnor port`, `ieeestd nand port`…), with 2 to 8 inputs (`number inputs`), without leads (`no input leads`, `no output leads`, `no leads`, and back with `input leads`, `all leads`), and their anchors (`in 1`, `bin 1`, `out`, `bout`); the schmitt ports, the transmission gates (`ieee tgate`, `ieee double tgate`), `notcirc`, `schmitt symbol` and the European blank ports.
+- The short keys (`and port`, `not port`…) follow `logic ports=american`, `european` or `ieee` (and `american ports`, `european ports`, `ieee ports`, the package options too).
+- The gates on a path (`inline not`, `inline buffer`, `inline schmitt`, `inline invschmitt`, `inline tgate`, `inline double tgate`), in the style of `logic ports`.
+
+Figures: `logic-gates`, `half-adder`
+
 ## 0.12.0 - 2026-10-29
 
 Rotary switches, the poles of switches as nodes, and the customizations of transistors and tubes.
