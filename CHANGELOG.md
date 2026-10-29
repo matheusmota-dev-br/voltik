@@ -4,6 +4,43 @@ What changed in each release of voltik: the crates `voltik` and `voltik-cli`, `@
 
 Each release has a headline (the line under its title), what changed, and the figures of [`corpus/`](corpus) that show it (`Figures:`), drawn by the site with today's voltik. `scripts/release.sh` will not release a version without its section here, and makes the GitHub release from it.
 
+## Unreleased
+
+The CircuiTikZ manual's figures drawn as TeX draws them: 1041 of 1046 match, from 1010.
+
+- Labels and voltages placed as TeX places them:
+  - labels on slanted lines;
+  - two-line labels (`l2`, `a2`), set as the manual's `tabular`;
+  - raised and shifted voltages and sources' voltage arrows;
+  - a voltage above a switch or on a mirrored component (`v^`, `mirror`);
+  - `bipoles/<shape>/voltage/additional shift`;
+  - a `short`'s current and flow at its middle;
+  - math labels as wide as TeX's (mathra#89).
+- Logic ports:
+  - `tripoles/american … port/port width` and `tripoles/thickness`;
+  - `european ports font`;
+  - `inline not=I1`;
+  - `logic ports/fill=none` in a node's own options.
+- Multiplexer labels: `TL1`/`TR1`/`BL1`/`BR1` are drawn, and the labels of a turned chip sit where TeX puts them.
+- Transistor texts placed by their circle (`tr circle`, `scale circle radius`).
+- Dynode arcs at any `arc angle`.
+- `en amp text`, mirrored and turned with its node.
+- The plain sparkgap's labels.
+- `oosourcetrans` at `ootrans size=large`.
+- Three-phase symbols upright whichever way their source points.
+- A bipole drawn as a node continues its path from the node's own point.
+- The jack taps' arrow shorthands `^`, `^f`, `v` and `vf`, and `\pgfcircversion`.
+- From tikra#112:
+  - `pin=\a:\a` in a `\foreach`;
+  - `+` points after a `to[…]`;
+  - colors and options inside a path;
+  - `current point is local`;
+  - `varwidth`;
+  - `example-image-a`;
+  - multi-line nodes on TeX's baseline.
+
+Figures: `voltages-and-currents`, `stacked-and-units`, `mirror-invert`, `voltage-styles`
+
 ## 0.14.0 - 2026-10-29
 
 Chips, multiplexers, flip-flops, displays, block diagrams and RF components; the manual's own voltages and style files.
