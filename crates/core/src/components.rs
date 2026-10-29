@@ -776,6 +776,7 @@ const SOURCE_VOLTS: &[(&str, [f64; 3])] = &[
     ("voosource", [0.1486, 0.2574, 0.0942]),
     ("oosourceatrans", [0.1372, 0.2376, 0.0913]),
     ("oosourcetrans", [0.1372, 0.2376, 0.0913]),
+    ("oosourcetrans large", [0.1372, 0.2376, 0.0913]),
     ("ooosource", [0.2286, 0.396, 0.1153]),
     ("dcvsource", [0.2286, 0.396, 0.1153]),
 ];

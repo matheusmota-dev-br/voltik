@@ -278,6 +278,7 @@ pub fn k_place(cx: &mut Context, _v: Option<Tokens>) -> Result<(), Error> {
         _ => 1.0,
     };
     let scale = scale * large;
+    let comp = if large != 1.0 && comp.name == "oosourcetrans" { components::find("oosourcetrans large").unwrap_or(comp) } else { comp };
     // the class's width and height settings, when given, are the same for all its components (but
     // for the ones that are wider than the others, by their ratio)
     // a bipole drawn as a node (`node[resistorshape]`) fills the node's width, whatever its size
@@ -1045,13 +1046,14 @@ type Winding = (&'static str, [f64; 2], f64);
 /// symbol's point and how much bigger than the others it is drawn.
 const WINDINGS: &[(&str, &[Winding])] = &[
     ("oosourcetrans", &[("prim", [-0.18, 0.0], 1.0), ("sec", [0.18, 0.0], 1.0)]),
+    ("oosourcetrans large", &[("prim", [-0.1494, 0.0], 1.0), ("sec", [0.1494, 0.0], 1.0)]),
     ("oosourceatrans", &[("prim", [0.07, 0.0], 1.2)]),
     ("ooosource", &[("prim", [-0.1537, 0.0], 1.0), ("sec", [0.135, 0.1667], 1.0), ("tert", [0.135, -0.1667], 1.0)]),
 ];
 
 /// The extra winding above a transformer source (`oo upper winding`): its circle's center, and its
 /// radius at size 1, in `bipoles/length`.
-const UPPER: &[(&str, [f64; 2])] = &[("oosourcetrans", [0.0, 0.234]), ("oosourceatrans", [0.07, 0.234])];
+const UPPER: &[(&str, [f64; 2])] = &[("oosourcetrans", [0.0, 0.234]), ("oosourcetrans large", [0.0, 0.234]), ("oosourceatrans", [0.07, 0.234])];
 const UPPER_RADIUS: f64 = 0.18;
 
 /// A three-phase symbol's size: the radius it reaches, in `bipoles/length`.
