@@ -571,7 +571,8 @@ pub const COMPONENTS: &[Component] = &[
         ],
     )
     .anchors(&[("left", [0.0, 0.3]), ("right", [0.0, -0.3]), ("top", [0.4, 0.0]), ("bottom", [-0.4, 0.0])]),
-    // the logic gates on a path (`to[inline not]`), in the `logic ports` class
+    // the logic gates on a path (`to[inline not]`), in the `logic ports` class; their labels keep
+    // out of their drawing's half height only (the band is that over the labels' 1.1 margin)
     bipole(
         "inline not",
         Class::LogicPorts,
@@ -598,7 +599,8 @@ pub const COMPONENTS: &[Component] = &[
             ]),
         ],
     )
-    .anchors(&[("in", [-0.5, 0.0]), ("out", [0.5, 0.0]), ("bin", [-0.35, 0.0]), ("bout", [0.35, 0.0])]),
+    .anchors(&[("in", [-0.5, 0.0]), ("out", [0.5, 0.0]), ("bin", [-0.35, 0.0]), ("bout", [0.35, 0.0])])
+    .band(0.5 / 1.1, 0.5 / 1.1),
     bipole(
         "inline buffer",
         Class::LogicPorts,
@@ -606,7 +608,8 @@ pub const COMPONENTS: &[Component] = &[
         1.0284,
         &[Fill(&[M(0.35, 0.0), L(-0.35, 0.5), L(-0.35, -0.4999), L(0.35, 0.0)]), Line(&[M(0.35, 0.0), L(-0.35, 0.5), L(-0.35, -0.4999), L(0.35, 0.0)])],
     )
-    .anchors(&[("in", [-0.5, 0.0]), ("out", [0.5, 0.0]), ("bin", [-0.35, 0.0]), ("bout", [0.35, 0.0])]),
+    .anchors(&[("in", [-0.5, 0.0]), ("out", [0.5, 0.0]), ("bin", [-0.35, 0.0]), ("bout", [0.35, 0.0])])
+    .band(0.5 / 1.1, 0.5 / 1.1),
     bipole(
         "inline schmitt",
         Class::LogicPorts,
@@ -618,7 +621,8 @@ pub const COMPONENTS: &[Component] = &[
             Line(&[M(-0.3, -0.15), L(-0.2, -0.15), L(-0.2, 0.15), L(-0.025, 0.15), M(-0.2, -0.15), L(-0.125, -0.15), L(-0.125, 0.15)]),
         ],
     )
-    .anchors(&[("in", [-0.5, 0.0]), ("out", [0.5, 0.0]), ("bin", [-0.35, 0.0]), ("bout", [0.35, 0.0])]),
+    .anchors(&[("in", [-0.5, 0.0]), ("out", [0.5, 0.0]), ("bin", [-0.35, 0.0]), ("bout", [0.35, 0.0])])
+    .band(0.5 / 1.1, 0.5 / 1.1),
     bipole(
         "inline invschmitt",
         Class::LogicPorts,
@@ -646,7 +650,8 @@ pub const COMPONENTS: &[Component] = &[
             Line(&[M(-0.3, -0.15), L(-0.2, -0.15), L(-0.2, 0.15), L(-0.025, 0.15), M(-0.2, -0.15), L(-0.125, -0.15), L(-0.125, 0.15)]),
         ],
     )
-    .anchors(&[("in", [-0.5, 0.0]), ("out", [0.5, 0.0]), ("bin", [-0.35, 0.0]), ("bout", [0.35, 0.0])]),
+    .anchors(&[("in", [-0.5, 0.0]), ("out", [0.5, 0.0]), ("bin", [-0.35, 0.0]), ("bout", [0.35, 0.0])])
+    .band(0.5 / 1.1, 0.5 / 1.1),
     bipole(
         "inline tgate",
         Class::LogicPorts,
@@ -686,7 +691,8 @@ pub const COMPONENTS: &[Component] = &[
         ("bgate", [0.0, 0.0]),
         ("up", [0.0, 0.1232]),
         ("down", [0.0, 0.0]),
-    ]),
+    ])
+    .band(0.28 / 1.1, 0.28 / 1.1),
     bipole(
         "inline double tgate",
         Class::LogicPorts,
@@ -730,7 +736,8 @@ pub const COMPONENTS: &[Component] = &[
         ("bgate", [0.0, -0.28]),
         ("up", [0.0, 0.4032]),
         ("down", [0.0, -0.28]),
-    ]),
+    ])
+    .band(0.56 / 1.1, 0.56 / 1.1),
     // the same in the IEEE and European `logic ports` styles
     bipole(
         "inline not|ieee",
@@ -758,7 +765,8 @@ pub const COMPONENTS: &[Component] = &[
             ]),
         ],
     )
-    .anchors(&[("in", [-0.6264, 0.0]), ("out", [0.6264, 0.0]), ("bin", [-0.3464, 0.0]), ("bout", [0.4696, 0.0]), ("up", [0.0, 0.2]), ("down", [0.0, -0.2])]),
+    .anchors(&[("in", [-0.6264, 0.0]), ("out", [0.6264, 0.0]), ("bin", [-0.3464, 0.0]), ("bout", [0.4696, 0.0]), ("up", [0.0, 0.2]), ("down", [0.0, -0.2])])
+    .band(0.4 / 1.1, 0.4 / 1.1),
     bipole(
         "inline buffer|ieee",
         Class::LogicPorts,
@@ -766,7 +774,8 @@ pub const COMPONENTS: &[Component] = &[
         0.8284,
         &[Fill(&[M(-0.3464, 0.4), L(0.3464, 0.0), L(-0.3464, -0.3999), Z]), Line(&[M(-0.3464, 0.4), L(0.3464, 0.0), L(-0.3464, -0.3999), Z])],
     )
-    .anchors(&[("in", [-0.6264, 0.0]), ("out", [0.6264, 0.0]), ("bin", [-0.3464, 0.0]), ("bout", [0.3464, 0.0]), ("up", [0.0, 0.2]), ("down", [0.0, -0.2])]),
+    .anchors(&[("in", [-0.6264, 0.0]), ("out", [0.6264, 0.0]), ("bin", [-0.3464, 0.0]), ("bout", [0.3464, 0.0]), ("up", [0.0, 0.2]), ("down", [0.0, -0.2])])
+    .band(0.4 / 1.1, 0.4 / 1.1),
     bipole(
         "inline schmitt|ieee",
         Class::LogicPorts,
@@ -778,7 +787,8 @@ pub const COMPONENTS: &[Component] = &[
             Thin(&[M(-0.2598, -0.1), L(-0.1732, -0.1), L(-0.1732, 0.1), L(0.0, 0.1), M(-0.0866, 0.1), L(-0.0866, -0.1), L(-0.1732, -0.1)]),
         ],
     )
-    .anchors(&[("in", [-0.6264, 0.0]), ("out", [0.6264, 0.0]), ("bin", [-0.3464, 0.0]), ("bout", [0.3464, 0.0]), ("up", [0.0, 0.2]), ("down", [0.0, -0.2])]),
+    .anchors(&[("in", [-0.6264, 0.0]), ("out", [0.6264, 0.0]), ("bin", [-0.3464, 0.0]), ("bout", [0.3464, 0.0]), ("up", [0.0, 0.2]), ("down", [0.0, -0.2])])
+    .band(0.4 / 1.1, 0.4 / 1.1),
     bipole(
         "inline invschmitt|ieee",
         Class::LogicPorts,
@@ -806,7 +816,8 @@ pub const COMPONENTS: &[Component] = &[
             ]),
         ],
     )
-    .anchors(&[("in", [-0.6264, 0.0]), ("out", [0.6264, 0.0]), ("bin", [-0.3464, 0.0]), ("bout", [0.4696, 0.0]), ("up", [0.0, 0.2]), ("down", [0.0, -0.2])]),
+    .anchors(&[("in", [-0.6264, 0.0]), ("out", [0.6264, 0.0]), ("bin", [-0.3464, 0.0]), ("bout", [0.4696, 0.0]), ("up", [0.0, 0.2]), ("down", [0.0, -0.2])])
+    .band(0.4 / 1.1, 0.4 / 1.1),
     bipole(
         "inline tgate|ieee",
         Class::LogicPorts,
@@ -846,7 +857,8 @@ pub const COMPONENTS: &[Component] = &[
         ("bgate", [0.0, 0.0]),
         ("up", [0.0, 0.1232]),
         ("down", [0.0, 0.0]),
-    ]),
+    ])
+    .band(0.28 / 1.1, 0.28 / 1.1),
     bipole(
         "inline double tgate|ieee",
         Class::LogicPorts,
@@ -890,7 +902,8 @@ pub const COMPONENTS: &[Component] = &[
         ("bgate", [0.0, -0.28]),
         ("up", [0.0, 0.4032]),
         ("down", [0.0, -0.28]),
-    ]),
+    ])
+    .band(0.56 / 1.1, 0.56 / 1.1),
     bipole(
         "inline not|european",
         Class::LogicPorts,
@@ -903,7 +916,8 @@ pub const COMPONENTS: &[Component] = &[
             Thin(&[M(0.63, 0.0), L(0.42, 0.0975)]),
         ],
     )
-    .anchors(&[("in", [-0.7, 0.0]), ("out", [0.7, 0.0]), ("bin", [-0.42, 0.0]), ("bout", [0.42, 0.0])]),
+    .anchors(&[("in", [-0.7, 0.0]), ("out", [0.7, 0.0]), ("bin", [-0.42, 0.0]), ("bout", [0.42, 0.0])])
+    .band(0.325 / 1.1, 0.325 / 1.1),
     bipole(
         "inline buffer|european",
         Class::LogicPorts,
@@ -915,7 +929,8 @@ pub const COMPONENTS: &[Component] = &[
             Line(&[M(-0.42, 0.325), L(0.42, 0.325), L(0.42, -0.3249), L(-0.42, -0.3249), Z]),
         ],
     )
-    .anchors(&[("in", [-0.7, 0.0]), ("out", [0.7, 0.0]), ("bin", [-0.42, 0.0]), ("bout", [0.42, 0.0])]),
+    .anchors(&[("in", [-0.7, 0.0]), ("out", [0.7, 0.0]), ("bin", [-0.42, 0.0]), ("bout", [0.42, 0.0])])
+    .band(0.325 / 1.1, 0.325 / 1.1),
     bipole(
         "inline schmitt|european",
         Class::LogicPorts,
@@ -927,7 +942,8 @@ pub const COMPONENTS: &[Component] = &[
             Line(&[M(-0.3, -0.15), L(-0.2, -0.15), L(-0.2, 0.15), L(-0.025, 0.15), M(-0.2, -0.15), L(-0.125, -0.15), L(-0.125, 0.15)]),
         ],
     )
-    .anchors(&[("in", [-0.5, 0.0]), ("out", [0.5, 0.0]), ("bin", [-0.35, 0.0]), ("bout", [0.35, 0.0])]),
+    .anchors(&[("in", [-0.5, 0.0]), ("out", [0.5, 0.0]), ("bin", [-0.35, 0.0]), ("bout", [0.35, 0.0])])
+    .band(0.5 / 1.1, 0.5 / 1.1),
     bipole(
         "inline invschmitt|european",
         Class::LogicPorts,
@@ -955,7 +971,8 @@ pub const COMPONENTS: &[Component] = &[
             Line(&[M(-0.3, -0.15), L(-0.2, -0.15), L(-0.2, 0.15), L(-0.025, 0.15), M(-0.2, -0.15), L(-0.125, -0.15), L(-0.125, 0.15)]),
         ],
     )
-    .anchors(&[("in", [-0.5, 0.0]), ("out", [0.5, 0.0]), ("bin", [-0.35, 0.0]), ("bout", [0.35, 0.0])]),
+    .anchors(&[("in", [-0.5, 0.0]), ("out", [0.5, 0.0]), ("bin", [-0.35, 0.0]), ("bout", [0.35, 0.0])])
+    .band(0.5 / 1.1, 0.5 / 1.1),
     bipole(
         "inline tgate|european",
         Class::LogicPorts,
@@ -995,7 +1012,8 @@ pub const COMPONENTS: &[Component] = &[
         ("bgate", [0.0, 0.0]),
         ("up", [0.0, 0.1232]),
         ("down", [0.0, 0.0]),
-    ]),
+    ])
+    .band(0.28 / 1.1, 0.28 / 1.1),
     bipole(
         "inline double tgate|european",
         Class::LogicPorts,
@@ -1039,5 +1057,6 @@ pub const COMPONENTS: &[Component] = &[
         ("bgate", [0.0, -0.28]),
         ("up", [0.0, 0.4032]),
         ("down", [0.0, -0.28]),
-    ]),
+    ])
+    .band(0.56 / 1.1, 0.56 / 1.1),
 ];

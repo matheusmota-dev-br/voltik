@@ -133,7 +133,17 @@ pub fn muxdemux_shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape,
     if !pins.is_empty() {
         paths.push(ShapePath { segments: pins, paint: ShapePaint::Stroke(thin), ..Default::default() });
     }
-    let texts = labels(cx, &borders, x, reach, b, unit, thin, &mut paths, &mut anchors)?;
+    let t = input.transform;
+    let angle = if t.a * t.d - t.b * t.c > 0.0 { t.b.atan2(t.a) } else { 0.0 };
+    let mut texts = labels(cx, &borders, x, reach, b, unit, thin, angle, &mut paths, &mut anchors)?;
+    for text in texts.iter_mut() {
+        // a color among the font commands (`\tiny\color{blue}`) is the text's
+        if let Some(font) = &text.font {
+            let (color, font) = super::font_color(font);
+            text.text = format!("{color}{}", text.text);
+            text.font = Some(font);
+        }
+    }
     Ok(NodeShape {
         center: p(0.0, 0.0),
         anchors,
@@ -143,6 +153,15 @@ pub fn muxdemux_shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape,
         texts,
         ..Default::default()
     })
+}
+
+/// A compass anchor of a text turned by `angle` (radians), to the nearest of the eight.
+fn turned(anchor: TextAnchor, angle: f64) -> TextAnchor {
+    use TextAnchor::*;
+    const RING: [TextAnchor; 8] = [East, NorthEast, North, NorthWest, West, SouthWest, South, SouthEast];
+    let Some(i) = RING.iter().position(|a| *a == anchor) else { return anchor };
+    let steps = (angle / std::f64::consts::FRAC_PI_4).round() as i64;
+    RING[(i as i64 + steps).rem_euclid(8) as usize]
 }
 
 /// A setting that is TeX (`\tiny\color{blue}`), unexpanded.
@@ -168,6 +187,7 @@ fn labels(
     b: f64,
     unit: f64,
     thin: f64,
+    angle: f64,
     paths: &mut Vec<ShapePath>,
     anchors: &mut Vec<(String, Point)>,
 ) -> Result<Vec<ShapeText>, Error> {
@@ -189,8 +209,8 @@ fn labels(
         let digits = key.find(|c: char| c.is_ascii_digit())?;
         let (head, n) = key.split_at(digits);
         let n: usize = n.parse().ok()?;
-        let side = head.chars().rev().find(|c| "LRBT".contains(*c))?;
-        let at = head.rfind(side)?;
+        let side = head.chars().find(|c| "LRBT".contains(*c))?;
+        let at = head.find(side)?;
         Some((format!("{}{}", &head[..at], &head[at + 1..]), side.to_ascii_lowercase(), n))
     };
     let upright = setting(cx, "multipoles/straight numbers")? != "false";
@@ -245,9 +265,30 @@ fn labels(
                     'b' => (p(at.x, at.y + sy + c), TextAnchor::South),
                     _ => (p(at.x, at.y - sy - c), TextAnchor::North),
                 };
+                // upright in a turned box, the side of the text at the point turns with it
+                let anchor = if upright { turned(anchor, angle) } else { anchor };
                 texts.push(ShapeText { text: value.clone(), at, anchor, font: Some(fonts[0].clone()), upright, ..Default::default() });
             }
-            "U" | "D" | "TL" | "TR" | "BL" | "BR" => {
+            "U" | "D" | "L" | "R" if upright && angle.abs() > 1e-9 => {
+                // upright in a turned box, as on the page: the first (`U`, `L`) above a pin that
+                // goes out sideways and left of one that goes up or down, the other below or right
+                let (sx, sy) = seps[1];
+                let (sin, cos) = angle.sin_cos();
+                let o = p(out.x * cos - out.y * sin, out.x * sin + out.y * cos);
+                let first = if matches!(kind.as_str(), "U" | "L") { 1.0 } else { -1.0 };
+                let (dx, dy) = if o.x.abs() > o.y.abs() { (o.x.signum(), first) } else { (-first, o.y.signum()) };
+                let anchor = match (dx > 0.0, dy > 0.0) {
+                    (true, true) => TextAnchor::SouthWest,
+                    (true, false) => TextAnchor::NorthWest,
+                    (false, true) => TextAnchor::SouthEast,
+                    (false, false) => TextAnchor::NorthEast,
+                };
+                // the point, back in the box's own turn
+                let (px, py) = (dx * sx, dy * sy);
+                let at = p(at.x + px * cos + py * sin, at.y - px * sin + py * cos);
+                texts.push(ShapeText { text: value.clone(), at, anchor, font: Some(fonts[1].clone()), upright, ..Default::default() });
+            }
+            "U" | "D" | "L" | "R" => {
                 let (sx, sy) = seps[1];
                 let (at, anchor) = match (side, kind.as_str()) {
                     ('l', "U") => (p(at.x - sx, at.y + sy), TextAnchor::SouthEast),

@@ -1473,11 +1473,6 @@ fn variant(cx: &mut Context, base: &str) -> Result<Option<&'static Node>, Error>
             name.push_str(&format!("|not symbol={symbol}"));
         }
     }
-    // (its symbol is drawn, in the font it is measured in)
-    let font = Tokens::text("\\unexpanded\\expandafter{\\romannumeral-`0\\pgfkeysvalueof{/tikz/circuitikz/european ports font}}");
-    if base.starts_with("european") && !base.contains("blank") && !cx.expand(font)?.trim().is_empty() {
-        cx.warn(format!("voltik: european ports font on a {base} not drawn yet; its symbol is in the plain font"));
-    }
     if base == "european xnor port" && setting(cx, "european xnor style")? == "direct" {
         name.push_str("|xnor style=direct");
     }
@@ -2028,10 +2023,21 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
     };
     let circle_dash = setting(cx, "transistor circle/dash")?;
     let circle_dash = dash(cx, &circle_dash)?;
+    // a European port's symbol in `european ports font`: a text at its middle, upright, instead of
+    // the glyphs measured in the plain font
+    let symbol = match european_symbol(n.name) {
+        Some(text) => {
+            let font = Tokens::text("\\unexpanded\\expandafter{\\romannumeral-`0\\pgfkeysvalueof{/tikz/circuitikz/european ports font}}");
+            let font = cx.expand(font)?.trim().to_string();
+            (!font.is_empty()).then_some((text, font))
+        }
+        None => None,
+    };
     let paths = sized
         .parts
         .iter()
         .filter(|_| !own)
+        .filter(|(part, _)| symbol.is_none() || !matches!(part, Part::Solid(_)))
         .filter(|(part, ops)| !coils || (matches!(part, Part::Thick(_)) && !ops.iter().any(|op| matches!(op, Op::Curve(..) | Op::Close))))
         .filter(|(part, ops)| !(own_text && matches!(part, Part::Solid(_)) && ops.iter().all(|op| !matches!(op, Op::Move(_, y) | Op::Line(_, y) if *y < 0.5))))
         .map(|(part, ops)| {
@@ -2041,6 +2047,8 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
                 Part::Thick(ops) if circled && is_circle(ops) => ShapePaint::Stroke(thick * w * circle_thickness),
                 Part::Thick(_) => ShapePaint::Stroke(thick * w),
                 Part::Thicker(_) => ShapePaint::Stroke(3.0 * w),
+                // a logic port's negation circle hides its lead, as a pole does
+                Part::Fill(ops) if is_circle(ops) && n.class() == Some("logic ports") => ShapePaint::Background,
                 Part::Fill(_) => ShapePaint::Fill,
                 Part::Solid(_) => ShapePaint::Solid,
                 Part::Pole(_) => ShapePaint::Background,
@@ -2157,6 +2165,11 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
         let text = setting(cx, "en amp text")?;
         out.texts.push(ShapeText { text, at: Point::new(-0.0235, 0.7562), anchor: TextAnchor::Base, ..Default::default() });
     }
+    if let Some((text, font)) = symbol {
+        let middle = sized.anchors.iter().find(|(a, _)| *a == "text").map_or([0.0, 0.0], |(_, p)| *p);
+        let (color, font) = font_color(&font);
+        out.texts.push(ShapeText { text: format!("{color}{text}"), at: at(middle), font: Some(font), upright: true, ..Default::default() });
+    }
     // `logic ports origin=center`: a port's point halfway between its west and east
     if n.class() == Some("logic ports") && setting(cx, "logic ports origin")? == "center" {
         let x = |name: &str| out.anchors.iter().find(|(a, _)| a == name).map(|(_, p)| p.x);
@@ -2165,6 +2178,28 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
         }
     }
     Ok(out)
+}
+
+/// Font commands split into their `\color{…}`, which a shape's text takes as its color, and the rest.
+fn font_color(font: &str) -> (String, String) {
+    match font.find("\\color{") {
+        Some(i) => {
+            let end = font[i..].find('}').map_or(font.len(), |e| i + e + 1);
+            (font[i..end].to_string(), format!("{}{}", &font[..i], &font[end..]))
+        }
+        None => (String::new(), font.to_string()),
+    }
+}
+
+/// The symbol of a European port, as TeX writes it.
+fn european_symbol(name: &str) -> Option<&'static str> {
+    match name.split('|').next().unwrap_or(name) {
+        "european and port" | "european nand port" => Some("\\&"),
+        "european or port" | "european nor port" => Some("$\\scriptstyle\\geq$\\enspace 1"),
+        "european xor port" | "european xnor port" => Some("=1"),
+        "european buffer port" | "european not port" => Some("1"),
+        _ => None,
+    }
 }
 
 /// A shape moved by `d`, its `center` staying the node's point.

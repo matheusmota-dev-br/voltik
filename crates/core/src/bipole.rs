@@ -55,8 +55,10 @@ pub fn k_component(cx: &mut Context, v: Option<Tokens>) -> Result<(), Error> {
         match kind {
             Some(Source::Voltage) => vif::set(cx, "v", &variant, value)?,
             Some(Source::Current) => vif::set(cx, "i", &variant, value)?,
-            // a transistor's value is its text, in its middle (and a motor's)
-            _ if components::find(&name).is_some_and(|c| c.class == components::Class::Transistors || c.name == "Telmech") => cx.define("voltik@t", value),
+            // a transistor's value is its text, in its middle (and a motor's, and a path-style logic port's)
+            _ if components::find(&name).is_some_and(|c| matches!(c.class, components::Class::Transistors | components::Class::LogicPorts) || c.name == "Telmech") => {
+                cx.define("voltik@t", value)
+            }
             _ => label::set(cx, "l", 1, value),
         }
     }
