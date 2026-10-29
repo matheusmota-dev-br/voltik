@@ -10,6 +10,7 @@ use tikra::extension::{Context, Error, NodeShape, PathSegment, Point, ShapeBorde
 
 use crate::bipole::setting;
 
+mod amplifiers;
 mod transistors;
 mod tubes;
 use crate::components::Op;
@@ -79,6 +80,7 @@ impl Node {
             n if n.contains("spdt") || n == "proximeter" => Some("switches"),
             n if transistors::TRANSISTORS.iter().any(|t| t.name == n) => Some("transistors"),
             n if tubes::TUBES.iter().any(|t| t.name == n) => Some("tubes"),
+            n if amplifiers::AMPLIFIERS.iter().any(|t| t.name == n) => Some("amplifiers"),
             _ => None,
         }
     }
@@ -715,12 +717,16 @@ const FLOWHEAD: &[Op] = &[M(0.1437, 0.0), L(0.1437, -0.05), L(0.25, 0.0), L(0.14
 pub const TERMINALS: &[&str] = &["circ", "ocirc", "diamondpole", "odiamondpole", "squarepole", "osquarepole", "rectjoinfill"];
 
 pub fn find(name: &str) -> Option<&'static Node> {
-    NODES.iter().chain(transistors::TRANSISTORS).chain(tubes::TUBES).find(|n| n.name == name)
+    NODES.iter().chain(transistors::TRANSISTORS).chain(tubes::TUBES).chain(amplifiers::AMPLIFIERS).find(|n| n.name == name)
 }
 
-/// The transistors' and tubes' options that change their drawing, in the order of their variants'
+/// The transistors', tubes' and amplifiers' options that change their drawing, in the order of their variants'
 /// names (`npn|bodydiode`), and the ones with a value.
 pub const VARIANT_FLAGS: &[&str] = &[
+    "noinv input up",
+    "noinv input down",
+    "noinv output up",
+    "noinv output down",
     "filament",
     "nocathode",
     "fullcathode",
@@ -743,9 +749,10 @@ pub const VARIANT_FLAGS: &[&str] = &[
 ];
 pub const VARIANT_VALUES: &[&str] = &["collectors", "emitters", "bjt pins width", "bjt multi height"];
 
-/// The transistors' and tubes' shapes (`npn`, `triode`…), without their variants.
+/// The transistors', tubes' and amplifiers' shapes (`npn`, `triode`, `op amp`…), without their
+/// variants.
 pub fn variant_shapes() -> impl Iterator<Item = &'static str> {
-    transistors::TRANSISTORS.iter().chain(tubes::TUBES).map(|n| n.name).filter(|n| !n.contains('|'))
+    transistors::TRANSISTORS.iter().chain(tubes::TUBES).chain(amplifiers::AMPLIFIERS).map(|n| n.name).filter(|n| !n.contains('|'))
 }
 
 /// The transistors' shapes, without their variants.
@@ -753,7 +760,7 @@ pub fn transistor_shapes() -> impl Iterator<Item = &'static str> {
     transistors::TRANSISTORS.iter().map(|n| n.name).filter(|n| !n.contains('|'))
 }
 
-/// The variant of transistor or tube `base` its options ask for, or the plain one (and a warning) when
+/// The variant of transistor, tube or amplifier `base` its options ask for, or the plain one (and a warning) when
 /// voltik has not measured that combination.
 fn variant(cx: &mut Context, base: &str) -> Result<Option<&'static Node>, Error> {
     let mut name = base.to_string();

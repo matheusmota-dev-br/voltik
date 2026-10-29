@@ -5,6 +5,9 @@
 //! `bipoles/length`; the text goes right of the `text` anchor (in the middle of a magnetron) and
 //! does not count in the picture's size.
 
+// measured numbers, some of which happen to be close to constants like 2/π
+#![allow(clippy::approx_constant)]
+
 use super::{node, Node, Part, Text};
 use crate::components::Op::{Close as Z, Curve as C, Line as L, Move as M};
 
