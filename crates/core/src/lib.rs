@@ -327,10 +327,8 @@ fn definitions() -> String {
     for key in nodes::VARIANT_VALUES {
         keys.push(format!("{key}/.style={{/tikz/circuitikz/tr/{key}=#1}}"));
     }
-    // `en amp text={…}`: the text of an `en amp` instead of its ▷∞, where that goes
-    keys.push(
-        "en amp text/.code={\\pgfkeys{/tikz/circuitikz/en amp text={#1}}\\pgfkeys{/tikz/label={[anchor=base,inner sep=0pt,xshift=-0.0235cm,yshift=0.7562cm]center:{#1}}}}".into(),
-    );
+    // `en amp text={…}`: the text of an `en amp` instead of its ▷∞ (drawn by its shape)
+    keys.push("en amp text/.code={\\pgfkeys{/tikz/circuitikz/en amp text={#1}}}".into());
     // a bipole as a node (`node[resistorshape]`), and inside a double bipole
     keys.push("voltik/fit/.code={\\def\\voltik@fit{1}}".into());
     keys.push("voltik/up/.code={\\def\\voltik@up{#1}}".into());

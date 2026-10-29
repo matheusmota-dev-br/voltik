@@ -6,7 +6,7 @@
 //! is measured on what CircuiTikZ draws, in `bipoles/length` (1.4 cm), with the node's point at the
 //! origin; the terminals are `nodes width` (0.04) across the half.
 
-use tikra::extension::{Context, Error, NodeShape, PathSegment, Point, ShapeBorder, ShapeInput, ShapePaint, ShapePath, Tokens};
+use tikra::extension::{Context, Error, NodeShape, PathSegment, Point, ShapeBorder, ShapeInput, ShapePaint, ShapePath, ShapeText, TextAnchor, Tokens};
 
 use crate::bipole::setting;
 pub use displays::{k_seven_segment_bits, k_seven_segment_val};
@@ -179,8 +179,40 @@ fn is_circle(ops: &[Op]) -> bool {
 
 /// A transistor's circle `k` times as large, from its left side: its paths (the closed ones of four
 /// curves) and its anchors (`circle C`…).
-fn scale_circle(sized: &mut Sized, k: f64) {
-    let Some((_, ops)) = sized.parts.iter().find(|(_, ops)| is_circle(ops)) else { return };
+/// A dynode's arc, which its sizes do not change linearly: a circle's arc across its 0.4 wide stem
+/// with its lowest point at `arc pos` of its height, meeting the stem's ends at 90° minus `arc
+/// angle` from the horizontal; none at `arc angle=90` (measured).
+fn dynode_arc(cx: &mut Context, sized: &mut Sized) {
+    let Some((_, ops)) = sized.parts.iter_mut().find(|(part, _)| matches!(part, Part::Thin(_))) else { return };
+    let angle = crate::bipole::number(cx, "monopoles/dynode/arc angle", 30.0);
+    let low = crate::bipole::number(cx, "monopoles/dynode/arc pos", 0.5) * 0.8;
+    let theta = (90.0 - angle).to_radians();
+    let mut arc = Vec::new();
+    if theta.sin() > 1e-6 {
+        let r = 0.2 / theta.sin();
+        let (cx0, cy0) = (0.0, low + r);
+        let at = |a: f64| [cx0 + r * a.cos(), cy0 + r * a.sin()];
+        let down = -std::f64::consts::FRAC_PI_2;
+        // two curves, from the left end to the lowest point and on to the right end
+        let k = 4.0 / 3.0 * (theta / 4.0).tan() * r;
+        let start = at(down - theta);
+        arc.push(Op::Move(start[0], start[1]));
+        for (a0, a1) in [(down - theta, down), (down, down + theta)] {
+            let (p0, p1) = (at(a0), at(a1));
+            let c1 = [p0[0] - k * a0.sin(), p0[1] + k * a0.cos()];
+            let c2 = [p1[0] + k * a1.sin(), p1[1] - k * a1.cos()];
+            arc.push(Op::Curve(c1, c2, p1));
+        }
+    }
+    // the stem stays: what follows the arc's two curves
+    let stem: Vec<Op> = ops.iter().skip_while(|o| !matches!(o, Op::Move(x, _) if x.abs() < 1e-9)).copied().collect();
+    arc.extend(stem);
+    *ops = arc;
+}
+
+/// A transistor's circle: its left and right ends and the height of its center, in the node's units.
+fn circle_of(sized: &Sized) -> Option<(f64, f64, f64)> {
+    let (_, ops) = sized.parts.iter().find(|(_, ops)| is_circle(ops))?;
     let xs: Vec<f64> = ops
         .iter()
         .flat_map(|o| match *o {
@@ -196,6 +228,11 @@ fn scale_circle(sized: &mut Sized, k: f64) {
         Op::Move(_, y) => y,
         _ => 0.0,
     };
+    Some((left, right, cy))
+}
+
+fn scale_circle(sized: &mut Sized, k: f64) {
+    let Some((left, right, cy)) = circle_of(sized) else { return };
     let pivot = [left, cy];
     let grow = |p: [f64; 2]| [pivot[0] + k * (p[0] - pivot[0]), pivot[1] + k * (p[1] - pivot[1])];
     for (_, ops) in sized.parts.iter_mut().filter(|(_, ops)| is_circle(ops)) {
@@ -1968,8 +2005,12 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
     let lever = crate::bipole::number(cx, "bipoles/cuteswitch/thickness", 1.0);
     // `transistor circle/scale circle radius`: a transistor's circle grows from its left side
     let radius = crate::bipole::number(cx, "transistor circle/scale circle radius", 1.0);
+    let circle = if circled { circle_of(&sized) } else { None };
     if (radius - 1.0).abs() > 1e-9 && n.name.contains("tr circle") {
         scale_circle(&mut sized, radius);
+    }
+    if n.name == "dynode" {
+        dynode_arc(cx, &mut sized);
     }
     // an `en amp` with an `en amp text` does not draw its ▷∞, the solid parts at its top
     let own_text = input.name == "en amp" && !setting(cx, "en amp text")?.is_empty();
@@ -2054,10 +2095,28 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
         let bjt = n.name.starts_with("bjt");
         let (k, x) = if bjt { (0.95, 2.0 * anchor[0]) } else { (0.7, anchor[0]) };
         let middle = |y: f64| Point::new(x * unit, y * unit + (input.depth - input.height) / 2.0);
-        match mode.as_str() {
-            "up" | "left" => middle(k * top),
-            "down" => middle(k * bottom),
-            _ if legacy && !bjt => Point::new(2.0 * anchor[0] * unit, 0.7 * top * unit),
+        // with a circle, measured on CircuiTikZ (a `nigfetebulk`): the text up or down by the
+        // circle's right side, moving with it as `scale circle radius` grows it (each time by its
+        // own radius times 0.3625 right and 0.5765 away); otherwise right of it, as far as its
+        // right end goes; the legacy text stays where it is without a circle
+        let grown = radius - 1.0;
+        match (mode.as_str(), circle) {
+            ("up" | "left" | "down", Some((left, right, _))) if !bjt => {
+                let r = (right - left) / 2.0;
+                let x = left + grown * r + r * (1.99 + 0.3625 * grown);
+                if mode == "down" {
+                    Point::new(x * unit, -r * (0.889 + 0.5765 * grown) * unit - input.height)
+                } else {
+                    Point::new(x * unit, r * (0.91 + 0.5765 * grown) * unit + input.depth)
+                }
+            }
+            ("up" | "left", _) => middle(k * top),
+            ("down", _) => middle(k * bottom),
+            _ if legacy && !bjt => {
+                let plain = find(&n.name.replace("|tr circle", "")).and_then(|p| p.anchors.iter().find(|(a, _)| *a == "text").map(|(_, p)| *p)).unwrap_or(anchor);
+                Point::new(2.0 * plain[0] * unit, 0.7 * top * unit)
+            }
+            (_, Some((left, right, _))) => Point::new(text.x + grown * (right - left) * unit, text.y),
             _ => text,
         }
     } else {
@@ -2086,6 +2145,11 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
         None => ShapeBorder::Point,
     };
     let mut out = NodeShape { center: Point::new(0.0, 0.0), anchors, border, text, paths, extent, ..Default::default() };
+    // `en amp text`: where the ▷∞ goes, its baseline there, mirrored and turned with the node
+    if own_text {
+        let text = setting(cx, "en amp text")?;
+        out.texts.push(ShapeText { text, at: Point::new(-0.0235, 0.7562), anchor: TextAnchor::Base, ..Default::default() });
+    }
     // `logic ports origin=center`: a port's point halfway between its west and east
     if n.class() == Some("logic ports") && setting(cx, "logic ports origin")? == "center" {
         let x = |name: &str| out.anchors.iter().find(|(a, _)| a == name).map(|(_, p)| p.x);

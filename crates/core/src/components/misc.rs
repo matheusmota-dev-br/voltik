@@ -365,11 +365,12 @@ pub const COMPONENTS: &[Component] = &[
             ]),
         ],
     ),
+    // its labels as close as its triangles let them (measured)
     bipole(
         "sparkgap",
         Class::Misc,
         0.6,
-        0.6,
+        0.31,
         &[
             Thin(&[M(0.3, 0.0), L(0.1925, 0.0)]),
             Solid(&[M(0.025, 0.0), L(0.19, -0.0964), L(0.19, 0.0), L(0.19, 0.0964), Z]),
