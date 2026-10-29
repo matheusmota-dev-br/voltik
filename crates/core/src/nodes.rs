@@ -1454,6 +1454,7 @@ fn bipole_shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error
         paths: Vec::new(),
         // (its size is the bipole's, drawn after it: its box does not count)
         extent: Vec::new(),
+        ..Default::default()
     })
 }
 
@@ -1502,7 +1503,7 @@ fn coil_shape(cx: &mut Context, _input: &ShapeInput) -> Result<NodeShape, Error>
     let p = Point::new;
     let mut anchors = compass(-0.0, 0.0, -h.abs(), h.abs());
     anchors.extend([("a".to_string(), p(0.0, h)), ("b".to_string(), p(0.0, -h))]);
-    Ok(NodeShape { center: p(0.0, 0.0), anchors, border: ShapeBorder::Point, text: p(0.0, 0.0), paths: Vec::new(), extent: Vec::new() })
+    Ok(NodeShape { center: p(0.0, 0.0), anchors, border: ShapeBorder::Point, text: p(0.0, 0.0), paths: Vec::new(), extent: Vec::new(), ..Default::default() })
 }
 
 /// A transformer's coils: as nodes of their own (`T1-L1`, `T1-L2`) always, and drawn by the
@@ -1660,7 +1661,7 @@ fn rotary_shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error
     let lw = input.line_width;
     if thickness >= 0.0 {
         let lever = [M(cin, 0.0), L(cin + r * w.cos(), r * w.sin())];
-        paths.push(ShapePath { segments: segments(&lever, u), paint: ShapePaint::Stroke(7.965 * thickness * lw) });
+        paths.push(ShapePath { segments: segments(&lever, u), paint: ShapePaint::Stroke(7.965 * thickness * lw), ..Default::default() });
     }
     let (arc, heads): (&[Op], &[&[Op]]) = match arrow.as_str() {
         "cw" => (ROTARY_ARC_CW, &[ROTARY_HEAD_CW]),
@@ -1670,9 +1671,9 @@ fn rotary_shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error
     };
     if !arc.is_empty() {
         let thick = crate::bipole::number(cx, "bipoles/thickness", 2.0);
-        paths.push(ShapePath { segments: segments(&turn(arc), u), paint: ShapePaint::Stroke(thick * lw) });
+        paths.push(ShapePath { segments: segments(&turn(arc), u), paint: ShapePaint::Stroke(thick * lw), ..Default::default() });
         for head in heads {
-            paths.push(ShapePath { segments: segments(&turn(head), u), paint: ShapePaint::Solid });
+            paths.push(ShapePath { segments: segments(&turn(head), u), paint: ShapePaint::Solid, ..Default::default() });
         }
     }
     // the poles, drawn here (in the node's colors) and nodes of their own after it, for their
@@ -1681,7 +1682,7 @@ fn rotary_shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error
         let mut t = terminal(&pole, half * u, lw);
         for path in t.paths.drain(..) {
             let segments = path.segments.iter().map(|seg| shift(*seg, Point::new(x * u, y * u))).collect();
-            paths.push(ShapePath { segments, paint: path.paint });
+            paths.push(ShapePath { segments, paint: path.paint, ..Default::default() });
         }
     }
     let mut code = String::from("\\pgfextra{\\xdef\\voltik@tn{\\tikzlastnode}} ");
@@ -1690,7 +1691,15 @@ fn rotary_shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error
         code.push_str(&format!("(\\voltik@tn.{anchor}) node[shape=voltik pole, voltik/pole shape={pole}, name=\\voltik@tn-{name}] {{}} "));
     }
     cx.run(Tokens::text(&format!("\\gdef\\voltik@rs{{{code}}}")))?;
-    Ok(NodeShape { center: Point::new(0.0, 0.0), anchors, border: ShapeBorder::Point, text: Point::new(0.0, 0.0), paths, extent: vec![p(west, -top), p(east, top)] })
+    Ok(NodeShape {
+        center: Point::new(0.0, 0.0),
+        anchors,
+        border: ShapeBorder::Point,
+        text: Point::new(0.0, 0.0),
+        paths,
+        extent: vec![p(west, -top), p(east, top)],
+        ..Default::default()
+    })
 }
 
 /// A segment moved by `d`.
@@ -1825,7 +1834,7 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
                 Part::Stroke(k, _) if n.name.starts_with("cute") => ShapePaint::Stroke(k * w * lever),
                 Part::Stroke(k, _) => ShapePaint::Stroke(k * w),
             };
-            ShapePath { segments: segments(ops, unit), paint }
+            ShapePath { segments: segments(ops, unit), paint, ..Default::default() }
         })
         .collect();
     let [left, right, bottom, top] = sized.bounds;
@@ -1892,7 +1901,7 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
         extent.push(Point::new(text.x - sx, text.y - input.depth - sy));
         extent.push(Point::new(text.x + input.width + sx, text.y + input.height + sy));
     }
-    Ok(NodeShape { center: Point::new(0.0, 0.0), anchors, border: ShapeBorder::Point, text, paths, extent })
+    Ok(NodeShape { center: Point::new(0.0, 0.0), anchors, border: ShapeBorder::Point, text, paths, extent, ..Default::default() })
 }
 
 /// A terminal `half` (cm) across the half, with lines `w` wide.
@@ -1932,11 +1941,11 @@ fn terminal(name: &str, half: f64, w: f64) -> NodeShape {
     let border = ShapeBorder::Outline(outline_points(&outline));
     let fill = if open { ShapePaint::Background } else { ShapePaint::Solid };
     let paths = if name == "rectjoinfill" {
-        vec![ShapePath { segments: outline, paint: fill }]
+        vec![ShapePath { segments: outline, paint: fill, ..Default::default() }]
     } else {
-        vec![ShapePath { segments: outline.clone(), paint: fill }, ShapePath { segments: outline, paint: ShapePaint::Stroke(w) }]
+        vec![ShapePath { segments: outline.clone(), paint: fill, ..Default::default() }, ShapePath { segments: outline, paint: ShapePaint::Stroke(w), ..Default::default() }]
     };
-    NodeShape { center: p(0.0, 0.0), anchors, border, text: p(0.0, 0.0), paths, extent: Vec::new() }
+    NodeShape { center: p(0.0, 0.0), anchors, border, text: p(0.0, 0.0), paths, extent: Vec::new(), ..Default::default() }
 }
 
 /// The points of an outline, its curves by their ends (enough for a border).

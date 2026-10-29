@@ -4,12 +4,12 @@ How far voltik is from CircuiTikZ, measured by its manual (CircuiTikZ 1.8.7): ev
 shows and every entry of its list of components, drawn by pdflatex (TeX Live, CircuiTikZ 1.8.7) and by
 voltik, and compared. How it works and how to run it: [tools/conformance](../tools/conformance/README.md).
 
-**423 of 541 components (78.2%) and 350 of 505 examples (69.3%) match TeX.** Of all 1046 items, 72 are close, 201 differ and 0 fail in voltik; 38 of the ones that do not match came out with no warning.
+**423 of 541 components (78.2%) and 350 of 505 examples (69.3%) match TeX.** Of all 1046 items, 73 are close, 200 differ and 0 fail in voltik; 38 of the ones that do not match came out with no warning.
 
 | | Items | Match | Close | Different | Fails | Mean F1 |
 |---|---:|---:|---:|---:|---:|---:|
-| All | 1046 | 773 (73.9%) | 72 (6.9%) | 201 (19.2%) | 0 (0.0%) | 0.85 |
-| Examples of the manual | 505 | 350 (69.3%) | 69 (13.7%) | 86 (17.0%) | 0 (0.0%) | 0.85 |
+| All | 1046 | 773 (73.9%) | 73 (7.0%) | 200 (19.1%) | 0 (0.0%) | 0.85 |
+| Examples of the manual | 505 | 350 (69.3%) | 70 (13.9%) | 85 (16.8%) | 0 (0.0%) | 0.85 |
 | Path-style components | 306 | 238 (77.8%) | 1 (0.3%) | 67 (21.9%) | 0 (0.0%) | 0.87 |
 | Node-style components | 235 | 185 (78.7%) | 2 (0.9%) | 48 (20.4%) | 0 (0.0%) | 0.81 |
 
@@ -36,7 +36,7 @@ Sorted by how many items do not match, the work left.
 | The components: list › Flip-flops <sub>node</sub> | 12 | 0 (0.0%) | 0 (0.0%) | 12 (100.0%) | 0 (0.0%) | 0.05 |
 | The components: list › Instruments <sub>example</sub> | 18 | 10 (55.6%) | 7 (38.9%) | 1 (5.6%) | 0 (0.0%) | 0.95 |
 | The components: list › Chips (integrated circuits) <sub>example</sub> | 6 | 0 (0.0%) | 0 (0.0%) | 6 (100.0%) | 0 (0.0%) | 0.11 |
-| The components: list › Miscellaneous bipoles and symbols <sub>example</sub> | 7 | 1 (14.3%) | 3 (42.9%) | 3 (42.9%) | 0 (0.0%) | 0.76 |
+| The components: list › Miscellaneous bipoles and symbols <sub>example</sub> | 7 | 1 (14.3%) | 4 (57.1%) | 2 (28.6%) | 0 (0.0%) | 0.83 |
 | The components: list › Multiplexer and de-multiplexer <sub>node</sub> | 6 | 0 (0.0%) | 0 (0.0%) | 6 (100.0%) | 0 (0.0%) | 0.10 |
 | Labels, voltages and currents › Voltages <sub>example</sub> | 44 | 39 (88.6%) | 5 (11.4%) | 0 (0.0%) | 0 (0.0%) | 0.99 |
 | The components: list › Flip-flops <sub>example</sub> | 4 | 0 (0.0%) | 0 (0.0%) | 4 (100.0%) | 0 (0.0%) | 0.09 |
@@ -44,7 +44,7 @@ Sorted by how many items do not match, the work left.
 | Labels, voltages and currents › Currents <sub>example</sub> | 15 | 12 (80.0%) | 3 (20.0%) | 0 (0.0%) | 0 (0.0%) | 0.98 |
 | Labels, voltages and currents › Currents and voltages <sub>example</sub> | 12 | 9 (75.0%) | 3 (25.0%) | 0 (0.0%) | 0 (0.0%) | 0.97 |
 | The components: list › Double bipoles (transformers) <sub>example</sub> | 12 | 9 (75.0%) | 3 (25.0%) | 0 (0.0%) | 0 (0.0%) | 0.98 |
-| The components: list › RF components <sub>example</sub> | 3 | 0 (0.0%) | 0 (0.0%) | 3 (100.0%) | 0 (0.0%) | 0.28 |
+| The components: list › RF components <sub>example</sub> | 3 | 0 (0.0%) | 0 (0.0%) | 3 (100.0%) | 0 (0.0%) | 0.29 |
 | The components: list › RF components <sub>path</sub> | 3 | 0 (0.0%) | 0 (0.0%) | 3 (100.0%) | 0 (0.0%) | 0.44 |
 | The components: list › Transistors <sub>example</sub> | 44 | 41 (93.2%) | 3 (6.8%) | 0 (0.0%) | 0 (0.0%) | 0.99 |
 | Tutorials › A logic circuit <sub>example</sub> | 3 | 0 (0.0%) | 0 (0.0%) | 3 (100.0%) | 0 (0.0%) | 0.00 |
@@ -188,8 +188,8 @@ Warnings, by how many items they appear in (the varying part replaced by …):
 | 2 | `\draw: figure: unknown anchor: FF.pin N; statement ignored` |
 | 2 | `unrecognized path fragment: …` |
 | 2 | `\path: figure: unknown coordinate: (…); statement ignored` |
-| 2 | `\node: figure: unknown anchor: B.in N; statement ignored` |
 | 2 | `\draw: figure: unknown anchor: B.in N; statement ignored` |
+| 2 | `\node: figure: unknown anchor: B.in N; statement ignored` |
 | 2 | `\node: figure: unknown anchor: C.bpin N; statement ignored` |
 | 2 | `\draw: figure: unknown anchor: C.bpin N; statement ignored` |
 | 1 | `\draw: figure: unknown anchor: P.wiper; statement ignored` |
@@ -197,28 +197,28 @@ Warnings, by how many items they appear in (the varying part replaced by …):
 | 1 | `\ChopperByTerminals not supported: … ignored` |
 | 1 | `\coordinate: figure: unknown coordinate: (…); statement ignored` |
 | 1 | `\node: figure: unmatched brace: a group … never closes; statement ignored` |
-| 1 | `E-REC-N column N: unsupported text command: \textsubscript; written as is` |
 | 1 | `\ctikztunablearrow not supported: … ignored` |
 | 1 | `\draw: figure: unknown anchor: mix.w; statement ignored` |
-| 1 | `\path: figure: unknown anchor: bm.left up; statement ignored` |
 | 1 | `\path: figure: unknown anchor: g.left up; statement ignored` |
+| 1 | `\path: figure: unknown anchor: bm.left up; statement ignored` |
 | 1 | `\draw: figure: unknown anchor: A.right up; statement ignored` |
 | 1 | `\draw: figure: unknown anchor: O.geocenter; statement ignored` |
 | 1 | `\draw: figure: unknown anchor: w.in; statement ignored` |
 | 1 | `\draw: figure: unknown anchor: c.left down; statement ignored` |
 | 1 | `\draw: figure: unknown anchor: c.portN; statement ignored` |
 | 1 | `\draw: figure: unknown anchor: m.w; statement ignored` |
+| 1 | `\draw: figure: unknown anchor: supply.uN; statement ignored` |
 | 1 | `\draw: figure: unknown anchor: supply.plus; statement ignored` |
 | 1 | `\draw: figure: unknown anchor: trx.minus; statement ignored` |
-| 1 | `\draw: figure: unknown anchor: supply.uN; statement ignored` |
-| 1 | `\draw: figure: unknown anchor: QN.circle top; statement ignored` |
 | 1 | `\draw: figure: unknown anchor: QN.circle bottom; statement ignored` |
-| 1 | `E-REC-N column N: unsupported text command: \qtyrange; written as is` |
+| 1 | `\draw: figure: unknown anchor: QN.circle top; statement ignored` |
 | 1 | `\draw: figure: unknown anchor: antN.right; statement ignored` |
 | 1 | `\draw: figure: unknown anchor: A.right; statement ignored` |
 | 1 | `\draw: figure: unknown anchor: T-LN.midtap; statement ignored` |
 | 1 | `voltik: american nand port, no input leads, number inputs=N not drawn yet; drawn as a plai` |
 | 1 | `voltik: ieeestd nor port, number inputs=N not drawn yet; drawn as a plain ieeestd nor port` |
+| 1 | `voltik: ieeestd nand port, no input leads, number inputs=N not drawn yet; drawn as a plain` |
+| 1 | `\draw: figure: unknown anchor: A.pin N; statement ignored` |
 
 Components voltik does not know yet, by how many items use them:
 
@@ -310,8 +310,8 @@ Other options voltik does not know, likewise:
 | 3 | `opto end arrow` |
 | 3 | `angle` |
 | 3 | `fillcolor` |
-| 3 | `upper` |
 | 3 | `oo upper winding` |
+| 3 | `upper` |
 | 3 | `t2` |
 | 3 | `t1` |
 | 3 | `partial borders` |
@@ -326,9 +326,9 @@ Other options voltik does not know, likewise:
 | 2 | `-latexslim` |
 | 2 | `nodes width` |
 | 2 | `box` |
-| 2 | `block right anchors pos` |
-| 2 | `inner thickness` |
 | 2 | `inner color` |
+| 2 | `inner thickness` |
+| 2 | `block right anchors pos` |
 
 Errors of the items that fail:
 

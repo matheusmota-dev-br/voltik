@@ -4,6 +4,12 @@ What changed in each release of voltik: the crates `voltik` and `voltik-cli`, `@
 
 Each release has a headline (the line under its title), what changed, and the figures of [`corpus/`](corpus) that show it (`Figures:`), drawn by the site with today's voltik. `scripts/release.sh` will not release a version without its section here, and makes the GitHub release from it.
 
+## Unreleased
+
+tikra 1.6.0 and mathra 1.7.1.
+
+- Drawn with tikra 1.6.0 and its math labels by mathra 1.7.1.
+
 ## 0.13.0 - 2026-10-29
 
 Logic gates.
