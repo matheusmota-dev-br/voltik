@@ -1494,6 +1494,7 @@ pub fn k_class_fill(cx: &mut Context, v: Option<Tokens>) -> Result<(), Error> {
     let fill = setting(cx, &format!("{class}/fill"))?;
     if !fill.is_empty() && fill != "none" {
         cx.keys(Tokens::text(&format!("fill={{{fill}}}")))?;
+        cx.define_text("voltik@cfill", &class, false);
     }
     Ok(())
 }
@@ -1565,8 +1566,9 @@ fn bipole_shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error
     anchors.push(("text".into(), Point::new(0.0, 0.0)));
     // (globally: it runs after the node, out of its options' group)
     // (`voltik/up`: the node's north, for the bipole to be mirrored with it, `yscale=-1`)
+    // (in a group with a local current point: the path goes on from the node's point, not its east)
     cx.run(Tokens::text(&format!(
-        "\\gdef\\voltik@bp{{\\pgfextra{{\\xdef\\voltik@bn{{\\tikzlastnode}}}} (\\voltik@bn.west) to[{key}, voltik/fit, voltik/up=\\voltik@bn.north{options}] (\\voltik@bn.east)}}"
+        "\\gdef\\voltik@bp{{\\pgfextra{{\\xdef\\voltik@bn{{\\tikzlastnode}}}} {{[current point is local] (\\voltik@bn.west) to[{key}, voltik/fit, voltik/up=\\voltik@bn.north{options}] (\\voltik@bn.east)}}}}"
     )))?;
     // an oscilloscope's text goes above it, as a label
     let text = if comp.name == "oscope" { Point::new(-input.width / 2.0, top + OSCOPE_TEXT + input.depth) } else { Point::new(0.0, 0.0) };
@@ -2033,11 +2035,15 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
         }
         None => None,
     };
+    // the class's fill taken back later in the node's options (`circuitikz/logic ports/fill=none`)
+    let class_fill = cx.macro_text("voltik@cfill");
+    let unfilled = !class_fill.is_empty() && matches!(setting(cx, &format!("{class_fill}/fill"))?.trim(), "" | "none");
     let paths = sized
         .parts
         .iter()
         .filter(|_| !own)
         .filter(|(part, _)| symbol.is_none() || !matches!(part, Part::Solid(_)))
+        .filter(|(part, _)| !(unfilled && matches!(part, Part::Fill(_))))
         .filter(|(part, ops)| !coils || (matches!(part, Part::Thick(_)) && !ops.iter().any(|op| matches!(op, Op::Curve(..) | Op::Close))))
         .filter(|(part, ops)| !(own_text && matches!(part, Part::Solid(_)) && ops.iter().all(|op| !matches!(op, Op::Move(_, y) | Op::Line(_, y) if *y < 0.5))))
         .map(|(part, ops)| {

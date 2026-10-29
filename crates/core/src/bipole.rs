@@ -782,6 +782,23 @@ impl Look<'_> {
         self.path_scaled(ops, [1.0, 1.0])
     }
 
+    /// Ops of the default frame as a path that keeps upright around `center`, wherever the
+    /// component turns: a three-phase symbol, which TeX does not turn with its source.
+    fn path_upright(&self, ops: &[Op], center: [f64; 2]) -> String {
+        let c = self.canvas(center);
+        let at = |p: [f64; 2]| self.frame.coordinate(Point::new(c.x + (p[0] - center[0]) * self.x, c.y + (p[1] - center[1]) * self.y));
+        let mut s = String::new();
+        for op in ops {
+            match *op {
+                Op::Move(x, y) => s.push_str(&format!(" {}", at([x, y]))),
+                Op::Line(x, y) => s.push_str(&format!(" -- {}", at([x, y]))),
+                Op::Curve(c1, c2, p) => s.push_str(&format!(" .. controls {} and {} .. {}", at(c1), at(c2), at(p))),
+                Op::Close => s.push_str(" -- cycle"),
+            }
+        }
+        s
+    }
+
     fn path_scaled(&self, ops: &[Op], k: [f64; 2]) -> String {
         let at = |p: [f64; 2]| self.frame.coordinate(self.placed.at(p[0] * k[0], p[1] * k[1]));
         let mut s = String::new();
@@ -1144,7 +1161,7 @@ fn windings(cx: &mut Context, look: &Look, comp: &components::Component, scale: 
                 }
             }
         }
-        code.push_str(&format!("\\draw[-,solid,fill=none,miter limit=10,line width={}cm]{};", num(width), look.path(&ops)));
+        code.push_str(&format!("\\draw[-,solid,fill=none,miter limit=10,line width={}cm]{};", num(width), look.path_upright(&ops, at)));
     }
     code
 }

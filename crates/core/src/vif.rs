@@ -286,7 +286,11 @@ fn voltage(cx: &mut Context, comp: &Component, span: &Span, name: &str, out: &mu
     // `voltage shift` moves everything of the voltage out by that many times 0.08
     // a source's by `voltage shift sources adjust` times that
     let adjust = if source == Source::Not { 1.0 } else { number(cx, "voltage shift sources adjust").unwrap_or(1.0) };
-    let push = number(cx, "voltage shift").unwrap_or(0.0) * adjust * VOLTAGE_SHIFT * u + volts.shift * y;
+    // `bipoles/<shape>/voltage/additional shift`, a component's own (a developer's key)
+    let own = components::bipole_shapes()
+        .find(|(_, c)| *c == comp.name)
+        .and_then(|(shape, _)| number(cx, &format!("bipoles/{}/voltage/additional shift", shape.trim_end_matches("shape"))));
+    let push = number(cx, "voltage shift").unwrap_or(0.0) * adjust * VOLTAGE_SHIFT * u + (volts.shift + own.unwrap_or(0.0) * VOLTAGE_SHIFT) * y;
     let straight = push + if open { 0.0 } else { (1.1 * volts.south + VOLTAGE_SHIFT) * y };
     // how far the straight and American labels' nodes are from their line
     let straight_label = if open { CURRENT_LABEL } else { STRAIGHT_LABEL } * u - VOLTAGE_SEP;
