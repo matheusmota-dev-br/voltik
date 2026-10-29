@@ -4,7 +4,7 @@
 //! `bipoles/length`.
 
 use super::Op::{Close as Z, Curve as C, Line as L, Move as M};
-use super::Part::{Fill, Line, Paint, Solid, Thin};
+use super::Part::{Fill, Line, Paint, Pole, Solid, Thin};
 use super::{bipole, Class, Component};
 
 pub const COMPONENTS: &[Component] = &[
@@ -542,4 +542,32 @@ pub const COMPONENTS: &[Component] = &[
         ],
     )
     .band(0.3, -0.0),
+    // the electro-mechanical device on a path (`to[Telmech=M]`), its top at the end
+    bipole(
+        "Telmech",
+        Class::Misc,
+        0.8,
+        0.61,
+        &[
+            Solid(&[M(0.4, -0.15), L(0.4, 0.15), L(-0.4, 0.15), L(-0.4, -0.15), Z]),
+            Line(&[M(0.4, -0.15), L(0.4, 0.15), L(-0.4, 0.15), L(-0.4, -0.15), Z]),
+            Pole(&[
+                M(0.0, -0.3),
+                C([0.1657, -0.3], [0.3, -0.1657], [0.3, 0.0]),
+                C([0.3, 0.1657], [0.1657, 0.3], [0.0, 0.3]),
+                C([-0.1657, 0.3], [-0.3, 0.1657], [-0.3, 0.0]),
+                C([-0.3, -0.1657], [-0.1657, -0.3], [0.0, -0.3]),
+                Z,
+            ]),
+            Line(&[
+                M(0.0, -0.3),
+                C([0.1657, -0.3], [0.3, -0.1657], [0.3, 0.0]),
+                C([0.3, 0.1657], [0.1657, 0.3], [0.0, 0.3]),
+                C([-0.1657, 0.3], [-0.3, 0.1657], [-0.3, 0.0]),
+                C([-0.3, -0.1657], [-0.1657, -0.3], [0.0, -0.3]),
+                Z,
+            ]),
+        ],
+    )
+    .anchors(&[("left", [0.0, 0.3]), ("right", [0.0, -0.3]), ("top", [0.4, 0.0]), ("bottom", [-0.4, 0.0])]),
 ];

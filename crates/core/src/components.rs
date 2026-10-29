@@ -976,8 +976,9 @@ const SWITCH_ALIASES: &[(&str, Target)] = &[
     ("closed double solder jumper", Fixed("closed double solder jumper")),
 ];
 
-/// The transistors on a path: `Tnpn=Q` writes `Q` in its middle.
+/// The transistors on a path: `Tnpn=Q` writes `Q` in its middle, as `Telmech=M` does.
 const TRANSISTOR_ALIASES: &[(&str, Target)] = &[
+    ("Telmech", Fixed("Telmech")),
     ("TLnigbt", Fixed("TLnigbt")),
     ("TLpigbt", Fixed("TLpigbt")),
     ("Themt", Fixed("Themt")),

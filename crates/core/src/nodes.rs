@@ -11,6 +11,7 @@ use tikra::extension::{Context, Error, NodeShape, PathSegment, Point, ShapeBorde
 use crate::bipole::setting;
 
 mod amplifiers;
+mod doubles;
 mod transistors;
 mod tubes;
 use crate::components::Op;
@@ -50,6 +51,8 @@ pub enum Text {
     Right([f64; 2]),
     /// Centered on the point (a magnetron's).
     Middle([f64; 2]),
+    /// Above the point, centered, its baseline 0.6 of its height above it (a transformer's).
+    Over([f64; 2]),
 }
 
 /// A node component: its name (`node[name]`), its drawing, its box (left, right, bottom, top) for
@@ -717,7 +720,7 @@ const FLOWHEAD: &[Op] = &[M(0.1437, 0.0), L(0.1437, -0.05), L(0.25, 0.0), L(0.14
 pub const TERMINALS: &[&str] = &["circ", "ocirc", "diamondpole", "odiamondpole", "squarepole", "osquarepole", "rectjoinfill"];
 
 pub fn find(name: &str) -> Option<&'static Node> {
-    NODES.iter().chain(transistors::TRANSISTORS).chain(tubes::TUBES).chain(amplifiers::AMPLIFIERS).find(|n| n.name == name)
+    NODES.iter().chain(transistors::TRANSISTORS).chain(tubes::TUBES).chain(amplifiers::AMPLIFIERS).chain(doubles::DOUBLE_BIPOLES).find(|n| n.name == name)
 }
 
 /// The transistors', tubes' and amplifiers' options that change their drawing, in the order of their variants'
@@ -749,10 +752,10 @@ pub const VARIANT_FLAGS: &[&str] = &[
 ];
 pub const VARIANT_VALUES: &[&str] = &["collectors", "emitters", "bjt pins width", "bjt multi height"];
 
-/// The transistors', tubes' and amplifiers' shapes (`npn`, `triode`, `op amp`…), without their
-/// variants.
+/// The transistors', tubes', amplifiers' and double bipoles' shapes (`npn`, `triode`, `op amp`,
+/// `transformer`…), without their variants.
 pub fn variant_shapes() -> impl Iterator<Item = &'static str> {
-    transistors::TRANSISTORS.iter().chain(tubes::TUBES).chain(amplifiers::AMPLIFIERS).map(|n| n.name).filter(|n| !n.contains('|'))
+    transistors::TRANSISTORS.iter().chain(tubes::TUBES).chain(amplifiers::AMPLIFIERS).chain(doubles::DOUBLE_BIPOLES).map(|n| n.name).filter(|n| !n.contains('|'))
 }
 
 /// The transistors' shapes, without their variants.
@@ -769,6 +772,16 @@ fn variant(cx: &mut Context, base: &str) -> Result<Option<&'static Node>, Error>
             name.push('|');
             name.push_str(flag);
         }
+    }
+    // a transformer's coils are the inductors' style, and a double bipole can be inline
+    if base.starts_with("transformer") {
+        let inductor = setting(cx, "inductor")?;
+        if inductor != "cute" {
+            name.push_str(&format!("|inductor={inductor}"));
+        }
+    }
+    if matches!(base, "transformer" | "transformer core" | "gyrator" | "double bipole") && setting(cx, "quadpoles style")? == "inline" {
+        name.push_str("|quadpoles style=inline");
     }
     for key in VARIANT_VALUES {
         let value = setting(cx, &format!("tr/{key}"))?;
@@ -845,6 +858,7 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
         Text::AboveLeft(p) => Point::new(p[0] * unit - input.width, p[1] * unit + sy + input.depth),
         Text::AboveRight(p) => Point::new(p[0] * unit, p[1] * unit + sy + input.depth),
         Text::Right(p) => Point::new(p[0] * unit, p[1] * unit + (input.depth - input.height) / 2.0),
+        Text::Over(p) => Point::new(p[0] * unit - input.width / 2.0, p[1] * unit + 0.6 * input.height),
         Text::Middle(p) => Point::new(p[0] * unit - input.width / 2.0, p[1] * unit + (input.depth - input.height) / 2.0),
     };
     let mut extent: Vec<Point> = n.extent.iter().map(|p| at(*p)).collect();
