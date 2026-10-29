@@ -35,8 +35,10 @@ pub fn k_vif(cx: &mut Context, v: Option<Tokens>) -> Result<(), Error> {
 /// `bipole/is voltage=false` after `v=` does not change it, as in CircuiTikZ.
 fn passive_now(cx: &mut Context, kind: &str) -> Result<(), Error> {
     let key = if kind == "i" { "bipole/is current" } else { "bipole/is voltage" };
-    let passive = setting(cx, "bipole/override source vif")? == "true" || setting(cx, key)? == "false";
+    let overridden = setting(cx, "bipole/override source vif")? == "true";
+    let passive = overridden || setting(cx, key)? == "false";
     cx.define_text(&format!("voltik@{kind}passive"), if passive { "1" } else { "0" }, false);
+    cx.define_text(&format!("voltik@{kind}override"), if overridden { "1" } else { "0" }, false);
     Ok(())
 }
 
@@ -122,6 +124,9 @@ const STRAIGHT_LABEL: f64 = 0.0553;
 /// The voltage's ends are this far off the line; the straight arrow and the American signs are as
 /// far again beyond the component's `south` times 1.1; raised signs and labels this much farther.
 const VOLTAGE_SHIFT: f64 = 0.08;
+/// A source's voltage moves this much out for each unit of `voltage shift` (times `voltage shift
+/// sources adjust`).
+const SOURCE_SHIFT: f64 = 0.33;
 const RAISED: f64 = 0.117;
 
 /// What the component's frame needs: where it is, its length along the line (cm), its unit
@@ -168,6 +173,8 @@ pub fn vif(cx: &mut Context, comp: &Component, span: &Span, name: &str) -> Resul
     let mid = span.length / 2.0;
     // the leads: from each end to the component
     let leads = [(0.0, mid - span.half), (mid + span.half, span.length)];
+    // (a `short` is all lead: its current and flow are on its middle, as TeX draws them)
+    let leads = if comp.name == "short" { [(0.0, span.length); 2] } else { leads };
 
     for (kind, upper, node) in [("i", "I", "current"), ("f", "F", "flow")] {
         if cx.macro_text(&format!("voltik@{kind}on")) != "1" {
@@ -241,6 +248,9 @@ fn options(name: &str, node: &str, more: &str) -> String {
 fn voltage(cx: &mut Context, comp: &Component, span: &Span, name: &str, out: &mut Drawn) -> Result<(), Error> {
     let thin = cx.line_width();
     let u = span.unit;
+    // the arrow heads keep their size when the class is scaled (`resistors/scale`)
+    let class_scale = number(cx, &format!("{}/scale", comp.class.name())).filter(|s| *s > 0.0).unwrap_or(1.0);
+    let head_u = u / class_scale;
     let mid = span.length / 2.0;
     let text = label::units(&cx.macro_body("voltik@v").to_text());
     let labelled = !text.trim().is_empty();
@@ -302,7 +312,9 @@ fn voltage(cx: &mut Context, comp: &Component, span: &Span, name: &str, out: &mu
     let (from, to, cont, lab, lab_anchor);
     // the side and way are the ones in force when the voltage was given, the drawing the final one
     // (CircuiTikZ's mix of the two, `sV=…, bipole/is voltage=false`)
-    let style = match (crate::vif::source(cx, comp)?, style.as_str()) {
+    // (`bipole/override source vif` in force when the voltage was given decides the drawing too)
+    let drawn_as = if cx.macro_text("voltik@voverride") == "1" { Source::Not } else { crate::vif::source(cx, comp)? };
+    let style = match (drawn_as, style.as_str()) {
         (Source::Voltage, "american" | "raised") => "source label",
         (Source::Voltage, _) => "source",
         (_, s) => s,
@@ -311,7 +323,12 @@ fn voltage(cx: &mut Context, comp: &Component, span: &Span, name: &str, out: &mu
         "source" | "source label" => {
             // across the source, `half` each side of its middle, `above` the line
             let [half, above, gap] = comp.source_volts().unwrap_or([0.2286, 0.396, 0.1153]);
-            let across = side * (above * y + push);
+            // `voltage shift` moves a source's voltage out by `SOURCE_SHIFT` (times the adjust), its
+            // ends along the lines from the source's middle: the arrow grows as it goes out
+            let shift = number(cx, "voltage shift").unwrap_or(0.0) * adjust * (SOURCE_SHIFT - VOLTAGE_SHIFT) * u;
+            let out_by = above * y + push + shift;
+            let half = if above > 0.0 { half * out_by / (above * y) } else { half };
+            let across = side * out_by;
             let (a, b) = if v.forward { (mid - half * u, mid + half * u) } else { (mid + half * u, mid - half * u) };
             from = span.at(a, across);
             to = span.at(b, across);
@@ -319,7 +336,7 @@ fn voltage(cx: &mut Context, comp: &Component, span: &Span, name: &str, out: &mu
             if symbols && style == "source" {
                 out.draw.push_str(&format!("\\draw[-,solid,line width={}cm] {} -- {};", num(thin), span.frame.coordinate(from), span.frame.coordinate(to)));
                 let dir = if v.forward { 1.0 } else { -1.0 };
-                out.draw.push_str(&head(span, to, span.placed.along.scale(dir), u, thin));
+                out.draw.push_str(&head(span, to, span.placed.along.scale(dir), head_u, thin));
             }
             // American signs where the arrow would be, but on the American sources, which carry theirs
             if symbols && style == "source label" && !comp.name.starts_with("american") {
@@ -338,7 +355,11 @@ fn voltage(cx: &mut Context, comp: &Component, span: &Span, name: &str, out: &mu
         }
         "american" | "raised" => {
             let raised = style == "raised" || open;
-            let across = if raised && !open { side * (straight + (STRAIGHT_LABEL + RAISED) * u) } else { side * push };
+            // (from `voltage shift=-1` down, as measured on TeX, the raise itself shrinks with it:
+            // nothing at -1, as much the other way at -2)
+            let shift = number(cx, "voltage shift").unwrap_or(0.0) * adjust;
+            let raise = if shift <= -1.0 { 1.0 + shift } else { 1.0 };
+            let across = if raised && !open { side * (straight + raise * (STRAIGHT_LABEL + RAISED) * u) } else { side * push };
             let font = setting(cx, "voltage/american font")?;
             let font = if font.is_empty() { String::new() } else { format!("font={{{font}}},") };
             let plus_sign = cx.expand(Tokens::text("\\unexpanded\\expandafter{\\romannumeral-`0\\pgfkeysvalueof{/tikz/circuitikz/voltage/american plus}}"))?;
@@ -366,7 +387,7 @@ fn voltage(cx: &mut Context, comp: &Component, span: &Span, name: &str, out: &mu
             if symbols {
                 out.draw.push_str(&format!("\\draw[-,solid,line width={}cm] {} -- {};", num(thin), span.frame.coordinate(from), span.frame.coordinate(to)));
                 let dir = if tip > tail { 1.0 } else { -1.0 };
-                out.draw.push_str(&head(span, to, span.placed.along.scale(dir), u, thin));
+                out.draw.push_str(&head(span, to, span.placed.along.scale(dir), head_u, thin));
             }
             lab = span.at(mid, side * (straight + straight_label));
             lab_anchor = anchor.clone();
@@ -384,7 +405,7 @@ fn voltage(cx: &mut Context, comp: &Component, span: &Span, name: &str, out: &mu
                 let c = |p: Point| span.frame.coordinate(p);
                 out.draw.push_str(&format!("\\draw[-,solid,line width={}cm] {} .. controls {} and {} .. {};", num(thin), c(from), c(cont[0]), c(cont[1]), c(to)));
                 let d = to.minus(cont[1]);
-                out.draw.push_str(&head(span, to, d.scale(1.0 / d.norm().max(1e-9)), u, thin));
+                out.draw.push_str(&head(span, to, d.scale(1.0 / d.norm().max(1e-9)), head_u, thin));
             }
             lab = span.at(mid, side * (push + european_label * y) - side * VOLTAGE_SEP);
             lab_anchor = anchor.clone();

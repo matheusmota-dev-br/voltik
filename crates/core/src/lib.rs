@@ -190,7 +190,7 @@ fn definitions() -> String {
          tr/fdsoi/.initial=false, tr/fdsoidot/.initial=false, tr/doublegate/.initial=false, tr/collectors/.initial=, tr/emitters/.initial=, tr/bjt pins width/.initial=, tr/bjt multi height/.initial=,\n\
          led arrows from cathode/.style={led arrows=cathode}, led arrows from anode/.style={led arrows=anode}, pd arrows to cathode/.style={pd arrows=cathode},\n\
          pd arrows to anode/.style={pd arrows=anode}, diode straight whiskers/.style={diode whiskers=straight}, diode sloped whiskers/.style={diode whiskers=sloped}, voltage/.initial=european, current/.initial=european, voltage dir/.initial=noold,\n\
-         voltage/distance from node/.initial=, voltage/bump b/.initial=, l2 halign/.initial=l, l2 valign/.initial=c, a2 halign/.initial=l, a2 valign/.initial=c, bipole/is voltage/.initial=true, bipole/is current/.initial=true, bipole/override source vif/.initial=false,\n\
+         voltage/distance from node/.initial=, voltage/bump b/.initial=, l2 halign/.initial=l, l2 valign/.initial=c, a2 halign/.initial=r, a2 valign/.initial=c, bipole/is voltage/.initial=true, bipole/is current/.initial=true, bipole/override source vif/.initial=false,\n\
          voltage shift/.initial=0, current/distance/.initial=, flow/distance/.initial=, v symbols/.initial=true, i symbols/.initial=true, f symbols/.initial=true,\n\
          bipole label style/.style={}, bipole annotation style/.style={}, bipole voltage style/.style={}, bipole current style/.style={}, bipole flow style/.style={},\n\
          no v symbols/.style={v symbols=false}, no i symbols/.style={i symbols=false}, no f symbols/.style={f symbols=false},\n\
@@ -471,7 +471,7 @@ fn definitions() -> String {
     s.push_str("\\def\\ctikzsubcircuitactivate#1{\\expandafter\\gdef\\csname #1\\endcsname##1##2{\\pgfextra{\\pgfkeys{/tikz/voltik/subcircuit={#1}{##2}}} ++(\\voltik@scx,\\voltik@scy) \\csname voltik@sc@#1\\endcsname{##1}}}\n");
     // `\ctikztunablearrow[options]{thickness}{length}{angle}{name}`: an arrow across a component
     s.push_str("\\newcommand{\\ctikztunablearrow}[5][]{\\pgfkeys{/tikz/voltik/tunable arrow={#1}{#2}{#3}{#4}{#5}}}\n");
-    s.push_str("\\pgfkeys{/tikz/circuitikz/.cd, tunable start arrow/.initial=default, tunable end arrow/.initial=default, bipoles/fix tunable direction/.initial=true, voltage shift sources adjust/.initial=1}\n");
+    s.push_str("\\pgfkeys{/tikz/circuitikz/.cd, tunable start arrow/.initial=default, tunable end arrow/.initial=default, bipoles/fix tunable direction/.initial=true, voltage shift sources adjust/.initial=0.5}\n");
     // the dc and ac symbols, with their sizes and text above them
     s.push_str("\\pgfkeys{/tikz/circuitikz/.cd, dc symbol/width/.initial=0.3, dc symbol/height/.initial=0.15, dc symbol/text offset/.initial=6pt, dc symbol/segments/.initial=2, dc symbol/relative thickness/.initial=1, ac symbol/width/.initial=0.3, ac symbol/height/.initial=0.15, ac symbol/text offset/.initial=6pt}\n");
     for symbol in ["dc symbol", "ac symbol"] {
@@ -635,7 +635,7 @@ fn definitions() -> String {
     s.push_str("}\n");
     // the circuit's own defaults, reset at each `to`
     s.push_str(
-        "\\def\\voltik@kind{short}\\def\\voltik@fit{0}\\def\\voltik@up{}\\def\\voltik@ps{}\\def\\voltik@pe{}\\def\\voltik@mirror{0}\\def\\voltik@invert{0}\\def\\voltik@l{}\\def\\voltik@t{}\\def\\voltik@a{}\\def\\voltik@fill{}\\def\\voltik@name{}\\def\\voltik@v{}\\def\\voltik@i{}\\def\\voltik@f{}\\def\\voltik@llines{1}\\def\\voltik@alines{1}\\def\\voltik@von{0}\\def\\voltik@ion{0}\\def\\voltik@vpassive{}\\def\\voltik@ipassive{}\\def\\voltik@fon{0}\\def\\voltik@vq{}\\def\\voltik@vvar{}\\def\\voltik@ivar{}\\def\\voltik@fvar{}\n",
+        "\\def\\voltik@kind{short}\\def\\voltik@fit{0}\\def\\voltik@up{}\\def\\voltik@ps{}\\def\\voltik@pe{}\\def\\voltik@mirror{0}\\def\\voltik@invert{0}\\def\\voltik@l{}\\def\\voltik@t{}\\def\\voltik@a{}\\def\\voltik@fill{}\\def\\voltik@name{}\\def\\voltik@v{}\\def\\voltik@i{}\\def\\voltik@f{}\\def\\voltik@llines{1}\\def\\voltik@alines{1}\\def\\voltik@von{0}\\def\\voltik@ion{0}\\def\\voltik@vpassive{}\\def\\voltik@ipassive{}\\def\\voltik@voverride{}\\def\\voltik@ioverride{}\\def\\voltik@fon{0}\\def\\voltik@vq{}\\def\\voltik@vvar{}\\def\\voltik@ivar{}\\def\\voltik@fvar{}\n",
     );
     s
 }
