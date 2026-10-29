@@ -172,7 +172,7 @@ pub fn units(text: &str) -> String {
 }
 
 /// `\SI`, `\qty`, `\si`, `\unit` and `\num` in a text, in math whether the text is or not there.
-fn siunitx(text: &str) -> String {
+pub fn siunitx(text: &str) -> String {
     let mut out = String::new();
     let mut math = false;
     let mut rest = text;
@@ -231,6 +231,66 @@ fn arguments(text: &str, n: usize) -> Option<(Vec<String>, &str)> {
     Some((values, rest))
 }
 
+/// The unit macros of siunitx and what they write, in math.
+pub const UNITS: &[(&str, &str)] = &[
+    ("ohm", "\\Omega"),
+    ("farad", "F"),
+    ("henry", "H"),
+    ("volt", "V"),
+    ("ampere", "A"),
+    ("siemens", "S"),
+    ("watt", "W"),
+    ("hertz", "Hz"),
+    ("second", "s"),
+    ("coulomb", "C"),
+    ("joule", "J"),
+    ("tesla", "T"),
+    ("weber", "Wb"),
+    ("meter", "m"),
+    ("metre", "m"),
+    ("kilo", "k"),
+    ("mega", "M"),
+    ("giga", "G"),
+    ("milli", "m"),
+    ("micro", "\\mu "),
+    ("nano", "n"),
+    ("deci", "d"),
+    ("bel", "B"),
+    ("decibel", "dB"),
+    ("pico", "p"),
+    ("femto", "f"),
+    ("degree", "{}^\\circ"),
+    ("celsius", "{}^\\circ C"),
+    ("percent", "\\%"),
+    ("per", "/"),
+    ("squared", "^2"),
+    ("kohm", "k\\Omega"),
+    ("Mohm", "M\\Omega"),
+    ("mohm", "m\\Omega"),
+    ("kV", "kV"),
+    ("mV", "mV"),
+    ("uV", "\\mu V"),
+    ("mA", "mA"),
+    ("uA", "\\mu A"),
+    ("nA", "nA"),
+    ("pF", "pF"),
+    ("nF", "nF"),
+    ("uF", "\\mu F"),
+    ("mF", "mF"),
+    ("mH", "mH"),
+    ("uH", "\\mu H"),
+    ("nH", "nH"),
+    ("Hz", "Hz"),
+    ("kHz", "kHz"),
+    ("MHz", "MHz"),
+    ("GHz", "GHz"),
+    ("ms", "ms"),
+    ("us", "\\mu s"),
+    ("ns", "ns"),
+    ("mW", "mW"),
+    ("kW", "kW"),
+];
+
 /// The symbols of a siunitx unit (`\kilo\ohm`, `k\ohm`, `\mA`), for `\mathrm`.
 fn symbols(unit: &str) -> String {
     let mut out = String::new();
@@ -245,60 +305,9 @@ fn symbols(unit: &str) -> String {
         }
         let end = rest[1..].find(|c: char| !c.is_ascii_alphabetic()).map_or(rest.len(), |e| e + 1);
         let name = &rest[1..end];
-        out.push_str(match name {
-            "ohm" => "\\Omega",
-            "farad" => "F",
-            "henry" => "H",
-            "volt" => "V",
-            "ampere" => "A",
-            "siemens" => "S",
-            "watt" => "W",
-            "hertz" => "Hz",
-            "second" => "s",
-            "coulomb" => "C",
-            "joule" => "J",
-            "tesla" => "T",
-            "weber" => "Wb",
-            "meter" | "metre" => "m",
-            "kilo" => "k",
-            "mega" => "M",
-            "giga" => "G",
-            "milli" => "m",
-            "micro" => "\\mu ",
-            "nano" => "n",
-            "pico" => "p",
-            "femto" => "f",
-            "degree" => "{}^\\circ",
-            "celsius" => "{}^\\circ C",
-            "percent" => "\\%",
-            "per" => "/",
-            "squared" => "^2",
-            "kohm" => "k\\Omega",
-            "Mohm" => "M\\Omega",
-            "mohm" => "m\\Omega",
-            "kV" => "kV",
-            "mV" => "mV",
-            "uV" => "\\mu V",
-            "mA" => "mA",
-            "uA" => "\\mu A",
-            "nA" => "nA",
-            "pF" => "pF",
-            "nF" => "nF",
-            "uF" => "\\mu F",
-            "mF" => "mF",
-            "mH" => "mH",
-            "uH" => "\\mu H",
-            "nH" => "nH",
-            "Hz" => "Hz",
-            "kHz" => "kHz",
-            "MHz" => "MHz",
-            "GHz" => "GHz",
-            "ms" => "ms",
-            "us" => "\\mu s",
-            "ns" => "ns",
-            "mW" => "mW",
-            "kW" => "kW",
-            _ => name,
+        out.push_str(match UNITS.iter().find(|(n, _)| *n == name) {
+            Some((_, symbol)) => symbol,
+            None => name,
         });
         rest = &rest[end..];
     }

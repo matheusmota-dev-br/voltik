@@ -215,12 +215,26 @@ pub fn k_place(cx: &mut Context, _v: Option<Tokens>) -> Result<(), Error> {
 
     let length_setting = setting(cx, "bipoles/length")?;
     let unit = cx.length(Tokens::text(&length_setting)).unwrap_or(1.4);
+    // with `transform shape`, the picture's scale scales the component too
+    let unit = if cx.macro_text("voltik@ts") == "1" {
+        let t = cx.transform();
+        unit * (t.a * t.d - t.b * t.c).abs().sqrt()
+    } else {
+        unit
+    };
     let known = component(cx)?;
     let comp = known.or_else(|| components::find("short")).expect("short is a component");
     let class = comp.class.name();
     let scale = number(cx, &format!("{class}/scale"), 1.0);
     // the class's width and height settings, when given, are the same for all its components (but
     // for the ones that are wider than the others, by their ratio)
+    // a bipole drawn as a node (`node[resistorshape]`) fills the node's width, whatever its size
+    let unit = if cx.macro_text("voltik@fit") == "1" {
+        let base = optional(cx, &format!("{class}/width")).map_or(comp.width, |w| w * comp.ratio) * scale;
+        end.minus(start).norm() / base.max(1e-9)
+    } else {
+        unit
+    };
     let width = optional(cx, &format!("{class}/width")).map_or(comp.width, |w| w * comp.ratio) * unit * scale;
     let height = optional(cx, &format!("{class}/height")).unwrap_or(comp.height) * unit * scale;
     let thickness = optional(cx, &format!("{class}/thickness")).unwrap_or_else(|| number(cx, "bipoles/thickness", 2.0));
@@ -254,7 +268,14 @@ pub fn k_place(cx: &mut Context, _v: Option<Tokens>) -> Result<(), Error> {
         thick,
         modifier: thick * number(cx, &format!("{class}/modifier thickness"), 1.0),
         thin: cx.line_width(),
-        fill: fill(cx),
+        // the `fill` of the `to`, or its class's (`\ctikzset{resistors/fill=yellow}`)
+        fill: match fill(cx) {
+            Some(f) => Some(f),
+            None => match setting(cx, &format!("{class}/fill"))?.as_str() {
+                "" | "none" => None,
+                c => Some(format!("fill={{{c}}}")),
+            },
+        },
     };
 
     if !comp.parts.is_empty() {

@@ -31,10 +31,11 @@ const KEYS: &[(&str, KeyFn)] = &[
     ("/tikz/voltik/ctikzset", k_ctikzset),
     ("/tikz/voltik/vif", vif::k_vif),
     ("/tikz/voltik/shapes", nodes::k_shapes),
+    ("/tikz/voltik/class fill", nodes::k_class_fill),
 ];
 
 /// The settings each class of components has (`resistors/scale`), with their initial values.
-const CLASS_SETTINGS: &[(&str, &str)] = &[("scale", "1"), ("width", ""), ("height", ""), ("thickness", "none"), ("modifier thickness", "1")];
+const CLASS_SETTINGS: &[(&str, &str)] = &[("scale", "1"), ("width", ""), ("height", ""), ("thickness", "none"), ("modifier thickness", "1"), ("fill", "")];
 
 /// `\ctikzset{…}`: the keys under `/tikz/circuitikz`; a style defined there (`tallR/.style={…}`) is
 /// also a style of TikZ, to be used in a `to[…]` as the manual does.
@@ -71,7 +72,9 @@ fn definitions() -> String {
          bipoles/length/.initial=1.4cm, bipoles/thickness/.initial=2,\n\
          resistors/zigs/.initial=3, inductors/coils/.initial=, wiper pos/.initial=0.5, quadpoles style/.initial=, nodes width/.initial=0.04,\n\
          bipoles/inductors/core distance/.initial=2pt, bipoles/inductors/dot x distance/.initial=4pt, bipoles/inductors/dot y distance/.initial=1pt,\n\
-         resistor/.initial=american, inductor/.initial=cute, diode/.initial=empty, thyristor style/.initial=legacy, led arrows/.initial=anode, pd arrows/.initial=anode, diode whiskers/.initial=sloped, tjumper connections/.initial=00, tr/noinv input up/.initial=false, tr/noinv input down/.initial=false, tr/noinv output up/.initial=false,\n\
+         resistor/.initial=american, inductor/.initial=cute, diode/.initial=empty, thyristor style/.initial=legacy, led arrows/.initial=anode, pd arrows/.initial=anode, diode whiskers/.initial=sloped, tjumper connections/.initial=00, double bipole L/.initial=, double bipole R/.initial=, db/L invert/.initial=false, db/R invert/.initial=false,\n\
+         double bipole L invert/.code={\\pgfkeys{/tikz/circuitikz/db/L invert=true}}, double bipole R invert/.code={\\pgfkeys{/tikz/circuitikz/db/R invert=true}},\n\
+         every double bipole L/.style={}, every double bipole R/.style={}, transformer L1/.style={}, transformer L2/.style={}, en amp text/.initial=, component text/.initial=center, left text distance/.initial=.3em, tr/noinv input up/.initial=false, tr/noinv input down/.initial=false, tr/noinv output up/.initial=false,\n\
          tr/noinv output down/.initial=false, tr/filament/.initial=false, tr/nocathode/.initial=false, tr/fullcathode/.initial=false, tr/nixieanode/.initial=false,\n\
          tr/anodedot/.initial=false, tr/nogrid/.initial=false, tr/schottky base/.initial=false, tr/bodydiode/.initial=false, tr/photo/.initial=false, tr/tr circle/.initial=false,\n\
          tr/nobase/.initial=false, tr/bulk/.initial=false, tr/emptycircle/.initial=false, tr/nocircle/.initial=false, tr/arrowmos/.initial=false, tr/solderdot/.initial=false,\n\
@@ -137,7 +140,15 @@ fn definitions() -> String {
     ];
     // the node-style components, shapes of their own
     for name in nodes::NODES.iter().map(|n| n.name).chain(nodes::TERMINALS.iter().copied()).chain(nodes::variant_shapes()) {
-        keys.push(format!("{name}/.style={{shape={name}}}"));
+        // and its class's `fill` (`\ctikzset{amplifiers/fill=cyan}`)
+        match nodes::find(name).and_then(|n| n.class()) {
+            Some(class) => keys.push(format!("{name}/.style={{shape={name}, voltik/class fill={class}}}")),
+            // a double bipole draws the bipoles of `double bipole L` and `R` after it
+            None if name == "double bipole" => keys.push(format!("{name}/.style={{shape={name}, append after command={{\\voltik@db}}}}")),
+            // a transformer's coils are nodes of their own (`T1-L1`), and drawn by `transformer L1`
+            None if name.starts_with("transformer") => keys.push(format!("{name}/.style={{shape={name}, append after command={{\\voltik@tr}}}}")),
+            None => keys.push(format!("{name}/.style={{shape={name}}}")),
+        }
     }
     for (key, target) in components::aliases() {
         keys.push(format!("{key}/.style={{voltik/component={{{key}}}{{#1}}{{}}}}"));
@@ -172,6 +183,17 @@ fn definitions() -> String {
     }
     for key in nodes::VARIANT_VALUES {
         keys.push(format!("{key}/.style={{/tikz/circuitikz/tr/{key}=#1}}"));
+    }
+    // `en amp text={…}`: the text of an `en amp` instead of its ▷∞, where that goes
+    keys.push(
+        "en amp text/.code={\\pgfkeys{/tikz/circuitikz/en amp text={#1}}\\pgfkeys{/tikz/label={[anchor=base,inner sep=0pt,xshift=-0.0235cm,yshift=0.7562cm]center:{#1}}}}".into(),
+    );
+    // a bipole as a node (`node[resistorshape]`), and inside a double bipole
+    keys.push("voltik/fit/.code={\\def\\voltik@fit{1}}".into());
+    keys.push("voltik/bipole node/.code={\\def\\voltik@bn{#1}}".into());
+    keys.push("voltik/coil/.code={\\def\\voltik@coil{#1}}".into());
+    for (shape, key) in components::BIPOLE_SHAPES {
+        keys.push(format!("{shape}/.style={{shape=voltik bipole, voltik/bipole node={{{key}}}, append after command={{\\voltik@bp}}}}"));
     }
     // `n=R1`: a component's name, as `name=R1`
     keys.push("n/.style={name={#1}}".into());
@@ -217,6 +239,8 @@ fn definitions() -> String {
         "pd arrows".into(),
         "diode whiskers".into(),
         "tjumper connections".into(),
+        "component text".into(),
+        "left text distance".into(),
     ];
     // every class of the manual has them, even before voltik draws its components, so that
     // `\ctikzset{diodes/scale=…}` is a setting and not TikZ's `scale`
@@ -262,7 +286,24 @@ fn definitions() -> String {
     // and its `name` names the component, whose anchors are then coordinates (`R1.north`)
     s.push_str("\\expandafter\\let\\csname pgfk@/tikz/voltik@name/.@cmd\\expandafter\\endcsname\\csname pgfk@/tikz/name/.@cmd\\endcsname\n");
     s.push_str("\\tikzset{name/.code={\\def\\voltik@name{#1}\\pgfkeys{/tikz/voltik@name={#1}}}}\n");
+    // `\scalebox{…}[…]{text}`: the text, unscaled (a mirrored text in a mirrored node reads the same)
+    s.push_str("\\def\\scalebox#1{\\@ifnextchar[{\\voltik@sbo}{\\voltik@sb}}\\def\\voltik@sbo[#1]#2{#2}\\def\\voltik@sb#1{#1}\n");
+    // siunitx's unit macros, for a unit written outside `\SI` (which is rewritten before, in `convert`)
+    for (name, symbol) in label::UNITS {
+        s.push_str(&format!("\\def\\{name}{{{symbol}}}"));
+    }
+    s.push('\n');
+    // and `transform shape` scales the components on paths too, as it does nodes
+    s.push_str("\\def\\voltik@ts{0}\\expandafter\\let\\csname pgfk@/tikz/voltik@ts/.@cmd\\expandafter\\endcsname\\csname pgfk@/tikz/transform shape/.@cmd\\endcsname\n");
+    s.push_str("\\tikzset{transform shape/.code={\\def\\voltik@ts{1}\\pgfkeys{/tikz/voltik@ts}}}\n");
+    s.push_str("\\def\\voltik@bp{}\\def\\voltik@db{}\\def\\voltik@tr{}\\def\\voltik@bn{}\\def\\voltik@coil{-0}\n");
     s.push_str("\\pgfkeys{/tikz/voltik/shapes}\n");
+    // the node components' sizes (`tripoles/op amp/width`), at their defaults
+    let mut sizes: Vec<&nodes::Param> = nodes::params().collect();
+    sizes.dedup_by_key(|p| p.setting);
+    for p in sizes {
+        s.push_str(&format!("\\pgfkeys{{/tikz/circuitikz/{}/.initial={}}}\n", p.setting, p.default));
+    }
     s.push_str("\\tikzset{\n");
     for k in keys {
         s.push_str(&k);
@@ -271,7 +312,7 @@ fn definitions() -> String {
     s.push_str("}\n");
     // the circuit's own defaults, reset at each `to`
     s.push_str(
-        "\\def\\voltik@kind{short}\\def\\voltik@ps{}\\def\\voltik@pe{}\\def\\voltik@mirror{0}\\def\\voltik@invert{0}\\def\\voltik@l{}\\def\\voltik@t{}\\def\\voltik@a{}\\def\\voltik@fill{}\\def\\voltik@name{}\\def\\voltik@v{}\\def\\voltik@i{}\\def\\voltik@f{}\\def\\voltik@llines{1}\\def\\voltik@alines{1}\\def\\voltik@von{0}\\def\\voltik@ion{0}\\def\\voltik@fon{0}\n",
+        "\\def\\voltik@kind{short}\\def\\voltik@fit{0}\\def\\voltik@ps{}\\def\\voltik@pe{}\\def\\voltik@mirror{0}\\def\\voltik@invert{0}\\def\\voltik@l{}\\def\\voltik@t{}\\def\\voltik@a{}\\def\\voltik@fill{}\\def\\voltik@name{}\\def\\voltik@v{}\\def\\voltik@i{}\\def\\voltik@f{}\\def\\voltik@llines{1}\\def\\voltik@alines{1}\\def\\voltik@von{0}\\def\\voltik@ion{0}\\def\\voltik@fon{0}\n",
     );
     s
 }
@@ -291,6 +332,8 @@ pub fn convert_with(code: &str, options: &Options) -> Result<Output, Error> {
 /// the package (`\usepackage[RPvoltages, american]{circuitikz}`) as styles.
 fn environments(code: &str) -> String {
     let code = code.replace("\\begin{circuitikz}", "\\begin{tikzpicture}").replace("\\end{circuitikz}", "\\end{tikzpicture}");
+    // siunitx anywhere (`\\SI{12}{\\volt}` in a node's text), in math whether the text is or not
+    let code = label::siunitx(&code);
     let styles: Vec<&str> = package_options(&code).iter().filter_map(|o| option_style(o)).collect();
     match (styles.is_empty(), code.find("\\begin{document}")) {
         (false, Some(at)) => {
