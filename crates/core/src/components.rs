@@ -791,7 +791,11 @@ impl Component {
 impl Component {
     /// Where its voltage goes.
     pub fn volts(&self) -> Volts {
-        VOLTS.iter().find(|(n, _)| *n == self.name).map_or(volts(self.bottom, 1.5 * self.bottom, 0.1352 + 1.0969 * 1.5 * self.bottom), |(_, v)| *v)
+        // by default as far as it reaches on that side: a switch's lever, above, takes its voltage farther
+        let side = |reach: f64| [reach, 1.5 * reach, 0.1352 + 1.0969 * 1.5 * reach];
+        let [south, bump, label] = side(self.bottom);
+        let above = (self.top != self.bottom).then(|| side(self.top));
+        VOLTS.iter().find(|(n, _)| *n == self.name).map_or(Volts { above, ..volts(south, bump, label) }, |(_, v)| *v)
     }
 }
 

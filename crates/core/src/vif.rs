@@ -256,7 +256,8 @@ fn voltage(cx: &mut Context, comp: &Component, span: &Span, name: &str, out: &mu
         Source::Current => variant(&cx.macro_text("voltik@vspec"), -1.0, rising),
         Source::Not => variant(&cx.macro_text("voltik@vspec"), -1.0, !rising),
     };
-    let volts = match (comp.volts(), v.side > 0.0) {
+    // a mirrored component's top is on the other side of the line
+    let volts = match (comp.volts(), (v.side > 0.0) != span.placed.mirror) {
         (Volts { above: Some([south, bump, label]), .. }, true) => Volts { south, bump, label, ..comp.volts() },
         (volts, _) => volts,
     };
