@@ -6,11 +6,15 @@ Each release has a headline (the line under its title), what changed, and the fi
 
 ## Unreleased
 
-Rotary switches, and the poles of switches as nodes.
+Rotary switches, the poles of switches as nodes, and the customizations of transistors and tubes.
 
 - The rotary switch (`rotaryswitch`, `rotary switch=8 in 120 wiper 40`, `rotary switch <->`…), with its channels, wiper, arrows, thickness and pole shape, all its anchors (`out 3`, `aout 3`, `sqout 3`, `ext north`), and its poles as nodes (`S-out 3.n`).
 - The poles of cute switches and of named jumpers as nodes (`S1-in.s`, `J2-in.-135`, `J1-tap`); `bipoles/cuteswitch/height`, `thickness` and `shape`, and `bipoles/jumper/shape`.
 - Bipoles drawn as nodes turn with the node (`yscale=-1`), their ends on their line, and count only what they draw.
+
+- Transistors' texts up, down and as they used to be (`component text`, `legacy transistors text`); `ferroel gate`, `transistors/arrow pos=end`, `jfet gate height`, `mos style/arrows`, `scale circle radius` and the circle's `relative thickness`; a class's `thickness` on nodes.
+- The tubes' sizes (`tubes/width`, `height`, `cathode width`, `anode width`, `filament angle`, `filament distance`), any number of anodes (`tubes/anodes`, as the manual's VFD and nixie tubes), and the dynode's `arc pos` and `top width`.
+- The manual's text helpers, `\ctikzflipx`, `\killdepth`, `\rotatebox`, `\raisebox`, write their text.
 
 Figures: `rotary-switches`
 
