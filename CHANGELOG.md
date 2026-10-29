@@ -4,6 +4,15 @@ What changed in each release of voltik: the crates `voltik` and `voltik-cli`, `@
 
 Each release has a headline (the line under its title), what changed, and the figures of [`corpus/`](corpus) that show it (`Figures:`), drawn by the site with today's voltik. `scripts/release.sh` will not release a version without its section here, and makes the GitHub release from it.
 
+## Unreleased
+
+Amplifiers.
+
+- The amplifiers of the manual as nodes: `op amp`, `fd op amp`, `en amp`, `gm amp`, the instrumentation amplifiers, the plain amplifiers and `buffer`, with their anchors and their `+` and `-`, in the `amplifiers` class.
+- `noinv input up`, `noinv input down`, `noinv output up` and `noinv output down`.
+
+Figures: `amplifiers` `non-inverting-amplifier`
+
 ## 0.9.0 - 2026-10-28
 
 Electronic tubes.

@@ -71,7 +71,8 @@ fn definitions() -> String {
          bipoles/length/.initial=1.4cm, bipoles/thickness/.initial=2,\n\
          resistors/zigs/.initial=3, inductors/coils/.initial=, wiper pos/.initial=0.5, quadpoles style/.initial=, nodes width/.initial=0.04,\n\
          bipoles/inductors/core distance/.initial=2pt, bipoles/inductors/dot x distance/.initial=4pt, bipoles/inductors/dot y distance/.initial=1pt,\n\
-         resistor/.initial=american, inductor/.initial=cute, diode/.initial=empty, thyristor style/.initial=legacy, led arrows/.initial=anode, pd arrows/.initial=anode, diode whiskers/.initial=sloped, tjumper connections/.initial=00, tr/filament/.initial=false, tr/nocathode/.initial=false, tr/fullcathode/.initial=false, tr/nixieanode/.initial=false,\n\
+         resistor/.initial=american, inductor/.initial=cute, diode/.initial=empty, thyristor style/.initial=legacy, led arrows/.initial=anode, pd arrows/.initial=anode, diode whiskers/.initial=sloped, tjumper connections/.initial=00, tr/noinv input up/.initial=false, tr/noinv input down/.initial=false, tr/noinv output up/.initial=false,\n\
+         tr/noinv output down/.initial=false, tr/filament/.initial=false, tr/nocathode/.initial=false, tr/fullcathode/.initial=false, tr/nixieanode/.initial=false,\n\
          tr/anodedot/.initial=false, tr/nogrid/.initial=false, tr/schottky base/.initial=false, tr/bodydiode/.initial=false, tr/photo/.initial=false, tr/tr circle/.initial=false,\n\
          tr/nobase/.initial=false, tr/bulk/.initial=false, tr/emptycircle/.initial=false, tr/nocircle/.initial=false, tr/arrowmos/.initial=false, tr/solderdot/.initial=false,\n\
          tr/fdsoi/.initial=false, tr/fdsoidot/.initial=false, tr/doublegate/.initial=false, tr/collectors/.initial=, tr/emitters/.initial=, tr/bjt pins width/.initial=, tr/bjt multi height/.initial=,\n\
@@ -165,7 +166,7 @@ fn definitions() -> String {
     ] {
         keys.push(format!("{key}/.style={{voltik/label={{{which}}}{{{side}}}{{#1}}}}"));
     }
-    // the transistors' and tubes' options (`node[npn, bodydiode]`, `node[triode, filament]`)
+    // the transistors', tubes' and amplifiers' options (`node[npn, bodydiode]`, `node[op amp, noinv input up]`)
     for flag in nodes::VARIANT_FLAGS {
         keys.push(format!("{flag}/.style={{/tikz/circuitikz/tr/{flag}=#1}}, {flag}/.default=true"));
     }
