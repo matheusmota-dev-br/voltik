@@ -4,6 +4,16 @@ What changed in each release of voltik: the crates `voltik` and `voltik-cli`, `@
 
 Each release has a headline (the line under its title), what changed, and the figures of [`corpus/`](corpus) that show it (`Figures:`), drawn by the site with today's voltik. `scripts/release.sh` will not release a version without its section here, and makes the GitHub release from it.
 
+## Unreleased
+
+Rotary switches, and the poles of switches as nodes.
+
+- The rotary switch (`rotaryswitch`, `rotary switch=8 in 120 wiper 40`, `rotary switch <->`…), with its channels, wiper, arrows, thickness and pole shape, all its anchors (`out 3`, `aout 3`, `sqout 3`, `ext north`), and its poles as nodes (`S-out 3.n`).
+- The poles of cute switches and of named jumpers as nodes (`S1-in.s`, `J2-in.-135`, `J1-tap`); `bipoles/cuteswitch/height`, `thickness` and `shape`, and `bipoles/jumper/shape`.
+- Bipoles drawn as nodes turn with the node (`yscale=-1`), their ends on their line, and count only what they draw.
+
+Figures: `rotary-switches`
+
 ## 0.11.0 - 2026-10-29
 
 Transformers and motors, the sizes of components, and bipoles as nodes.

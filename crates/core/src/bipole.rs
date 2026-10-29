@@ -139,6 +139,25 @@ fn component(cx: &mut Context) -> Result<Option<&'static components::Component>,
     Ok(components::find(name))
 }
 
+/// The middle of a path's points (a pole's center).
+fn middle(ops: &[Op]) -> [f64; 2] {
+    let (mut lo, mut hi) = ([f64::MAX; 2], [f64::MIN; 2]);
+    for op in ops {
+        let pts: &[[f64; 2]] = match op {
+            Op::Move(x, y) | Op::Line(x, y) => &[[*x, *y]],
+            Op::Curve(a, b, c) => &[*a, *b, *c],
+            Op::Close => &[],
+        };
+        for p in pts {
+            for i in 0..2 {
+                lo[i] = lo[i].min(p[i]);
+                hi[i] = hi[i].max(p[i]);
+            }
+        }
+    }
+    [(lo[0] + hi[0]) / 2.0, (lo[1] + hi[1]) / 2.0]
+}
+
 /// The inverse of an affine transform (the identity if it is singular).
 fn inverse(t: &Transform) -> Transform {
     let det = t.a * t.d - t.b * t.c;
@@ -244,6 +263,17 @@ pub fn k_place(cx: &mut Context, _v: Option<Tokens>) -> Result<(), Error> {
     let x = if comp.width > 0.0 { width / comp.width } else { 0.0 };
     let y = if comp.height > 0.0 { height / comp.height } else { 0.0 };
 
+    let up = cx.macro_body("voltik@up");
+    let up_is_down = if up.to_text().trim().is_empty() {
+        false
+    } else {
+        let north = cx.expand(up)?;
+        let n = cx.point(&north)?;
+        let d = end.minus(start);
+        let m = start.lerp(end, 0.5);
+        // left of the line is up
+        d.x * (n.y - m.y) - d.y * (n.x - m.x) < 0.0
+    };
     let d = end.minus(start);
     let length = d.norm().max(1e-9);
     let along = d.scale(1.0 / length);
@@ -255,8 +285,9 @@ pub fn k_place(cx: &mut Context, _v: Option<Tokens>) -> Result<(), Error> {
         width,
         top: comp.top * y,
         bottom: comp.bottom * y,
-        // a transistor inverted is turned round: its gate goes to the other side too
-        mirror: (cx.macro_text("voltik@mirror") == "1") != (comp.class == components::Class::Transistors && cx.macro_text("voltik@invert") == "1"),
+        // a transistor inverted is turned round: its gate goes to the other side too; a bipole
+        // drawn as a node goes the way the node's north is (`yscale=-1`)
+        mirror: ((cx.macro_text("voltik@mirror") == "1") != (comp.class == components::Class::Transistors && cx.macro_text("voltik@invert") == "1")) != up_is_down,
         invert: cx.macro_text("voltik@invert") == "1",
     };
     let look = Look {
@@ -284,8 +315,34 @@ pub fn k_place(cx: &mut Context, _v: Option<Tokens>) -> Result<(), Error> {
             // room CircuiTikZ makes around it, beyond what it draws
             code.push_str(&format!("\\path {} {};", look.at([0.0, comp.extent]), look.at([0.0, -comp.extent])));
         }
+        // the poles of jumpers and cute switches: their own shape (`bipoles/jumper/shape`), and
+        // nodes of their own when the component is named (`J1-in`, `J1-tap`, `J1-out`)
+        let shape_key = if comp.name.contains("jumper") { "bipoles/jumper/shape" } else { "bipoles/cuteswitch/shape" };
+        let pole_shape = setting(cx, shape_key)?;
+        let mut poles: Vec<[f64; 2]> = comp
+            .parts
+            .iter()
+            .filter_map(|p| match p {
+                Part::Pole(ops) => Some(middle(ops)),
+                _ => None,
+            })
+            .collect();
+        poles.sort_by(|a, b| a[0].total_cmp(&b[0]));
         for part in comp.parts {
-            code.push_str(&draw_part(cx, &look, comp, *part));
+            match part {
+                Part::Pole(ops) if pole_shape != "ocirc" => {
+                    let fill = look.fill.clone().map_or(String::new(), |f| format!(",{f}"));
+                    code.push_str(&format!("\\node[{pole_shape}{fill}] at {} {{}};", look.at(middle(ops))));
+                }
+                _ => code.push_str(&draw_part(cx, &look, comp, *part)),
+            }
+        }
+        let name = cx.macro_text("voltik@name");
+        if !name.is_empty() && !poles.is_empty() {
+            let names: &[&str] = if poles.len() == 3 { &["in", "tap", "out"] } else { &["in", "out"] };
+            for (pole, pname) in poles.iter().zip(names) {
+                code.push_str(&format!("\\node[shape=voltik pole, voltik/pole shape={pole_shape}, name={name}-{pname}] at {} {{}};", look.at(*pole)));
+            }
         }
         cx.run(Tokens::text(&code))?;
     }
@@ -436,7 +493,10 @@ fn draw_part(cx: &mut Context, look: &Look, comp: &components::Component, part: 
             Some(f) => format!("\\path[{f}]{};", look.path(ops)),
             None => format!("\\fill[color=.]{};", look.path(ops)),
         },
-        Part::Lever(k, ops) => format!("{}{};", stroke(k * look.thin, "fill=none,line cap=round,"), look.path(ops)),
+        Part::Lever(k, ops) => {
+            let k = k * number(cx, "bipoles/cuteswitch/thickness", 1.0);
+            format!("{}{};", stroke(k * look.thin, "fill=none,line cap=round,"), look.path(ops))
+        }
         Part::Thin(ops) => format!("{}{};", stroke(look.thin, "fill=none,"), look.path(ops)),
         Part::Solid(ops) => format!("\\fill[color=.]{};", look.path(ops)),
         Part::Arrow { from, to, thin } => arrow(look, from, to, if thin { look.thin } else { look.modifier }),

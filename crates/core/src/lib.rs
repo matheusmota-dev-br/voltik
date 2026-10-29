@@ -32,6 +32,7 @@ const KEYS: &[(&str, KeyFn)] = &[
     ("/tikz/voltik/vif", vif::k_vif),
     ("/tikz/voltik/shapes", nodes::k_shapes),
     ("/tikz/voltik/class fill", nodes::k_class_fill),
+    ("/tikz/voltik/rotary", nodes::k_rotary),
 ];
 
 /// The settings each class of components has (`resistors/scale`), with their initial values.
@@ -72,7 +73,8 @@ fn definitions() -> String {
          bipoles/length/.initial=1.4cm, bipoles/thickness/.initial=2,\n\
          resistors/zigs/.initial=3, inductors/coils/.initial=, wiper pos/.initial=0.5, quadpoles style/.initial=, nodes width/.initial=0.04,\n\
          bipoles/inductors/core distance/.initial=2pt, bipoles/inductors/dot x distance/.initial=4pt, bipoles/inductors/dot y distance/.initial=1pt,\n\
-         resistor/.initial=american, inductor/.initial=cute, diode/.initial=empty, thyristor style/.initial=legacy, led arrows/.initial=anode, pd arrows/.initial=anode, diode whiskers/.initial=sloped, tjumper connections/.initial=00, double bipole L/.initial=, double bipole R/.initial=, db/L invert/.initial=false, db/R invert/.initial=false,\n\
+         resistor/.initial=american, inductor/.initial=cute, diode/.initial=empty, thyristor style/.initial=legacy, led arrows/.initial=anode, pd arrows/.initial=anode, diode whiskers/.initial=sloped, tjumper connections/.initial=00, bipoles/cuteswitch/shape/.initial=ocirc, bipoles/cuteswitch/height/.initial=.6, bipoles/cuteswitch/thickness/.initial=1, bipoles/jumper/shape/.initial=ocirc, multipoles/rotary/channels/.initial=5, multipoles/rotary/angle/.initial=60, multipoles/rotary/wiper/.initial=20,\n\
+         multipoles/rotary/arrow/.initial=none, multipoles/rotary/thickness/.initial=1, multipoles/rotary/shape/.initial=ocirc, tripoles/spdt/width/.initial=.85, double bipole L/.initial=, double bipole R/.initial=, db/L invert/.initial=false, db/R invert/.initial=false,\n\
          double bipole L invert/.code={\\pgfkeys{/tikz/circuitikz/db/L invert=true}}, double bipole R invert/.code={\\pgfkeys{/tikz/circuitikz/db/R invert=true}},\n\
          every double bipole L/.style={}, every double bipole R/.style={}, transformer L1/.style={}, transformer L2/.style={}, en amp text/.initial=, component text/.initial=center, left text distance/.initial=.3em, tr/noinv input up/.initial=false, tr/noinv input down/.initial=false, tr/noinv output up/.initial=false,\n\
          tr/noinv output down/.initial=false, tr/filament/.initial=false, tr/nocathode/.initial=false, tr/fullcathode/.initial=false, tr/nixieanode/.initial=false,\n\
@@ -142,6 +144,7 @@ fn definitions() -> String {
     for name in nodes::NODES.iter().map(|n| n.name).chain(nodes::TERMINALS.iter().copied()).chain(nodes::variant_shapes()) {
         // and its class's `fill` (`\ctikzset{amplifiers/fill=cyan}`)
         match nodes::find(name).and_then(|n| n.class()) {
+            Some(class) if name.starts_with("cute spdt") => keys.push(format!("{name}/.style={{shape={name}, voltik/class fill={class}, append after command={{\\voltik@cs}}}}")),
             Some(class) => keys.push(format!("{name}/.style={{shape={name}, voltik/class fill={class}}}")),
             // a double bipole draws the bipoles of `double bipole L` and `R` after it
             None if name == "double bipole" => keys.push(format!("{name}/.style={{shape={name}, append after command={{\\voltik@db}}}}")),
@@ -190,10 +193,17 @@ fn definitions() -> String {
     );
     // a bipole as a node (`node[resistorshape]`), and inside a double bipole
     keys.push("voltik/fit/.code={\\def\\voltik@fit{1}}".into());
+    keys.push("voltik/up/.code={\\def\\voltik@up{#1}}".into());
     keys.push("voltik/bipole node/.code={\\def\\voltik@bn{#1}}".into());
     keys.push("voltik/coil/.code={\\def\\voltik@coil{#1}}".into());
+    keys.push("voltik/pole shape/.code={\\def\\voltik@pole{#1}}".into());
     for (shape, key) in components::BIPOLE_SHAPES {
         keys.push(format!("{shape}/.style={{shape=voltik bipole, voltik/bipole node={{{key}}}, append after command={{\\voltik@bp}}}}"));
+    }
+    // the rotary switch: bare, and by its styles
+    keys.push("rotaryswitch/.style={shape=rotaryswitch, voltik/class fill=switches, append after command={\\voltik@rs}}".into());
+    for (style, arrow) in [("rotary switch", ""), ("rotary switch -", "none"), ("rotary switch <-", "ccw"), ("rotary switch ->", "cw"), ("rotary switch <->", "both")] {
+        keys.push(format!("{style}/.style={{voltik/rotary={{{arrow}}}{{#1}}}}, {style}/.default={{}}"));
     }
     // `n=R1`: a component's name, as `name=R1`
     keys.push("n/.style={name={#1}}".into());
@@ -240,6 +250,8 @@ fn definitions() -> String {
         "diode whiskers".into(),
         "tjumper connections".into(),
         "component text".into(),
+        "bipoles/jumper/shape".into(),
+        "bipoles/cuteswitch/shape".into(),
         "left text distance".into(),
     ];
     // every class of the manual has them, even before voltik draws its components, so that
@@ -296,7 +308,7 @@ fn definitions() -> String {
     // and `transform shape` scales the components on paths too, as it does nodes
     s.push_str("\\def\\voltik@ts{0}\\expandafter\\let\\csname pgfk@/tikz/voltik@ts/.@cmd\\expandafter\\endcsname\\csname pgfk@/tikz/transform shape/.@cmd\\endcsname\n");
     s.push_str("\\tikzset{transform shape/.code={\\def\\voltik@ts{1}\\pgfkeys{/tikz/voltik@ts}}}\n");
-    s.push_str("\\def\\voltik@bp{}\\def\\voltik@db{}\\def\\voltik@tr{}\\def\\voltik@bn{}\\def\\voltik@coil{-0}\n");
+    s.push_str("\\def\\voltik@cs{}\\def\\voltik@rs{}\\def\\voltik@bp{}\\def\\voltik@db{}\\def\\voltik@tr{}\\def\\voltik@bn{}\\def\\voltik@coil{-0}\n");
     s.push_str("\\pgfkeys{/tikz/voltik/shapes}\n");
     // the node components' sizes (`tripoles/op amp/width`), at their defaults
     let mut sizes: Vec<&nodes::Param> = nodes::params().collect();
@@ -312,7 +324,7 @@ fn definitions() -> String {
     s.push_str("}\n");
     // the circuit's own defaults, reset at each `to`
     s.push_str(
-        "\\def\\voltik@kind{short}\\def\\voltik@fit{0}\\def\\voltik@ps{}\\def\\voltik@pe{}\\def\\voltik@mirror{0}\\def\\voltik@invert{0}\\def\\voltik@l{}\\def\\voltik@t{}\\def\\voltik@a{}\\def\\voltik@fill{}\\def\\voltik@name{}\\def\\voltik@v{}\\def\\voltik@i{}\\def\\voltik@f{}\\def\\voltik@llines{1}\\def\\voltik@alines{1}\\def\\voltik@von{0}\\def\\voltik@ion{0}\\def\\voltik@fon{0}\n",
+        "\\def\\voltik@kind{short}\\def\\voltik@fit{0}\\def\\voltik@up{}\\def\\voltik@ps{}\\def\\voltik@pe{}\\def\\voltik@mirror{0}\\def\\voltik@invert{0}\\def\\voltik@l{}\\def\\voltik@t{}\\def\\voltik@a{}\\def\\voltik@fill{}\\def\\voltik@name{}\\def\\voltik@v{}\\def\\voltik@i{}\\def\\voltik@f{}\\def\\voltik@llines{1}\\def\\voltik@alines{1}\\def\\voltik@von{0}\\def\\voltik@ion{0}\\def\\voltik@fon{0}\n",
     );
     s
 }
