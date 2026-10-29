@@ -67,10 +67,156 @@ pub struct Node {
     pub text: Text,
     pub text_counts: bool,
     pub extent: &'static [[f64; 2]],
+    /// Its sizes that a setting changes (`tripoles/op amp/width`): it is drawn in between its
+    /// default and the node measured with each of them `step` more, as it goes in a straight line.
+    pub params: &'static [Param],
+    /// The pairs of its sizes that change it together (width and port width: the leads are what
+    /// the body leaves of the width), and the node measured with both `step` more.
+    pub crosses: &'static [Cross],
+}
+
+/// Two sizes of a node component that change it together, and the node `name` drawn with both.
+#[derive(Clone, Copy, Debug)]
+pub struct Cross {
+    pub a: &'static str,
+    pub b: &'static str,
+    pub name: &'static str,
+}
+
+/// A size of a node component: its setting, its default, and the node `name` drawn with it `step`
+/// more than its default.
+#[derive(Clone, Copy, Debug)]
+pub struct Param {
+    pub setting: &'static str,
+    pub default: f64,
+    pub step: f64,
+    pub name: &'static str,
 }
 
 const fn node(name: &'static str, parts: &'static [Part], bounds: [f64; 4]) -> Node {
-    Node { name, parts, bounds, anchors: &[], text: Text::Center, text_counts: false, extent: &[] }
+    Node { name, parts, bounds, anchors: &[], text: Text::Center, text_counts: false, extent: &[], params: &[], crosses: &[] }
+}
+
+/// Every size a setting changes, for its default.
+pub fn params() -> impl Iterator<Item = &'static Param> {
+    NODES.iter().chain(transistors::TRANSISTORS).chain(tubes::TUBES).chain(amplifiers::AMPLIFIERS).chain(doubles::DOUBLE_BIPOLES).flat_map(|n| n.params)
+}
+
+impl Part {
+    fn ops(&self) -> &'static [Op] {
+        match *self {
+            Part::Thin(o) | Part::Thick(o) | Part::Thicker(o) | Part::Fill(o) | Part::Solid(o) | Part::Pole(o) | Part::Channel(o) | Part::Stroke(_, o) => o,
+        }
+    }
+}
+
+/// `base`, moved by each `(k, other)` k times as far as `other` is from it.
+fn mix_ops(base: &[Op], others: &[(f64, &[Op])]) -> Vec<Op> {
+    let at = |i: usize, f: &dyn Fn(&Op) -> Vec<f64>| -> Vec<f64> {
+        let mut v = f(&base[i]);
+        for (k, o) in others {
+            for (a, b) in v.iter_mut().zip(f(&o[i]).iter().zip(f(&base[i]))) {
+                *a += k * (b.0 - b.1);
+            }
+        }
+        v
+    };
+    let nums = |op: &Op| match *op {
+        Op::Move(x, y) | Op::Line(x, y) => vec![x, y],
+        Op::Curve(a, b, c) => vec![a[0], a[1], b[0], b[1], c[0], c[1]],
+        Op::Close => vec![],
+    };
+    let mixed: Vec<Op> = (0..base.len())
+        .map(|i| {
+            let v = at(i, &nums);
+            match base[i] {
+                Op::Move(..) => Op::Move(v[0], v[1]),
+                Op::Line(..) => Op::Line(v[0], v[1]),
+                Op::Curve(..) => Op::Curve([v[0], v[1]], [v[2], v[3]], [v[4], v[5]]),
+                Op::Close => Op::Close,
+            }
+        })
+        .collect();
+    // a line that shrinks to nothing is not drawn (an amplifier's leads with `port width=1`)
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < mixed.len() {
+        if let (Op::Move(x, y), Some(Op::Line(a, b))) = (mixed[i], mixed.get(i + 1)) {
+            let alone = !matches!(mixed.get(i + 2), Some(Op::Line(..) | Op::Curve(..) | Op::Close));
+            if alone && (x - a).hypot(y - b) < 1e-3 {
+                i += 2;
+                continue;
+            }
+        }
+        out.push(mixed[i]);
+        i += 1;
+    }
+    out
+}
+
+/// A node drawn with its sizes: its parts, box, anchors, extent and the shift of its text.
+struct Sized {
+    parts: Vec<(Part, Vec<Op>)>,
+    bounds: [f64; 4],
+    anchors: Vec<(&'static str, [f64; 2])>,
+    extent: Vec<[f64; 2]>,
+    text_shift: [f64; 2],
+}
+
+/// The coefficient and the node of size `setting`, if it changes.
+fn others_k(n: &Node, setting: &str, others: &[(f64, &'static Node)]) -> Option<(f64, &'static Node)> {
+    let p = n.params.iter().find(|p| p.setting == setting)?;
+    others.iter().find(|(_, o)| o.name == p.name).copied()
+}
+
+fn sized(cx: &mut Context, n: &'static Node) -> Result<Sized, Error> {
+    let mut others: Vec<(f64, &'static Node)> = Vec::new();
+    for p in n.params {
+        let value = crate::bipole::number(cx, p.setting, p.default);
+        if (value - p.default).abs() > 1e-9 {
+            if let Some(o) = find(p.name) {
+                others.push(((value - p.default) / p.step, o));
+            }
+        }
+    }
+    // a pair that changes it together adds what it does more than each on its own:
+    // ka kb ((both - base) - (a - base) - (b - base))
+    for x in n.crosses {
+        let k = |setting: &str| others_k(n, setting, &others);
+        if let (Some((ka, a)), Some((kb, b)), Some(both)) = (k(x.a), k(x.b), find(x.name)) {
+            others.extend([(ka * kb, both), (-ka * kb, a), (-ka * kb, b)]);
+        }
+    }
+    let mix2 = |base: [f64; 2], f: &dyn Fn(&Node) -> Option<[f64; 2]>| {
+        let mut v = base;
+        for (k, o) in &others {
+            if let Some(q) = f(o) {
+                v = [v[0] + k * (q[0] - base[0]), v[1] + k * (q[1] - base[1])];
+            }
+        }
+        v
+    };
+    let parts = n
+        .parts
+        .iter()
+        .enumerate()
+        .map(|(i, part)| {
+            let with: Vec<(f64, &[Op])> = others.iter().filter_map(|(k, o)| o.parts.get(i).map(|q| (*k, q.ops()))).filter(|(_, q)| q.len() == part.ops().len()).collect();
+            (*part, mix_ops(part.ops(), &with))
+        })
+        .collect();
+    let mut bounds = n.bounds;
+    for (k, o) in &others {
+        for (b, (q, p)) in bounds.iter_mut().zip(o.bounds.iter().zip(n.bounds)) {
+            *b += k * (q - p);
+        }
+    }
+    let anchor = |n: &Node, name: &str| n.anchors.iter().find(|(a, _)| *a == name).map(|(_, p)| *p);
+    let anchors = n.anchors.iter().map(|(name, p)| (*name, mix2(*p, &|o: &Node| anchor(o, name)))).collect();
+    let extent = n.extent.iter().enumerate().map(|(i, p)| mix2(*p, &|o: &Node| o.extent.get(i).copied())).collect();
+    let text = anchor(n, "text").unwrap_or([0.0, 0.0]);
+    let moved = mix2(text, &|o: &Node| anchor(o, "text"));
+    Ok(Sized { parts, bounds, anchors, extent, text_shift: [moved[0] - text[0], moved[1] - text[1]] })
 }
 
 impl Node {
@@ -755,7 +901,13 @@ pub const VARIANT_VALUES: &[&str] = &["collectors", "emitters", "bjt pins width"
 /// The transistors', tubes', amplifiers' and double bipoles' shapes (`npn`, `triode`, `op amp`,
 /// `transformer`…), without their variants.
 pub fn variant_shapes() -> impl Iterator<Item = &'static str> {
-    transistors::TRANSISTORS.iter().chain(tubes::TUBES).chain(amplifiers::AMPLIFIERS).chain(doubles::DOUBLE_BIPOLES).map(|n| n.name).filter(|n| !n.contains('|'))
+    transistors::TRANSISTORS
+        .iter()
+        .chain(tubes::TUBES)
+        .chain(amplifiers::AMPLIFIERS)
+        .chain(doubles::DOUBLE_BIPOLES)
+        .map(|n| n.name)
+        .filter(|n| !n.contains('|') && !n.contains('@'))
 }
 
 /// The transistors' shapes, without their variants.
@@ -798,11 +950,152 @@ fn variant(cx: &mut Context, base: &str) -> Result<Option<&'static Node>, Error>
     }
 }
 
+/// `voltik/class fill={class}`: the class's `fill`, if any, fills the node.
+pub fn k_class_fill(cx: &mut Context, v: Option<Tokens>) -> Result<(), Error> {
+    let class = cx.expand(v.unwrap_or_default())?;
+    let fill = setting(cx, &format!("{class}/fill"))?;
+    if !fill.is_empty() && fill != "none" {
+        cx.keys(Tokens::text(&format!("fill={{{fill}}}")))?;
+    }
+    Ok(())
+}
+
+/// A bipole as a node (`node[resistorshape]`): its anchors, and the bipole itself drawn after it
+/// between its `west` and `east`, as a `to` that fills it.
+fn bipole_shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
+    let key = cx.macro_text("voltik@bn");
+    let comp = match crate::components::target(&key) {
+        Some(crate::components::Target::Fixed(n)) => crate::components::find(n),
+        _ => None,
+    };
+    let Some(comp) = comp else { return Ok(NodeShape::default()) };
+    let length = setting(cx, "bipoles/length")?;
+    let scale = crate::bipole::number(cx, &format!("{}/scale", comp.class.name()), 1.0);
+    let u = cx.length(Tokens::text(&length)).unwrap_or(1.4) * scale;
+    let (w, top, bottom) = (comp.width / 2.0 * u, comp.top * u, comp.bottom * u);
+    let mut anchors = compass(-w, w, -bottom, top);
+    anchors.extend(comp.anchors.iter().map(|(name, p)| (name.to_string(), Point::new(p[0] * u, p[1] * u))));
+    anchors.push(("text".into(), Point::new(0.0, 0.0)));
+    // (globally: it runs after the node, out of its options' group)
+    cx.run(Tokens::text(&format!("\\gdef\\voltik@bp{{(\\tikzlastnode.west) to[{key}, voltik/fit] (\\tikzlastnode.east)}}")))?;
+    let _ = input;
+    Ok(NodeShape {
+        center: Point::new(0.0, 0.0),
+        anchors,
+        border: ShapeBorder::Rectangle(Point::new(w, top.max(bottom))),
+        text: Point::new(0.0, 0.0),
+        paths: Vec::new(),
+        extent: vec![Point::new(-w, -bottom), Point::new(w, top)],
+    })
+}
+
+/// The bipoles a double bipole draws after it with `double bipole L` and `R` (`fulllediodeshape`…),
+/// from its terminals to `inner` of the way in; none (empty) when it draws its own.
+fn double_bipole(cx: &mut Context) -> Result<bool, Error> {
+    let (l, r) = (setting(cx, "double bipole L")?, setting(cx, "double bipole R")?);
+    let key = |shape: &str, default: &str| crate::components::BIPOLE_SHAPES.iter().find(|(s, _)| *s == shape).map_or(default.to_string(), |(_, k)| k.to_string());
+    if l.is_empty() && r.is_empty() {
+        cx.run(Tokens::text("\\gdef\\voltik@db{}"))?;
+        return Ok(false);
+    }
+    // inline, the terminals are where the bipoles go
+    let (fl, fr) = if setting(cx, "quadpoles style")? == "inline" {
+        (0.0, 1.0)
+    } else {
+        let inner = crate::bipole::number(cx, "quadpoles/double bipole/inner", 0.4);
+        ((1.0 - inner) / 2.0, (1.0 + inner) / 2.0)
+    };
+    let invert = |cx: &mut Context, side: &str| setting(cx, &format!("db/{side} invert")).map(|v| if v == "true" { ", invert" } else { "" });
+    let (il, ir) = (invert(cx, "L")?, invert(cx, "R")?);
+    // the bipoles' styles, kept out of the node's group where they may have been defined
+    for side in ["L", "R"] {
+        cx.run(Tokens::text(&format!(
+            "\\global\\expandafter\\let\\csname pgfk@/tikz/voltik@db{side}/.@cmd\\expandafter\\endcsname\\csname pgfk@/tikz/circuitikz/every double bipole {side}/.@cmd\\endcsname"
+        )))?;
+    }
+    let n = "\\tikzlastnode";
+    // L goes down from A1, R up from B2 (`double bipole R invert` turns it down)
+    let code = format!(
+        "({n}.A1) -- ($({n}.A1)!{fl}!({n}.B1)$) to[{}{il}, voltik@dbL] ($({n}.A2)!{fl}!({n}.B2)$) -- ({n}.A2) \
+         ({n}.B2) -- ($({n}.A2)!{fr}!({n}.B2)$) to[{}{ir}, voltik@dbR] ($({n}.A1)!{fr}!({n}.B1)$) -- ({n}.B1)",
+        key(&l, "european resistor"),
+        key(&r, "american voltage source"),
+    );
+    cx.run(Tokens::text(&format!("\\gdef\\voltik@db{{{code}}}")))?;
+    Ok(true)
+}
+
+/// A transformer's coil as a node of its own (`T1-L1`): `a` and `b` its ends, `voltik@coil` half its
+/// length (cm) and which way it goes (`-` up from `a`, `+` down).
+fn coil_shape(cx: &mut Context, _input: &ShapeInput) -> Result<NodeShape, Error> {
+    let spec = cx.macro_text("voltik@coil");
+    let (sign, half) = spec.split_at(1);
+    let h = half.parse::<f64>().unwrap_or(0.0) * if sign == "+" { 1.0 } else { -1.0 };
+    let p = Point::new;
+    let mut anchors = compass(-0.0, 0.0, -h.abs(), h.abs());
+    anchors.extend([("a".to_string(), p(0.0, h)), ("b".to_string(), p(0.0, -h))]);
+    Ok(NodeShape { center: p(0.0, 0.0), anchors, border: ShapeBorder::Point, text: p(0.0, 0.0), paths: Vec::new(), extent: Vec::new() })
+}
+
+/// A transformer's coils: as nodes of their own (`T1-L1`, `T1-L2`) always, and drawn by the
+/// inductors of `transformer L1` and `L2` when these change them (then `true`: the shape draws only
+/// its leads' frame and its core).
+fn transformer(cx: &mut Context, base: &str) -> Result<bool, Error> {
+    let length = setting(cx, "bipoles/length")?;
+    let unit = cx.length(Tokens::text(&length)).unwrap_or(1.4);
+    // each coil, with its style on: its inductor and its length
+    let coil = |cx: &mut Context, style: &str| -> Result<(String, f64, f64), Error> {
+        cx.begin_group();
+        cx.keys_at("/tikz/circuitikz", Tokens::text(style))?;
+        let kind = setting(cx, "inductor")?;
+        let width = crate::bipole::number(cx, "inductors/width", f64::NAN);
+        let coils = setting(cx, "inductors/coils")?;
+        cx.end_group();
+        let default = match kind.as_str() {
+            "american" => 0.8,
+            "european" => 0.8,
+            _ => 0.6,
+        };
+        let w = if width.is_nan() { default } else { width };
+        Ok((format!("{kind}|{coils}"), w, default))
+    };
+    let plain = coil(cx, "")?;
+    let (l1, l2) = (coil(cx, "transformer L1")?, coil(cx, "transformer L2")?);
+    let own = l1.0 != plain.0 || l2.0 != plain.0 || (l1.1 - plain.1).abs() > 1e-9 || (l2.1 - plain.1).abs() > 1e-9;
+    let inline = setting(cx, "quadpoles style")? == "inline";
+    let inner = crate::bipole::number(cx, &format!("quadpoles/{base}/inner"), 0.4);
+    let (fl, fr) = if inline { (0.0, 1.0) } else { ((1.0 - inner) / 2.0, (1.0 + inner) / 2.0) };
+    // the transformer's name, before its coils' nodes become the last node
+    let n = "\\voltik@tn";
+    let mut code = String::from("\\pgfextra{\\xdef\\voltik@tn{\\tikzlastnode}} ");
+    if own {
+        for side in ["L1", "L2"] {
+            cx.run(Tokens::text(&format!(
+                "\\global\\expandafter\\let\\csname pgfk@/tikz/voltik@tr{side}/.@cmd\\expandafter\\endcsname\\csname pgfk@/tikz/circuitikz/transformer {side}/.@cmd\\endcsname"
+            )))?;
+        }
+        // L1 goes up from A2, L2 down from B1
+        code.push_str(&format!(
+            "({n}.A2) -- ($({n}.A2)!{fl}!({n}.B2)$) to[L, voltik@trL1] ($({n}.A1)!{fl}!({n}.B1)$) -- ({n}.A1) \
+             ({n}.B1) -- ($({n}.A1)!{fr}!({n}.B1)$) to[L, voltik@trL2] ($({n}.A2)!{fr}!({n}.B2)$) -- ({n}.B2) "
+        ));
+    }
+    // the coils' nodes, in the middle of each side
+    for (side, f, (_, w, _), sign) in [("L1", fl, l1, "-"), ("L2", fr, l2, "+")] {
+        let half = w / 2.0 * unit;
+        code.push_str(&format!("($({n}.A1)!{f}!({n}.B1)$ |- {n}.center) node[shape=voltik coil, voltik/coil={{{sign}{half}}}, name={n}-{side}] {{}} "));
+    }
+    cx.run(Tokens::text(&format!("\\gdef\\voltik@tr{{{code}}}")))?;
+    Ok(own)
+}
+
 /// `voltik/shapes`: declares every node component to tikra.
 pub fn k_shapes(cx: &mut Context, _v: Option<Tokens>) -> Result<(), Error> {
     for n in NODES {
         cx.declare_shape(n.name, shape);
     }
+    cx.declare_shape("voltik bipole", bipole_shape);
+    cx.declare_shape("voltik coil", coil_shape);
     for name in variant_shapes() {
         cx.declare_shape(name, shape);
     }
@@ -822,6 +1115,10 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
     }
     let n = if variant_shapes().any(|t| t == input.name) { variant(cx, &input.name)? } else { find(&input.name) };
     let Some(n) = n else { return Ok(NodeShape::default()) };
+    // a double bipole with bipoles of its own draws only its anchors here
+    let own = input.name == "double bipole" && double_bipole(cx)?;
+    // a transformer whose coils are drawn as inductors draws its frame's core only
+    let coils = matches!(input.name.as_str(), "transformer" | "transformer core") && transformer(cx, &input.name)?;
     let unit = match n.class() {
         Some(class) => unit * crate::bipole::number(cx, &format!("{class}/scale"), 1.0),
         None => unit,
@@ -829,26 +1126,38 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
     let at = |p: [f64; 2]| Point::new(p[0] * unit, p[1] * unit);
     let w = input.line_width;
     let filled = !cx.macro_text("voltik@fill").is_empty();
-    let paths = n
+    let sized = sized(cx, n)?;
+    // an `en amp` with an `en amp text` does not draw its ▷∞, the solid parts at its top
+    let own_text = input.name == "en amp" && !setting(cx, "en amp text")?.is_empty();
+    let paths = sized
         .parts
         .iter()
-        .map(|part| {
-            let (ops, paint) = match *part {
-                Part::Thin(ops) => (ops, ShapePaint::Stroke(w)),
-                Part::Thick(ops) => (ops, ShapePaint::Stroke(2.0 * w)),
-                Part::Thicker(ops) => (ops, ShapePaint::Stroke(3.0 * w)),
-                Part::Fill(ops) => (ops, ShapePaint::Fill),
-                Part::Solid(ops) => (ops, ShapePaint::Solid),
-                Part::Pole(ops) => (ops, ShapePaint::Background),
-                Part::Channel(ops) => (ops, if filled { ShapePaint::Fill } else { ShapePaint::Solid }),
-                Part::Stroke(k, ops) => (ops, ShapePaint::Stroke(k * w)),
+        .filter(|_| !own)
+        .filter(|(part, ops)| !coils || (matches!(part, Part::Thick(_)) && !ops.iter().any(|op| matches!(op, Op::Curve(..) | Op::Close))))
+        .filter(|(part, ops)| !(own_text && matches!(part, Part::Solid(_)) && ops.iter().all(|op| !matches!(op, Op::Move(_, y) | Op::Line(_, y) if *y < 0.5))))
+        .map(|(part, ops)| {
+            let paint = match *part {
+                Part::Thin(_) => ShapePaint::Stroke(w),
+                Part::Thick(_) => ShapePaint::Stroke(2.0 * w),
+                Part::Thicker(_) => ShapePaint::Stroke(3.0 * w),
+                Part::Fill(_) => ShapePaint::Fill,
+                Part::Solid(_) => ShapePaint::Solid,
+                Part::Pole(_) => ShapePaint::Background,
+                Part::Channel(_) => {
+                    if filled {
+                        ShapePaint::Fill
+                    } else {
+                        ShapePaint::Solid
+                    }
+                }
+                Part::Stroke(k, _) => ShapePaint::Stroke(k * w),
             };
             ShapePath { segments: segments(ops, unit), paint }
         })
         .collect();
-    let [left, right, bottom, top] = n.bounds;
+    let [left, right, bottom, top] = sized.bounds;
     let mut anchors = compass(left * unit, right * unit, bottom * unit, top * unit);
-    anchors.extend(n.anchors.iter().map(|(name, p)| (name.to_string(), at(*p))));
+    anchors.extend(sized.anchors.iter().map(|(name, p)| (name.to_string(), at(*p))));
     // the text: its box's origin (the left end of its baseline), from where its side goes
     let sy = input.inner_sep.y;
     let text = match n.text {
@@ -861,7 +1170,18 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
         Text::Over(p) => Point::new(p[0] * unit - input.width / 2.0, p[1] * unit + 0.6 * input.height),
         Text::Middle(p) => Point::new(p[0] * unit - input.width / 2.0, p[1] * unit + (input.depth - input.height) / 2.0),
     };
-    let mut extent: Vec<Point> = n.extent.iter().map(|p| at(*p)).collect();
+    let text = Point::new(text.x + sized.text_shift[0] * unit, text.y + sized.text_shift[1] * unit);
+    // `component text=left`: an amplifier's text starts `left text distance` from its left edge
+    let leftedge = sized.anchors.iter().find(|(a, _)| *a == "leftedge").map(|(_, p)| p[0]);
+    let text = match leftedge {
+        Some(x) if setting(cx, "component text")? == "left" => {
+            let distance = setting(cx, "left text distance")?;
+            Point::new(x * unit + cx.length(Tokens::text(&distance)).unwrap_or(0.0), text.y)
+        }
+        _ => text,
+    };
+    // (a double bipole with bipoles of its own is their size, not its default one's)
+    let mut extent: Vec<Point> = if own { Vec::new() } else { sized.extent.iter().map(|p| at(*p)).collect() };
     if n.text_counts && (input.width > 0.0 || input.height + input.depth > 0.0) {
         let (sx, sy) = (input.inner_sep.x, input.inner_sep.y);
         extent.push(Point::new(text.x - sx, text.y - input.depth - sy));

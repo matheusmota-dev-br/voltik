@@ -10,8 +10,13 @@ Transformers and motors.
 
 - The double bipoles as nodes: `transformer` and `transformer core`, their coils by the `inductor` setting, `gyrator` and `double bipole`, each also `quadpoles style=inline`, with their anchors (`A1`…`B2`, the dots).
 - The electro-mechanical device `elmech`, and `Telmech` on a path.
+- The sizes of amplifiers and double bipoles (`tripoles/op amp/width`, `port width`, `input height`…, `quadpoles/transformer/width`, `height`, `inner`), drawn in between the measured ones.
+- A class's `fill` (`\ctikzset{amplifiers/fill=cyan}`), `component text=left`, `left text distance` and `en amp text`.
+- Every bipole as a node by its shape name (`node[resistorshape]`, `fulllediodeshape`…), and inside a double bipole (`double bipole L`, `R`, `R invert`, `every double bipole L`).
+- A transformer's coils as nodes (`T1-L1.a`), drawn by `transformer L1` and `L2`.
+- siunitx in any text, not only in labels (`node {\SI{12}{\volt}}`), and `\scalebox`; `transform shape` scales components on paths too.
 
-Figures: `transformers`
+Figures: `transformers` `sizes-and-shapes`
 
 ## 0.10.0 - 2026-10-29
 

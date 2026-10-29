@@ -56,6 +56,13 @@ The shapes are measured on what CircuiTikZ draws (`tools/oracle/`), at their def
 
 **Double bipoles**: `transformer`, `transformer core` (their coils by the `inductor` setting), `gyrator`, `double bipole`, each also `quadpoles style=inline`, with their anchors (`A1`, `A2`, `B1`, `B2`, `inner dot A1`, `outer dot B2`, `base`…) and their text above them; and the electro-mechanical device `elmech` (`top`, `bottom`, `left`, `right`), white unless filled, also on a path (`to[Telmech=M]`).
 
+**Sizes and customizations** of node components:
+- the sizes `tripoles/<amplifier>/width`, `height`, `port width`, `input height`, `output height`, and `quadpoles/<transformer, transformer core, gyrator, double bipole>/width`, `height`, `inner`, `core width` (measured at their defaults and changed, the shape drawn in between; leads that shrink to nothing are not drawn);
+- a class's `fill` (`\ctikzset{amplifiers/fill=cyan}`), on nodes and paths;
+- `component text=left` and `left text distance` for amplifiers, `en amp text={…}`;
+- every bipole as a node by its CircuiTikZ shape name (`node[resistorshape]`, `fulllediodeshape`, `oosourceshape`…), and in a double bipole (`double bipole L`, `double bipole R`, `double bipole R invert`, `every double bipole L/R`);
+- a transformer's coils as nodes (`T1-L1`, `T1-L2`, with `a` and `b`), drawn by `transformer L1` and `transformer L2` when these change them.
+
 What counts in the picture's size is what CircuiTikZ counts: the drawing, the text of the supplies (not of the connectors), the BNC's square.
 
 Path-style, with the bipoles: `multiwire`, `bmultiwire`, `tmultiwire` (buses), `crossing` (`xing`), `iec connector` (`iecconn`, in the `connectors` class).
@@ -63,6 +70,11 @@ Path-style, with the bipoles: `multiwire`, `bmultiwire`, `tmultiwire` (buses), `
 ## Named components and their anchors
 
 `to[R, name=R1]` names the component, and its anchors become coordinates: `(R1.north)`, `(R1.wiper)`. Every component has `center`, `north`, `south`, `east`, `west` (and `left`, `right`), and the four corners of its band. Variable components have `wiper` and `tip` (the ends of the arrow); potentiometers `wiper` and `tip` (the ends of the wiper); sensors `wiper`, `tip` and `label` (the ends and the corner of the bar); the ferroelectric capacitor `kink left`, `kink right`, `curve left`, `curve right`; inductors `midtap` (on the coil, above or below as the coils fall), `core west` and `core east` (`bipoles/inductors/core distance` above the coil, 2pt) and the dots of mutual inductance `ul dot`, `ur dot`, `ll dot`, `lr dot` (`bipoles/inductors/dot x distance` and `dot y distance`, 4pt and 1pt, beyond the corners). The anchors are mirrored and inverted with the component. `(R1)` alone is not a coordinate.
+
+## Text
+
+- siunitx anywhere in the document (`\SI`, `\qty`, `\si`, `\unit`, `\num`, and the unit macros on their own), written out in math whether the text already is or not; `\scalebox{…}[…]{text}` writes the text unscaled.
+- `transform shape` scales the components on paths too, as it does nodes.
 
 ## Labels and annotations
 
@@ -98,7 +110,7 @@ Path-style, with the bipoles: `multiwire`, `bmultiwire`, `tmultiwire` (buses), `
 ## Out, for now
 
 - The rotary switches (`rotaryswitch`, `rotary switch`), the transformers and the other components of chapter 4 of the manual after the miscellaneous bipoles.
-- The sources' own keys (`prim`, `sec`, `tert` and the windings of the `oosource`s, `sign rotation`), the oscilloscope's `waveform`, the instruments' `rotated instruments`, the `sparkgap end arrow`, the poles of jumpers and cute switches as nodes of their own (`J1-in.s`), the switches' arrows and thickness customizations (`switch end arrow`, `bipoles/cuteswitch/thickness`), the double bipoles' customizations (`double bipole L`, `double bipole R`, `width`, `height`, `inner`, their coils as nodes `T1-L1`), the amplifiers' customizations (`input height`, `en amp text`, `amp symbol font`, `port width`), the tubes' customizations (`filament angle`, `filament distance`, `anodes`, `anode width`, `cathode width`, `partial border`, the dynode's `arc angle`, `arc pos`, `top width`), the transistors' customizations (`arrow pos`, `legacy transistors text`, `ferroel gate`, `tr gap fill`, `transistor circle/…`, `bjt pins width` other than the manual's), the opto and GTO gate arrows' customizations (`opto arrows/…`, `opto end arrow`, `gto gate end arrow`), and the experimental automatic voltages (`vif queue`, `\fixedvlen`).
+- The sources' own keys (`prim`, `sec`, `tert` and the windings of the `oosource`s, `sign rotation`), the oscilloscope's `waveform`, the instruments' `rotated instruments`, the `sparkgap end arrow`, the poles of jumpers and cute switches as nodes of their own (`J1-in.s`), the switches' arrows and thickness customizations (`switch end arrow`, `bipoles/cuteswitch/thickness`), a transformer core's lines with coils of other lengths, `inner` with `quadpoles style=inline`, the amplifiers' `amp symbol font`, an `en amp text` in a mirrored amplifier, the tubes' customizations (`filament angle`, `filament distance`, `anodes`, `anode width`, `cathode width`, `partial border`, the dynode's `arc angle`, `arc pos`, `top width`), the transistors' customizations (`arrow pos`, `legacy transistors text`, `ferroel gate`, `tr gap fill`, `transistor circle/…`, `bjt pins width` other than the manual's), the opto and GTO gate arrows' customizations (`opto arrows/…`, `opto end arrow`, `gto gate end arrow`), and the experimental automatic voltages (`vif queue`, `\fixedvlen`).
 - Bipoles as nodes (`node[resistorshape]`), and a named bipole as a node of its own (`(R1)`); the customizations of the supplies' arrows (`monopoles/vcc/arrow`) and the `Jack Tap` arrow tip.
 - The fill and opacity of open poles set apart (`open poles fill`, `open poles opacity`), the arrow tips of tunable components and potentiometers (`tunable end arrow`, `wiper end arrow`), the zig-zag joins (`resistors/zigzag hook`, `zigzag stub`), the choke's lines (`twolineschoke`, `cthick`).
 - Straight labels on lines at angles that are not multiples of 90° (15°, 75°…) are a few points from where CircuiTikZ puts them.
