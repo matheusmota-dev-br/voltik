@@ -4,7 +4,7 @@
 //! `bipoles/length`.
 
 use super::Op::{Close as Z, Curve as C, Line as L, Move as M};
-use super::Part::{Fill, Line, Paint, Pole, Solid, Text, Thin};
+use super::Part::{Fill, Line, Paint, Pole, Solid, Text, Thin, Weighted};
 use super::{bipole, Class, Component};
 
 pub const COMPONENTS: &[Component] = &[
@@ -488,7 +488,7 @@ pub const COMPONENTS: &[Component] = &[
                 C([0.1325, 0.12], [0.24, 0.2275], [0.24, 0.36]),
                 Z,
             ]),
-            Line(&[M(-0.24, 0.608), L(0.24, 0.608)]),
+            Weighted("bipoles/mic/bar thickness", &[M(-0.24, 0.608), L(0.24, 0.608)]),
             Thin(&[M(-0.4, 0.0), L(-0.12, 0.0), L(-0.12, 0.1522), M(0.12, 0.1522), L(0.12, 0.0), L(0.4, 0.0)]),
         ],
     )
@@ -515,7 +515,7 @@ pub const COMPONENTS: &[Component] = &[
                 C([0.138, -0.25], [0.25, -0.1381], [0.25, 0.0]),
                 Z,
             ]),
-            Line(&[M(-0.25, 0.258), L(0.25, 0.258)]),
+            Weighted("bipoles/mic/bar thickness", &[M(-0.25, 0.258), L(0.25, 0.258)]),
         ],
     ),
     bipole(

@@ -49,3 +49,36 @@ fn gates_on_a_path_follow_the_style() {
     let ieee = paths(&quiet(r"\ctikzset{logic ports=ieee} \draw (0,0) to[inline not] (2,0);").svg);
     assert_ne!(american, ieee);
 }
+
+#[test]
+fn the_ports_options() {
+    let draw = |body: &str| paths(&quiet(body).svg);
+    // the European negation symbols and xnor, measured; `european` is European ports too
+    let nand = |symbol: &str| draw(&format!(r"\ctikzset{{tripoles/european not symbol={symbol}}} \draw (0,0) node[european nand port, number inputs=3] {{}};"));
+    assert_ne!(nand("triangle"), nand("circle"));
+    assert_ne!(nand("circle"), nand("ieee circle"));
+    assert_ne!(draw(r"\draw (0,0) node[european xnor port] {};"), draw(r"\ctikzset{european xnor style=direct} \draw (0,0) node[european xnor port] {};"));
+    assert_eq!(draw(r"\begin{scope}[european] \draw (0,0) node[nand port] {}; \end{scope}"), draw(r"\draw (0,0) node[european nand port] {};"));
+    // the sizes and inputs measured, and the ones not yet, with a warning
+    for body in [
+        r"\ctikzset{tripoles/american or port/height=1.6} \draw (0,0) node[american or port, number inputs=5] (G) {} (G.in 5) -- (G.out);",
+        r"\draw (0,0) node[american xnor port, circuitikz/tripoles/american xnor port/inner=.7, circuitikz/tripoles/american xnor port/angle=40] {};",
+        r"\draw (0,0) node[ieeestd or port, number inputs=4, inner inputs=2] (G) {} (G.in 4) -- (G.out);",
+        r"\draw (0,0) node[ieeestd or port, number inputs=4, circuitikz/ieeestd ports/height=4] {};",
+        r"\draw (0,0) node[ieeestd nor port, number inputs=32, inner inputs=2] (G) {} (G.in 32) -- (G.out);",
+        r"\draw (0,0) node[ieeestd nand port, number inputs=5, no input leads] (G) {} (G.in 5) -- (G.bin 5);",
+        r"\draw (0,0) node[tgate, anchor=in] {} (2,0) node[double tgate] {} (4,0) node[blank port] {} (6,0) node[blank not port] {};",
+    ] {
+        quiet(body);
+    }
+    let r = convert(r"\ctikzset{tripoles/american or port/height=1.3} \draw (0,0) node[american or port] {};");
+    assert!(r.warnings.iter().any(|w| w.contains("height=1.3")), "{:?}", r.warnings);
+    // `logic ports origin=center`: the same port, moved so that its point is in its middle
+    let legacy = draw(r"\draw (0,0) node[and port] {} (-2,-1) -- (2,1);");
+    let centered = draw(r"\ctikzset{logic ports origin=center} \draw (0,0) node[and port] {} (-2,-1) -- (2,1);");
+    assert_eq!(legacy.len(), centered.len());
+    assert_ne!(legacy, centered);
+    // `component text=left` on a port: the text starts at its body's left
+    let text = |ct: &str| quiet(&format!(r"\ctikzset{{logic ports=ieee, component text={ct}}} \draw (0,0) node[nand port] {{A1}};")).svg;
+    assert_ne!(text("left"), text("center"));
+}

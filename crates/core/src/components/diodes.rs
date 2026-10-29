@@ -8,6 +8,10 @@ use super::Op::{Close as Z, Curve as C, Line as L, Move as M};
 use super::Part::{Fill, Line, Solid, Thin};
 use super::{bipole, Class, Component};
 
+/// How far an LED or a photodiode reaches above its line for its labels: over its arrows, 8.73pt
+/// higher than a plain diode at the default size.
+const LIGHT_TOP: f64 = 0.524;
+
 pub const COMPONENTS: &[Component] = &[
     bipole(
         "empty diode",
@@ -82,7 +86,8 @@ pub const COMPONENTS: &[Component] = &[
                 Z,
             ]),
         ],
-    ),
+    )
+    .band(LIGHT_TOP, 0.25),
     bipole(
         "empty led",
         Class::Diodes,
@@ -109,7 +114,8 @@ pub const COMPONENTS: &[Component] = &[
                 Z,
             ]),
         ],
-    ),
+    )
+    .band(LIGHT_TOP, 0.25),
     bipole(
         "empty laser diode",
         Class::Diodes,
@@ -264,7 +270,8 @@ pub const COMPONENTS: &[Component] = &[
                 Z,
             ]),
         ],
-    ),
+    )
+    .band(LIGHT_TOP, 0.25),
     bipole(
         "full led",
         Class::Diodes,
@@ -291,7 +298,8 @@ pub const COMPONENTS: &[Component] = &[
                 Z,
             ]),
         ],
-    ),
+    )
+    .band(LIGHT_TOP, 0.25),
     bipole(
         "full laser diode",
         Class::Diodes,
@@ -452,7 +460,8 @@ pub const COMPONENTS: &[Component] = &[
                 Z,
             ]),
         ],
-    ),
+    )
+    .band(LIGHT_TOP, 0.25),
     bipole(
         "stroke led",
         Class::Diodes,
@@ -480,7 +489,8 @@ pub const COMPONENTS: &[Component] = &[
                 Z,
             ]),
         ],
-    ),
+    )
+    .band(LIGHT_TOP, 0.25),
     bipole(
         "stroke laser diode",
         Class::Diodes,

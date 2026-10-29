@@ -111,3 +111,66 @@ fn stacked_labels_and_siunitx() {
     // two labels, the first of two lines
     assert_eq!(r.svg.matches("<g transform=").count(), 2, "{}", r.svg);
 }
+
+#[test]
+fn label_anchors_and_directions_as_tex_answers() {
+    // what `\ctikzgetanchor` and `\ctikzgetdirection` answer for a label and an annotation, by the
+    // line's way and `label/align`, as CircuiTikZ 1.8.7 does
+    let cases = [
+        ("straight", "(2,0)", "base/0/north/0"),
+        ("straight", "(0,-2)", "mid west/0/mid east/0"),
+        ("straight", "(-2,0)", "north/0/base/0"),
+        ("straight", "(2,1.15)", "-60/0/120/0"),
+        ("straight", "(2,-2)", "225/0/45/0"),
+        ("straight", "(1,2)", "-27/0/153/0"),
+        ("smart", "(0,2)", "mid east/0/mid west/0"),
+        ("smart", "(2,1.15)", "mid/30/mid/30"),
+        ("smart", "(-2,1)", "mid/-26/mid/-26"),
+        ("rotate", "(0,-2)", "mid/270/mid/270"),
+        ("rotate", "(-2,0)", "mid/0/mid/0"),
+        ("rotate", "(2,-2)", "mid/315/mid/315"),
+    ];
+    for (align, to, expected) in cases {
+        let r = quiet(&format!(
+            r"\ctikzset{{label/align={align}}}\draw (0,0) to[R, name=R, l=x, a=y] ++{to};
+              \node at (0,-3) {{\ctikzgetanchor{{R}}{{label}}/\ctikzgetdirection{{Rlabel}}/\ctikzgetanchor{{R}}{{annotation}}/\ctikzgetdirection{{Rannotation}}}};"
+        ));
+        assert!(r.description.contains(expected), "{align} {to}: {}", r.description);
+    }
+}
+
+#[test]
+fn named_components_are_nodes() {
+    // `(R)` is the component's center, and a name prefix names it as it names nodes
+    let r = quiet(
+        r"\begin{scope}[name prefix=in-]\draw (0,0) to[R, name=r, i<] ++(2,1);\end{scope}
+          \fill (in-r) circle (1pt) (in-r.north) circle (1pt) (in-r-Ipos) circle (1pt);
+          \node at (0,-1) {\ctikzgetdirection{in-r} \ctikzgetdirection{in-r-Iarrow}};",
+    );
+    assert!(r.description.contains("26.56505 -153"), "{}", r.description);
+}
+
+#[test]
+fn voltages_of_the_users_own() {
+    // `vif queue add` runs a macro with the component's name once it is drawn (named for it when it
+    // has no name), and `\ctikzactivatevoltagedirections` gives a style its variants
+    let r = quiet(
+        r"\newcommand\myv[4]{\draw[red] (#1-Vfrom) -- (#1-Vto) node[anchor=\ctikzgetanchor{#1}{Vlab}] {#2};}
+          \ctikzset{myv/.style 2 args={v, vif queue add={myv}{#1}{#2}{}}}
+          \ctikzactivatevoltagedirections{myv}
+          \draw (0,0) to[R, myv={$v_1$}{}] (3,0) to[R, myv^>={$v_2$}{}, name=R2] (3,3);",
+    );
+    assert_eq!(r.svg.matches("stroke=\"#ff0000\"").count(), 2, "{}", r.svg);
+    assert_eq!(r.svg.matches("<g transform=").count(), 2, "{}", r.svg);
+}
+
+#[test]
+fn style_files() {
+    // `\ctikzloadstyle{example}` gives `example circuit style`
+    let plain = quiet(r"\draw (0,0) node[op amp] {};").svg;
+    let styled = voltik::convert(r"\ctikzloadstyle{example}\begin{circuitikz}[example circuit style]\draw (0,0) node[op amp] {};\end{circuitikz}").unwrap();
+    assert!(styled.warnings.is_empty(), "{:?}", styled.warnings);
+    assert_ne!(plain, styled.svg);
+    let romano = voltik::convert(r"\ctikzloadstyle{romano}\begin{circuitikz}[romano circuit style]\draw (0,0) to[R] (2,0);\end{circuitikz}").unwrap();
+    assert!(romano.warnings.is_empty(), "{:?}", romano.warnings);
+}

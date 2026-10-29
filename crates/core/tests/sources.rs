@@ -65,7 +65,8 @@ fn instruments_text_and_symbols() {
     let plain = quiet(r"\draw (0,0) to[rmeter] (2,0);").svg;
     let text = quiet(r"\draw (0,0) to[rmeter, t=A] (2,0);").svg;
     assert_eq!(text.matches("<g transform=").count(), plain.matches("<g transform=").count() + 1, "{text}");
-    for symbol in ["dc symbol", "ac symbol"] {
-        assert_eq!(paths(&quiet(&format!(r"\draw (0,0) node[{symbol}] {{}};")).svg).len(), 1, "{symbol}");
+    // (the dc symbol's lower line on its own, for its `relative thickness`)
+    for (symbol, n) in [("dc symbol", 2), ("ac symbol", 1)] {
+        assert_eq!(paths(&quiet(&format!(r"\draw (0,0) node[{symbol}] {{}};")).svg).len(), n, "{symbol}");
     }
 }

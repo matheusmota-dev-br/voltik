@@ -77,11 +77,13 @@ pub fn nodes(cx: &mut Context, placed: &Placed, frame: &Frame, unit: f64) -> Res
         };
         // the direction from the component to the label, on the canvas
         let outward = placed.angle + 90.0 * side;
+        // turned in the picture's own coordinates: `transform shape` turns it the rest of the way
+        let local = frame.angle(placed.along);
         let rotate = match align.as_str() {
             "straight" => false,
             "rotate" => true,
             _ => {
-                let m = placed.angle.rem_euclid(90.0);
+                let m = local.rem_euclid(90.0);
                 m > 20.0 && m < 70.0
             }
         };
@@ -108,17 +110,17 @@ pub fn nodes(cx: &mut Context, placed: &Placed, frame: &Frame, unit: f64) -> Res
                 _ => ("base west", placed.mid.plus(Point::new(reach + 3.6 * tikra::extension::PT - INNER_SEP, lift - 2.1 * tikra::extension::PT))),
             };
             s.push_str(&format!(" node[{options}align={align},anchor={anchor}] at {} {{{text}}}", frame.coordinate(at)));
-            record(cx, &name, node, anchor, 0.0);
+            record(cx, &name, node, &tex_anchor(local, side), 0.0);
             continue;
         }
         if rotate {
             // along the line, read left to right; `mid` sits on the line through the label's middle,
             // further out below the line than above it
-            let mut turn = placed.angle;
-            if turn > 90.5 || turn < -89.5 {
-                turn += 180.0;
-            }
-            let below = (side < 0.0) != (turn != placed.angle);
+            // from 0 to 360, upside down (and turned round) only strictly between 90 and 270
+            let a = local.rem_euclid(360.0);
+            let flipped = a > 90.5 && a < 269.5;
+            let turn = if flipped { a - 180.0 } else { a };
+            let below = (side < 0.0) != flipped;
             let space = if below { 2.25 } else { 1.5 } * LABEL_SPACE;
             let reach = placed.reach(side) * MARGIN + space + extra;
             let at = placed.mid.plus(placed.normal.scale(side * reach));
@@ -138,7 +140,7 @@ pub fn nodes(cx: &mut Context, placed: &Placed, frame: &Frame, unit: f64) -> Res
             };
             let at = border.plus(shift);
             s.push_str(&format!(" node[{options}anchor={anchor}] at {} {{{text}}}", frame.coordinate(at)));
-            record(cx, &name, node, anchor, 0.0);
+            record(cx, &name, node, &tex_anchor(local, side), 0.0);
         }
     }
     Ok(s)
@@ -147,9 +149,41 @@ pub fn nodes(cx: &mut Context, placed: &Placed, frame: &Frame, unit: f64) -> Res
 /// What `\ctikzgetanchor{R1}{label}` and `\ctikzgetdirection{R1label}` answer.
 fn record(cx: &mut Context, name: &str, node: &str, anchor: &str, turn: f64) {
     if !name.is_empty() {
+        let name = format!("{}{name}", cx.macro_text("voltik@prefix"));
         cx.define_text(&format!("voltik@anchor@{name}@{node}"), anchor, true);
-        cx.define_text(&format!("voltik@direction@{name}{node}"), &round(turn), true);
+        // in whole degrees, cut toward zero from pgf's angle, a little over the exact one
+        cx.define_text(&format!("voltik@direction@{name}{node}"), &format!("{}", (turn + PGF_ANGLE).trunc() as i64), true);
     }
+}
+
+/// How much over the exact angle pgf's own comes out, as `\ctikzgetdirection` shows (30 for a line
+/// at 29.9°, 63 at 63.4°).
+const PGF_ANGLE: f64 = 0.15;
+
+/// The anchor `\ctikzgetanchor` answers for a label on side `side` of a line at `angle` (degrees,
+/// in the picture's coordinates) that is not turned with it: a compass anchor facing the line when
+/// it is level or upright, else the angle that faces it (the label's at the line's angle less 90,
+/// the other side's half a turn round from that).
+fn tex_anchor(angle: f64, side: f64) -> String {
+    let a = angle.rem_euclid(360.0);
+    if (a / 90.0 - (a / 90.0).round()).abs() < 1e-4 {
+        return match ((a + 90.0 * side).rem_euclid(360.0) / 90.0).round() as i64 % 4 {
+            1 => "base",
+            3 => "north",
+            2 => "mid east",
+            _ => "mid west",
+        }
+        .to_string();
+    }
+    let label = (a - 90.0).round() as i64;
+    let anchor = if side > 0.0 {
+        label
+    } else if label + 180 >= 360 {
+        label - 180
+    } else {
+        label + 180
+    };
+    anchor.to_string()
 }
 
 fn round(x: f64) -> String {
@@ -304,6 +338,13 @@ fn symbols(unit: &str) -> String {
             continue;
         }
         let end = rest[1..].find(|c: char| !c.is_ascii_alphabetic()).map_or(rest.len(), |e| e + 1);
+        // a control symbol (`\%`) is kept as it is
+        if end == 1 {
+            let next = rest[1..].chars().next().map_or(1, |c| 1 + c.len_utf8());
+            out.push_str(&rest[..next]);
+            rest = &rest[next..];
+            continue;
+        }
         let name = &rest[1..end];
         out.push_str(match UNITS.iter().find(|(n, _)| *n == name) {
             Some((_, symbol)) => symbol,
@@ -327,6 +368,7 @@ mod tests {
         assert_eq!(units(r"\SI{4.7}{k\ohm}"), r"$4.7\,\mathrm{k\Omega}$");
         assert_eq!(units(r"$i=\SI{1}{\milli\ampere}$"), r"$i=1\,\mathrm{mA}$");
         assert_eq!(units(r"-t\si{\degree}"), r"-t$\mathrm{{}^\circ}$");
+        assert_eq!(units(r"+H\si{\%}"), r"+H$\mathrm{\%}$");
         assert_eq!(units(r"\qty{2}{\kohm} and \num{3}"), r"$2\,\mathrm{k\Omega}$ and $3$");
     }
 }

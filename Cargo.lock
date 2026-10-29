@@ -264,9 +264,9 @@ checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
 
 [[package]]
 name = "mathra"
-version = "1.6.0"
+version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2305be35ad36a2ee8c1de0df00b31ec54f3c4f4a49161d4e7b73ca757bdfd992"
+checksum = "d473aea6456d8d0da19fa2643521c61adb2bc70398c3e235f6f405a8fecdb159"
 dependencies = [
  "roxmltree",
  "serde",
@@ -645,9 +645,9 @@ checksum = "adb6935a6f5c20170eeceb1a3835a49e12e19d792f6dd344ccc76a985ca5a6ca"
 
 [[package]]
 name = "tikra"
-version = "1.5.0"
+version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "025c650292ac775e2c7dc7e4114507ec7ac8464a9b912a1521dc6d0759daf0db"
+checksum = "e550f08b853ff8041489429b3d8c9197f5618b98552285c30325ac9175ec0d1e"
 dependencies = [
  "mathra",
  "resvg",
@@ -732,14 +732,14 @@ dependencies = [
 
 [[package]]
 name = "voltik"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "tikra",
 ]
 
 [[package]]
 name = "voltik-cli"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "tikra",
  "voltik",
@@ -747,7 +747,7 @@ dependencies = [
 
 [[package]]
 name = "voltik-python"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "pyo3",
  "voltik",
@@ -755,7 +755,7 @@ dependencies = [
 
 [[package]]
 name = "voltik-wasm"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "serde_json",
  "voltik",

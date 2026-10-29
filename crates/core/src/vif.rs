@@ -22,11 +22,31 @@ pub fn k_vif(cx: &mut Context, v: Option<Tokens>) -> Result<(), Error> {
     let a = v.unwrap_or_default().arguments(3);
     let kind = cx.expand(a[0].clone())?;
     let variant = cx.expand(a[1].clone())?;
+    // a key of `\ctikzactivatevoltagedirections{vpms}` (`vpms^>`) gives the variant of its style's `v`
+    let variant = if variant.is_empty() { cx.macro_text(&format!("voltik@{kind}var")) } else { variant };
     let text = if a[2].to_text().trim() == "\\pgfkeysnovalue" { Tokens::new() } else { a[2].clone() };
     cx.define(&format!("voltik@{kind}"), text);
     cx.define_text(&format!("voltik@{kind}on"), "1", false);
     cx.define_text(&format!("voltik@{kind}spec"), &variant, false);
+    passive_now(cx, &kind)
+}
+
+/// Notes whether a source is passive for its voltage (`v`) or current (`i`) when that is given:
+/// `bipole/is voltage=false` after `v=` does not change it, as in CircuiTikZ.
+fn passive_now(cx: &mut Context, kind: &str) -> Result<(), Error> {
+    let key = if kind == "i" { "bipole/is current" } else { "bipole/is voltage" };
+    let passive = setting(cx, "bipole/override source vif")? == "true" || setting(cx, key)? == "false";
+    cx.define_text(&format!("voltik@{kind}passive"), if passive { "1" } else { "0" }, false);
     Ok(())
+}
+
+/// What a component is for its voltage, as it was when the voltage was given.
+fn voltage_source(cx: &mut Context, comp: &Component) -> Result<Source, Error> {
+    match cx.macro_text("voltik@vpassive").as_str() {
+        "1" => Ok(Source::Not),
+        "0" => Ok(comp.source()),
+        _ => source(cx, comp),
+    }
 }
 
 /// What a component is for its voltages and currents: a source, unless `bipole/is voltage=false`,
@@ -42,10 +62,11 @@ fn source(cx: &mut Context, comp: &Component) -> Result<Source, Error> {
 }
 
 /// Records a voltage (`v`) or a current (`i`) of a variant, as a source's value does.
-pub fn set(cx: &mut Context, kind: &str, variant: &str, text: Tokens) {
+pub fn set(cx: &mut Context, kind: &str, variant: &str, text: Tokens) -> Result<(), Error> {
     cx.define(&format!("voltik@{kind}"), text);
     cx.define_text(&format!("voltik@{kind}spec"), variant, false);
     cx.define_text(&format!("voltik@{kind}on"), "1", false);
+    passive_now(cx, kind)
 }
 
 /// A variant read: the side (1 the left of the path), the direction (1 toward its end) and whether
@@ -82,6 +103,9 @@ fn current_variant(spec: &str) -> Variant {
 
 /// The size of the arrow heads (a triangle from its tip back to its base, and half its base), and
 /// how far a current's tip is past the middle of its lead, in `bipoles/length`.
+/// How much lower an American source's voltage label is with American voltages (in
+/// `bipoles/length`).
+const AMERICAN_SOURCE_LABEL: f64 = 0.1;
 const HEAD_LENGTH: f64 = 0.1064;
 const HEAD_HALF: f64 = 0.05;
 const CURRENT_TIP: f64 = 0.0625;
@@ -150,11 +174,12 @@ pub fn vif(cx: &mut Context, comp: &Component, span: &Span, name: &str) -> Resul
             continue;
         }
         let text = label::units(&cx.macro_body(&format!("voltik@{kind}")).to_text());
-        let symbols = setting(cx, &format!("{kind} symbols"))? != "false";
+        // without a text (`to[R, i]`, `i_={}`) only the anchors are there
+        let symbols = setting(cx, &format!("{kind} symbols"))? != "false" && !text.trim().is_empty();
         let mut spec = cx.macro_text(&format!("voltik@{kind}spec"));
         // a voltage source's current goes out of it the other way with electric-field voltages
-        if kind == "i" && spec.is_empty() && source(cx, comp)? == Source::Voltage && !matches!(setting(cx, "voltage dir")?.as_str(), "RP" | "old") {
-            spec = "<".into();
+        if kind == "i" && !spec.contains(['<', '>']) && source(cx, comp)? == Source::Voltage && !matches!(setting(cx, "voltage dir")?.as_str(), "RP" | "old") {
+            spec.insert(0, '<');
         }
         let v = if kind == "i" { current_variant(&spec) } else { variant(&spec, 1.0, true) };
         let (a, b) = if v.at_start { leads[0] } else { leads[1] };
@@ -171,13 +196,19 @@ pub fn vif(cx: &mut Context, comp: &Component, span: &Span, name: &str) -> Resul
             }
             out.draw.push_str(&head(span, span.at(tip, across), span.placed.along.scale(dir), u, thin));
         }
+        // `\ctikzgetdirection{R1-Iarrow}`: the way the arrow points (drawn or not), in whole degrees as TeX truncates them
+        if kind == "i" && !name.is_empty() {
+            let way = span.frame.angle(span.placed.along.scale(dir));
+            let full = format!("{}{name}-Iarrow", cx.macro_text("voltik@prefix"));
+            cx.define_text(&format!("voltik@direction@{full}"), &format!("{}", way.trunc() as i64), true);
+        }
         let (from, to) = if kind == "i" && !v.forward { (to, from) } else { (from, to) };
         out.points.extend([(pos_name(upper, "from"), span.at(from, across)), (pos_name(upper, "to"), span.at(to, across)), (pos_name(upper, "pos"), span.at(lead, across))]);
         let anchor = anchor(span, v.side);
         out.anchors.push((if kind == "i" { "Ilab" } else { "Flab" }, anchor.clone()));
         if !text.trim().is_empty() {
             let at = span.at(lead, across + v.side * CURRENT_LABEL * u - v.side * INNER_SEP);
-            out.nodes.push_str(&label_node(span, at, &anchor, &text, &options(name, node, "")));
+            out.nodes.push_str(&label_node(span, at, &anchor, &text, &options(name, node, "outer sep=0pt,")));
         }
     }
 
@@ -199,11 +230,11 @@ fn pos_name(kind: &str, what: &str) -> &'static str {
     }
 }
 
-/// The options of a label's node: its name (`R1voltage`), its style (`bipole voltage style`), and
-/// more.
+/// The options of a label's node: its name (`R1voltage`), more, and its style (`bipole voltage
+/// style`), which may change what comes before it (`outer sep=5pt`).
 fn options(name: &str, node: &str, more: &str) -> String {
     let named = if name.is_empty() { String::new() } else { format!("name={{{name}{node}}},") };
-    format!("{named}/tikz/circuitikz/bipole {node} style,{more}")
+    format!("{named}{more}/tikz/circuitikz/bipole {node} style,")
 }
 
 /// A component's voltage.
@@ -213,13 +244,13 @@ fn voltage(cx: &mut Context, comp: &Component, span: &Span, name: &str, out: &mu
     let mid = span.length / 2.0;
     let text = label::units(&cx.macro_body("voltik@v").to_text());
     let labelled = !text.trim().is_empty();
-    let symbols = setting(cx, "v symbols")? != "false";
+    let symbols = setting(cx, "v symbols")? != "false" && labelled;
     // the arrow points to the start by default with rising-potential voltages (`RP`, `old`), to the
     // end with electric-field ones (`EF`, `noold`, the package's default); `>` and `<` say it
     let rising = matches!(setting(cx, "voltage dir")?.as_str(), "RP" | "old");
     // a source's voltage is the other way round from a passive component's; a voltage source's
     // is a straight arrow above it, pointing to its end
-    let source = source(cx, comp)?;
+    let source = voltage_source(cx, comp)?;
     let v = match source {
         Source::Voltage => variant(&cx.macro_text("voltik@vspec"), 1.0, true),
         Source::Current => variant(&cx.macro_text("voltik@vspec"), -1.0, rising),
@@ -252,17 +283,21 @@ fn voltage(cx: &mut Context, comp: &Component, span: &Span, name: &str, out: &mu
     let (minus, plus) = if rising { (tail, tip) } else { (tip, tail) };
     let y = span.y;
     // `voltage shift` moves everything of the voltage out by that many times 0.08
-    let push = number(cx, "voltage shift").unwrap_or(0.0) * VOLTAGE_SHIFT * u + volts.shift * y;
+    // a source's by `voltage shift sources adjust` times that
+    let adjust = if source == Source::Not { 1.0 } else { number(cx, "voltage shift sources adjust").unwrap_or(1.0) };
+    let push = number(cx, "voltage shift").unwrap_or(0.0) * adjust * VOLTAGE_SHIFT * u + volts.shift * y;
     let straight = push + if open { 0.0 } else { (1.1 * volts.south + VOLTAGE_SHIFT) * y };
     // how far the straight and American labels' nodes are from their line
     let straight_label = if open { CURRENT_LABEL } else { STRAIGHT_LABEL } * u - VOLTAGE_SEP;
     // the American label, `american label distance` (1.4) from its signs' line
     let american_label = straight_label - (1.4 - number(cx, "voltage/american label distance").unwrap_or(1.4)) * 0.15 * u;
     let anchor = anchor(span, side);
-    let sep = format!("inner sep={}cm,", num(VOLTAGE_SEP));
+    let sep = format!("inner sep={}cm,outer sep=0pt,", num(VOLTAGE_SEP));
     let label_options = options(name, "voltage", &sep);
     let (from, to, cont, lab, lab_anchor);
-    let style = match (source, style.as_str()) {
+    // the side and way are the ones in force when the voltage was given, the drawing the final one
+    // (CircuiTikZ's mix of the two, `sV=…, bipole/is voltage=false`)
+    let style = match (crate::vif::source(cx, comp)?, style.as_str()) {
         (Source::Voltage, "american" | "raised") => "source label",
         (Source::Voltage, _) => "source",
         (_, s) => s,
@@ -281,6 +316,18 @@ fn voltage(cx: &mut Context, comp: &Component, span: &Span, name: &str, out: &mu
                 let dir = if v.forward { 1.0 } else { -1.0 };
                 out.draw.push_str(&head(span, to, span.placed.along.scale(dir), u, thin));
             }
+            // American signs where the arrow would be, but on the American sources, which carry theirs
+            if symbols && style == "source label" && !comp.name.starts_with("american") {
+                let font = setting(cx, "voltage/american font")?;
+                let font = if font.is_empty() { String::new() } else { format!("font={{{font}}},") };
+                let plus_sign = cx.expand(Tokens::text("\\unexpanded\\expandafter{\\romannumeral-`0\\pgfkeysvalueof{/tikz/circuitikz/voltage/american plus}}"))?;
+                let minus_sign = cx.expand(Tokens::text("\\unexpanded\\expandafter{\\romannumeral-`0\\pgfkeysvalueof{/tikz/circuitikz/voltage/american minus}}"))?;
+                for (at, sign) in [(to, plus_sign), (from, minus_sign)] {
+                    out.nodes.push_str(&label_node(span, at, "center", &sign, &font));
+                }
+            }
+            // an American source's label sits lower, where its arrow would have been
+            let gap = if style == "source label" && comp.name.starts_with("american") { gap - AMERICAN_SOURCE_LABEL } else { gap };
             lab = span.at(mid, across + side * (gap * y - VOLTAGE_SEP));
             lab_anchor = anchor.clone();
         }
@@ -296,7 +343,7 @@ fn voltage(cx: &mut Context, comp: &Component, span: &Span, name: &str, out: &mu
             cont = [from.lerp(to, 0.5), from.lerp(to, 0.5)];
             if symbols {
                 for (at, sign) in [(to, plus_sign), (from, minus_sign)] {
-                    out.nodes.push_str(&label_node(span, at, if raised { "center" } else { &anchor }, &sign, &format!("{font}/tikz/circuitikz/bipole voltage style,")));
+                    out.nodes.push_str(&label_node(span, at, if raised { "center" } else { &anchor }, &sign, &font));
                 }
             }
             if raised {
@@ -339,7 +386,8 @@ fn voltage(cx: &mut Context, comp: &Component, span: &Span, name: &str, out: &mu
         }
     }
     out.points.extend([("Vfrom", from), ("Vto", to), ("Vcont1", cont[0]), ("Vcont2", cont[1]), ("Vlab", lab)]);
-    out.anchors.push(("Vlab", lab_anchor.clone()));
+    // `\ctikzgetanchor{R1}{Vlab}` answers the side's anchor, even where a raised label is centered
+    out.anchors.push(("Vlab", if lab_anchor == "center" { anchor.clone() } else { lab_anchor.clone() }));
     if labelled {
         out.nodes.push_str(&label_node(span, lab, &lab_anchor, &text, &label_options));
     }
