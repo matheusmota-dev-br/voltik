@@ -4,6 +4,15 @@ What changed in each release of voltik: the crates `voltik` and `voltik-cli`, `@
 
 Each release has a headline (the line under its title), what changed, and the figures of [`corpus/`](corpus) that show it (`Figures:`), drawn by the site with today's voltik. `scripts/release.sh` will not release a version without its section here, and makes the GitHub release from it.
 
+## Unreleased
+
+Electronic tubes.
+
+- The tubes of the manual as nodes: `diodetube`, `triode`, `tetrode`, `pentode`, `pentode suppressor to cathode`, `matube`, `magnetron` and `dynode`, with their anchors, in the `tubes` class.
+- Their options `filament`, `nocathode`, `fullcathode`, `nixieanode`, `anodedot` and `nogrid`.
+
+Figures: `tubes`
+
 ## 0.8.0 - 2026-10-28
 
 Transistors.

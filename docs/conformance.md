@@ -4,14 +4,14 @@ How far voltik is from CircuiTikZ, measured by its manual (CircuiTikZ 1.8.7): ev
 shows and every entry of its list of components, drawn by pdflatex (TeX Live, CircuiTikZ 1.8.7) and by
 voltik, and compared. How it works and how to run it: [tools/conformance](../tools/conformance/README.md).
 
-**345 of 541 components (63.8%) and 258 of 505 examples (51.1%) match TeX.** Of all 1046 items, 74 are close, 369 differ and 0 fail in voltik; 30 of the ones that do not match came out with no warning.
+**357 of 541 components (66.0%) and 259 of 505 examples (51.3%) match TeX.** Of all 1046 items, 75 are close, 355 differ and 0 fail in voltik; 30 of the ones that do not match came out with no warning.
 
 | | Items | Match | Close | Different | Fails | Mean F1 |
 |---|---:|---:|---:|---:|---:|---:|
-| All | 1046 | 603 (57.6%) | 74 (7.1%) | 369 (35.3%) | 0 (0.0%) | 0.70 |
-| Examples of the manual | 505 | 258 (51.1%) | 71 (14.1%) | 176 (34.9%) | 0 (0.0%) | 0.69 |
+| All | 1046 | 616 (58.9%) | 75 (7.2%) | 355 (33.9%) | 0 (0.0%) | 0.71 |
+| Examples of the manual | 505 | 259 (51.3%) | 72 (14.3%) | 174 (34.5%) | 0 (0.0%) | 0.70 |
 | Path-style components | 306 | 232 (75.8%) | 1 (0.3%) | 73 (23.9%) | 0 (0.0%) | 0.86 |
-| Node-style components | 235 | 113 (48.1%) | 2 (0.9%) | 120 (51.1%) | 0 (0.0%) | 0.51 |
+| Node-style components | 235 | 125 (53.2%) | 2 (0.9%) | 108 (46.0%) | 0 (0.0%) | 0.56 |
 
 *Match*: same shape (F1 ≥ 0.9 on the edges, with 0.5 mm of tolerance), no missing or extra piece, the same colors and size. *Close*: F1 ≥ 0.75.
 *Fails*: voltik returned an error, panicked or took more than 10 s. Mean F1 counts a failure as 0.
@@ -37,14 +37,13 @@ Sorted by how many items do not match, the work left.
 | The components: list › Block diagram components <sub>node</sub> | 13 | 0 (0.0%) | 0 (0.0%) | 13 (100.0%) | 0 (0.0%) | 0.01 |
 | The components: list › Multiplexer and de-multiplexer <sub>example</sub> | 13 | 0 (0.0%) | 0 (0.0%) | 13 (100.0%) | 0 (0.0%) | 0.06 |
 | The components: list › Double bipoles (transformers) <sub>example</sub> | 12 | 0 (0.0%) | 0 (0.0%) | 12 (100.0%) | 0 (0.0%) | 0.06 |
-| The components: list › Electronic Tubes <sub>node</sub> | 12 | 0 (0.0%) | 0 (0.0%) | 12 (100.0%) | 0 (0.0%) | 0.04 |
 | The components: list › Flip-flops <sub>node</sub> | 12 | 0 (0.0%) | 0 (0.0%) | 12 (100.0%) | 0 (0.0%) | 0.05 |
 | The components: list › Amplifiers <sub>node</sub> | 11 | 0 (0.0%) | 0 (0.0%) | 11 (100.0%) | 0 (0.0%) | 0.01 |
 | The components: list › Switches, buttons and jumpers <sub>example</sub> | 19 | 8 (42.1%) | 4 (21.1%) | 7 (36.8%) | 0 (0.0%) | 0.68 |
 | The components: list › Instruments <sub>example</sub> | 18 | 8 (44.4%) | 6 (33.3%) | 4 (22.2%) | 0 (0.0%) | 0.82 |
 | The components: list › Double bipoles (transformers) <sub>node</sub> | 9 | 0 (0.0%) | 0 (0.0%) | 9 (100.0%) | 0 (0.0%) | 0.04 |
-| The components: list › Electronic Tubes <sub>example</sub> | 7 | 0 (0.0%) | 1 (14.3%) | 6 (85.7%) | 0 (0.0%) | 0.25 |
 | The components: list › Chips (integrated circuits) <sub>example</sub> | 6 | 0 (0.0%) | 0 (0.0%) | 6 (100.0%) | 0 (0.0%) | 0.12 |
+| The components: list › Electronic Tubes <sub>example</sub> | 7 | 1 (14.3%) | 2 (28.6%) | 4 (57.1%) | 0 (0.0%) | 0.68 |
 | The components: list › Logic gates <sub>path</sub> | 6 | 0 (0.0%) | 0 (0.0%) | 6 (100.0%) | 0 (0.0%) | 0.42 |
 | The components: list › Miscellaneous bipoles and symbols <sub>example</sub> | 7 | 1 (14.3%) | 2 (28.6%) | 4 (57.1%) | 0 (0.0%) | 0.74 |
 | The components: list › Multiplexer and de-multiplexer <sub>node</sub> | 6 | 0 (0.0%) | 0 (0.0%) | 6 (100.0%) | 0 (0.0%) | 0.11 |
@@ -120,6 +119,7 @@ Sorted by how many items do not match, the work left.
 | The components: list › Crossings <sub>path</sub> | 1 | 1 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Diodes and such <sub>example</sub> | 6 | 6 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Diodes and such <sub>path</sub> | 70 | 70 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
+| The components: list › Electronic Tubes <sub>node</sub> | 12 | 12 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Grounds and supply voltages <sub>node</sub> | 12 | 12 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Instruments <sub>path</sub> | 13 | 13 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Mechanical Analogy <sub>path</sub> | 5 | 5 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
@@ -159,7 +159,7 @@ The manual's list of components, group by group, with the ones voltik draws as T
 | The components: list › Connectors | 7 | 7 | 0 | `bnc` `iec connector` `iecconnshape` `iecsocketL` `iecplugR` `iecplugL` `iecsocketR` |
 | The components: list › Block diagram components | 77 | 0 | 0 |  |
 | The components: list › Transistors | 72 | 72 | 0 | `npn` `pnp` `npn, schottky base` `pnp, schottky base` `npn, bodydiode` `npn,photo` `pnp,photo` `nigbt` `pigbt` `Lnigbt` `Lpigbt` `Lpigbt, bodydiode` `bjtnpn, collectors=1, emitters=2` `bjtpnp, collectors=3, emitters=2` `nmos` `pmos` `nmosd` `pmosd` `hemt` `hemt, nobase` `GaN hemt` `nfet` `nfetd` `nigfete` `nigfete,solderdot` `nigfetebulk` `nigfetd` `pfet` `pfetd` `pigfete` `pigfetebulk` `pigfetd` `nigfete, doublegate` `nigfete,solderdot, doublegate` `nigfetebulk, doublegate` `nigfetd, doublegate` `pigfete, doublegate` `pigfetebulk, doublegate` `pigfetd, doublegate` `nigfetebulk, fdsoi` `nfet, fdsoi` `pigfetebulk, fdsoi` `pfet, fdsoi` `nigfete, fdsoi` `pigfete, fdsoi, doublegate, solderdot` `njfet` `pjfet` `nujt` `pujt` `nujt, nobase` `isfet` `ngfet` `pgfet` `nmos` `pmos` `nmosd` `pmosd` `pmos,emptycircle` `pmos,nocircle,arrowmos` `nmos, bulk` `pmos, bulk` `nmosd, bulk` `pmosd, bulk` `nmos, bulk, fdsoi` `pmos, bulk, fdsoidot` `nmosd, bulk, fdsoidot` `pmosd, bulk, fdsoi` `nigbt` `pigbt, nobase` `bjtnpn, collectors=2, emitters=2, bjt pins width=0, bjt multi height=0.8` `npn, tr circle` `npn, tr circle, bodydiode` |
-| The components: list › Electronic Tubes | 12 | 0 | 0 |  |
+| The components: list › Electronic Tubes | 12 | 12 | 0 | `diodetube` `triode` `tetrode` `pentode` `pentode suppressor to cathode` `diodetube,filament` `diodetube,filament,nocathode` `diodetube,fullcathode` `matube` `matube, nixieanode, anodedot, nogrid` `magnetron` `dynode` |
 | The components: list › RF components | 17 | 0 | 0 |  |
 | The components: list › Electro-Mechanical Devices | 2 | 0 | 0 |  |
 | The components: list › Double bipoles (transformers) | 9 | 0 | 0 |  |
@@ -179,7 +179,7 @@ Warnings, by how many items they appear in (the varying part replaced by …):
 
 | Items | Warning |
 |---:|---|
-| 456 | `option … not supported: ignored` |
+| 443 | `option … not supported: ignored` |
 | 27 | `\draw: figure: unknown coordinate: (…); statement ignored` |
 | 19 | `unknown anchor …: center used` |
 | 11 | `\node: figure: unknown coordinate: (…); statement ignored` |
@@ -195,8 +195,8 @@ Warnings, by how many items they appear in (the varying part replaced by …):
 | 3 | `\draw: figure: unknown anchor: OA.-; statement ignored` |
 | 3 | `\draw: figure: unknown anchor: FF.bup; statement ignored` |
 | 3 | `E-REC-N column N: unsupported text command: \ctikzflipx; written as is` |
-| 2 | `E-REC-N column N: unsupported text command: \height; written as is` |
 | 2 | `E-REC-N column N: unsupported text command: \raisebox; written as is` |
+| 2 | `E-REC-N column N: unsupported text command: \height; written as is` |
 | 2 | `\draw: figure: unknown anchor: FF.pin N; statement ignored` |
 | 2 | `E-REC-N column N: unsupported text command: \ctikzflipy; written as is` |
 | 2 | `E-REC-N column N: unsupported text command: \ctikzflipxy; written as is` |
@@ -217,8 +217,8 @@ Warnings, by how many items they appear in (the varying part replaced by …):
 | 1 | `\ctikzsubcircuitactivate not supported: … ignored` |
 | 1 | `\ChopperByTerminals not supported: … ignored` |
 | 1 | `\coordinate: figure: unknown coordinate: (…); statement ignored` |
-| 1 | `\draw: figure: unknown anchor: AN.out; statement ignored` |
 | 1 | `\draw: figure: unknown anchor: AN.down; statement ignored` |
+| 1 | `\draw: figure: unknown anchor: AN.up; statement ignored` |
 
 Components voltik does not know yet, by how many items use them:
 
@@ -239,8 +239,6 @@ Components voltik does not know yet, by how many items use them:
 | 4 | `lowpass` |
 | 4 | `lowpassp` |
 | 4 | `coupler` |
-| 4 | `diodetube` |
-| 4 | `matube` |
 | 4 | `elmech` |
 | 4 | `double bipole` |
 | 4 | `fd op amp` |
@@ -254,8 +252,6 @@ Components voltik does not know yet, by how many items use them:
 | 3 | `gridnode` |
 | 3 | `bandpassp` |
 | 3 | `notchp` |
-| 3 | `triode` |
-| 3 | `dynode` |
 | 3 | `inst amp` |
 | 3 | `fd inst amp` |
 | 3 | `american and port` |
@@ -280,10 +276,14 @@ Components voltik does not know yet, by how many items use them:
 | 2 | `resonantp` |
 | 2 | `coupler2` |
 | 2 | `antenna` |
-| 2 | `pentode` |
-| 2 | `magnetron` |
 | 2 | `dinantenna` |
 | 2 | `mstline` |
+| 2 | `mslstub` |
+| 2 | `msport` |
+| 2 | `msrstub` |
+| 2 | `TL` |
+| 2 | `gyrator` |
+| 2 | `gm amp` |
 
 Other options voltik does not know, likewise:
 
@@ -321,14 +321,14 @@ Other options voltik does not know, likewise:
 | 5 | `number inputs` |
 | 4 | `arrow` |
 | 4 | `tert` |
-| 4 | `filament` |
 | 4 | `input height` |
 | 4 | `rotated numbers` |
 | 3 | `opto end arrow` |
 | 3 | `angle` |
 | 3 | `fillcolor` |
-| 3 | `upper` |
 | 3 | `oo upper winding` |
+| 3 | `upper` |
+| 3 | `t1` |
 
 Errors of the items that fail:
 

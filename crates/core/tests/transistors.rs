@@ -1,4 +1,4 @@
-//! Transistors: each node draws with its anchors and its variants by its options, on a path too,
+//! Transistors and tubes: each node draws with its anchors and its variants by its options, on a path too,
 //! and a depletion channel is dark unless filled.
 
 fn convert(body: &str) -> voltik::Output {
@@ -62,4 +62,16 @@ fn transistors_on_a_path() {
     quiet(r"\draw (0,0) to[Tnpn, n=Q] (2,0) (Q.B) -- ++(0,1);");
     // inverted, its gate goes to the other side
     assert_ne!(paths(&quiet(r"\draw (0,0) to[Tnmos] (0,-2);").svg), paths(&quiet(r"\draw (0,0) to[Tnmos, invert] (0,-2);").svg));
+}
+
+#[test]
+fn tubes_draw_with_their_anchors_and_options() {
+    quiet(r"\draw (0,0) node[triode] (T) {} (T.anode) -- (T.control) -- (T.cathode);");
+    quiet(r"\draw (0,0) node[pentode] (T) {} (T.screen) -- (T.suppressor);");
+    quiet(r"\draw (0,0) node[magnetron] (M) {} (M.cathode1) -- (M.cathode2) -- (M.anode);");
+    quiet(r"\draw (0,0) node[dynode] (D) {} (D.arc) -- (D.top right);");
+    let draw = |opts: &str| paths(&quiet(&format!(r"\draw (0,0) node[{opts}] {{}};")).svg);
+    for (base, opts) in [("diodetube", "diodetube, filament"), ("diodetube", "diodetube, fullcathode"), ("matube", "matube, nixieanode, anodedot, nogrid")] {
+        assert_ne!(draw(opts), draw(base), "{opts}");
+    }
 }
