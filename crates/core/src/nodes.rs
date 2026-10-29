@@ -9,6 +9,8 @@
 use tikra::extension::{Context, Error, NodeShape, PathSegment, Point, ShapeBorder, ShapeInput, ShapePaint, ShapePath, Tokens};
 
 use crate::bipole::setting;
+
+mod transistors;
 use crate::components::Op;
 use Op::{Close as Z, Curve as C, Line as L, Move as M};
 
@@ -23,6 +25,8 @@ pub enum Part {
     Fill(&'static [Op]),
     /// Filled with the node's line color.
     Solid(&'static [Op]),
+    /// Filled with the node's `fill`, or its line color: a depletion transistor's channel.
+    Channel(&'static [Op]),
     /// A pole: filled with the node's `fill`, or white.
     Pole(&'static [Op]),
     /// Stroked `k` times as wide as the node's lines (a cute switch's lever).
@@ -40,6 +44,8 @@ pub enum Text {
     /// Above, with its right or left edge at the point.
     AboveLeft([f64; 2]),
     AboveRight([f64; 2]),
+    /// Right of the point, its box's left edge there, centered on it (a transistor's).
+    Right([f64; 2]),
 }
 
 /// A node component: its name (`node[name]`), its drawing, its box (left, right, bottom, top) for
@@ -68,6 +74,7 @@ impl Node {
             "bnc" | "iecconnshape" | "iecsocketL" | "iecsocketR" | "iecplugL" | "iecplugR" => Some("connectors"),
             n if n.ends_with("ground") || n == "eground2" => Some("grounds"),
             n if n.contains("spdt") || n == "proximeter" => Some("switches"),
+            n if transistors::TRANSISTORS.iter().any(|t| t.name == n) => Some("transistors"),
             _ => None,
         }
     }
@@ -704,13 +711,52 @@ const FLOWHEAD: &[Op] = &[M(0.1437, 0.0), L(0.1437, -0.05), L(0.25, 0.0), L(0.14
 pub const TERMINALS: &[&str] = &["circ", "ocirc", "diamondpole", "odiamondpole", "squarepole", "osquarepole", "rectjoinfill"];
 
 pub fn find(name: &str) -> Option<&'static Node> {
-    NODES.iter().find(|n| n.name == name)
+    NODES.iter().chain(transistors::TRANSISTORS).find(|n| n.name == name)
+}
+
+/// The transistors' options that change their drawing, in the order of their variants' names
+/// (`npn|bodydiode`), and the ones with a value.
+pub const TRANSISTOR_FLAGS: &[&str] =
+    &["schottky base", "bodydiode", "photo", "tr circle", "nobase", "bulk", "emptycircle", "nocircle", "arrowmos", "solderdot", "fdsoi", "fdsoidot", "doublegate"];
+pub const TRANSISTOR_VALUES: &[&str] = &["collectors", "emitters", "bjt pins width", "bjt multi height"];
+
+/// The transistors' shapes (`npn`, `nmos`…), without their variants.
+pub fn transistor_shapes() -> impl Iterator<Item = &'static str> {
+    transistors::TRANSISTORS.iter().map(|n| n.name).filter(|n| !n.contains('|'))
+}
+
+/// The variant of transistor `base` its options ask for, or the plain one (and a warning) when
+/// voltik has not measured that combination.
+fn transistor(cx: &mut Context, base: &str) -> Result<Option<&'static Node>, Error> {
+    let mut name = base.to_string();
+    for flag in TRANSISTOR_FLAGS {
+        if setting(cx, &format!("tr/{flag}"))? == "true" {
+            name.push('|');
+            name.push_str(flag);
+        }
+    }
+    for key in TRANSISTOR_VALUES {
+        let value = setting(cx, &format!("tr/{key}"))?;
+        if !value.is_empty() {
+            name.push_str(&format!("|{key}={value}"));
+        }
+    }
+    match find(&name) {
+        Some(n) => Ok(Some(n)),
+        None => {
+            cx.warn(format!("voltik: {} not drawn yet; drawn as a plain {base}", name.replace('|', ", ")));
+            Ok(find(base))
+        }
+    }
 }
 
 /// `voltik/shapes`: declares every node component to tikra.
 pub fn k_shapes(cx: &mut Context, _v: Option<Tokens>) -> Result<(), Error> {
     for n in NODES {
         cx.declare_shape(n.name, shape);
+    }
+    for name in transistor_shapes() {
+        cx.declare_shape(name, shape);
     }
     for t in TERMINALS {
         cx.declare_shape(t, shape);
@@ -726,13 +772,15 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
         let half = crate::bipole::number(cx, "nodes width", 0.04) * unit;
         return Ok(terminal(&input.name, half, input.line_width));
     }
-    let Some(n) = find(&input.name) else { return Ok(NodeShape::default()) };
+    let n = if transistors::TRANSISTORS.iter().any(|t| t.name == input.name) { transistor(cx, &input.name)? } else { find(&input.name) };
+    let Some(n) = n else { return Ok(NodeShape::default()) };
     let unit = match n.class() {
         Some(class) => unit * crate::bipole::number(cx, &format!("{class}/scale"), 1.0),
         None => unit,
     };
     let at = |p: [f64; 2]| Point::new(p[0] * unit, p[1] * unit);
     let w = input.line_width;
+    let filled = !cx.macro_text("voltik@fill").is_empty();
     let paths = n
         .parts
         .iter()
@@ -744,6 +792,7 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
                 Part::Fill(ops) => (ops, ShapePaint::Fill),
                 Part::Solid(ops) => (ops, ShapePaint::Solid),
                 Part::Pole(ops) => (ops, ShapePaint::Background),
+                Part::Channel(ops) => (ops, if filled { ShapePaint::Fill } else { ShapePaint::Solid }),
                 Part::Stroke(k, ops) => (ops, ShapePaint::Stroke(k * w)),
             };
             ShapePath { segments: segments(ops, unit), paint }
@@ -760,6 +809,7 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
         Text::Below(p) => Point::new(p[0] * unit - input.width / 2.0, p[1] * unit - sy - input.height),
         Text::AboveLeft(p) => Point::new(p[0] * unit - input.width, p[1] * unit + sy + input.depth),
         Text::AboveRight(p) => Point::new(p[0] * unit, p[1] * unit + sy + input.depth),
+        Text::Right(p) => Point::new(p[0] * unit, p[1] * unit + (input.depth - input.height) / 2.0),
     };
     let mut extent: Vec<Point> = n.extent.iter().map(|p| at(*p)).collect();
     if n.text_counts && (input.width > 0.0 || input.height + input.depth > 0.0) {

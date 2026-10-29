@@ -53,6 +53,8 @@ pub enum Part {
     /// A pole of the component (a jumper's, a cute switch's): filled with the `fill` of the `to`, or
     /// white.
     Pole(&'static [Op]),
+    /// Filled with the `fill` of the `to`, or the line color: a depletion transistor's channel.
+    Channel(&'static [Op]),
     /// Stroked `k` times the path's line width with round caps: a cute switch's lever.
     Lever(f64, &'static [Op]),
     /// Text in a font of `size` pt, its baseline starting at the point, `shift` away from it, turned
@@ -78,6 +80,7 @@ pub enum Class {
     Misc,
     Diodes,
     Switches,
+    Transistors,
 }
 
 impl Class {
@@ -96,6 +99,7 @@ impl Class {
             Class::Misc => "misc",
             Class::Diodes => "diodes",
             Class::Switches => "switches",
+            Class::Transistors => "transistors",
         }
     }
 }
@@ -775,9 +779,11 @@ mod mechanicals;
 mod misc;
 mod sources;
 mod switches;
+mod transistors;
 
 /// The tables of components, by group of the manual.
-const GROUPS: &[&[Component]] = &[COMPONENTS, sources::COMPONENTS, instruments::COMPONENTS, mechanicals::COMPONENTS, misc::COMPONENTS, diodes::COMPONENTS, switches::COMPONENTS];
+const GROUPS: &[&[Component]] =
+    &[COMPONENTS, sources::COMPONENTS, instruments::COMPONENTS, mechanicals::COMPONENTS, misc::COMPONENTS, diodes::COMPONENTS, switches::COMPONENTS, transistors::COMPONENTS];
 
 /// The diodes' keys: the short ones (`D`, `sD`, `Ty`, `triac`…) follow the `diode` setting (`empty`,
 /// `full`, `stroke`; the styles `empty diodes`, `full diodes`, `stroke diodes`), the others name a
@@ -970,13 +976,38 @@ const SWITCH_ALIASES: &[(&str, Target)] = &[
     ("closed double solder jumper", Fixed("closed double solder jumper")),
 ];
 
+/// The transistors on a path: `Tnpn=Q` writes `Q` in its middle.
+const TRANSISTOR_ALIASES: &[(&str, Target)] = &[
+    ("TLnigbt", Fixed("TLnigbt")),
+    ("TLpigbt", Fixed("TLpigbt")),
+    ("Themt", Fixed("Themt")),
+    ("Tnfet", Fixed("Tnfet")),
+    ("Tnigbt", Fixed("Tnigbt")),
+    ("Tnigfetd", Fixed("Tnigfetd")),
+    ("Tnigfete", Fixed("Tnigfete")),
+    ("Tnigfetebulk", Fixed("Tnigfetebulk")),
+    ("Tnjfet", Fixed("Tnjfet")),
+    ("Tnmos", Fixed("Tnmos")),
+    ("Tnmosd", Fixed("Tnmosd")),
+    ("Tnpn", Fixed("Tnpn")),
+    ("Tpfet", Fixed("Tpfet")),
+    ("Tpigbt", Fixed("Tpigbt")),
+    ("Tpigfetd", Fixed("Tpigfetd")),
+    ("Tpigfete", Fixed("Tpigfete")),
+    ("Tpigfetebulk", Fixed("Tpigfetebulk")),
+    ("Tpjfet", Fixed("Tpjfet")),
+    ("Tpmos", Fixed("Tpmos")),
+    ("Tpmosd", Fixed("Tpmosd")),
+    ("Tpnp", Fixed("Tpnp")),
+];
+
 pub fn find(name: &str) -> Option<&'static Component> {
     GROUPS.iter().flat_map(|g| g.iter()).find(|c| c.name == name)
 }
 
 /// Every key that names a component, and what it names.
 pub fn aliases() -> impl Iterator<Item = &'static (&'static str, Target)> {
-    ALIASES.iter().chain(SOURCE_ALIASES).chain(OTHER_ALIASES).chain(DIODE_ALIASES).chain(SWITCH_ALIASES)
+    ALIASES.iter().chain(SOURCE_ALIASES).chain(OTHER_ALIASES).chain(DIODE_ALIASES).chain(SWITCH_ALIASES).chain(TRANSISTOR_ALIASES)
 }
 
 pub fn target(key: &str) -> Option<Target> {
