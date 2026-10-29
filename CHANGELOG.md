@@ -6,9 +6,12 @@ Each release has a headline (the line under its title), what changed, and the fi
 
 ## Unreleased
 
-tikra 1.6.0 and mathra 1.7.1.
+Chips.
 
+- The DIP and QFP chips (`dipchip`, `qfpchip`) with any number of pins (`num pins`), their leads or pads (`external pins width`, `external pad fraction`, `no input leads`, `draw only pins`), the orientation mark (`no topmark`) and the pins' numbers (`hide numbers`, `multipoles/font`), sized by `multipoles/dipchip/width`, `pin spacing` and `chips/scale`, with their anchors (`pin 1`, `bpin 1`, `dot`).
 - Drawn with tikra 1.6.0 and its math labels by mathra 1.7.1.
+
+Figures: `chips`
 
 ## 0.13.0 - 2026-10-29
 

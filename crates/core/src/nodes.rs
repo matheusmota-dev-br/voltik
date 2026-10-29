@@ -11,6 +11,7 @@ use tikra::extension::{Context, Error, NodeShape, PathSegment, Point, ShapeBorde
 use crate::bipole::setting;
 
 mod amplifiers;
+mod chips;
 mod doubles;
 mod logic;
 mod transistors;
@@ -1758,6 +1759,8 @@ pub fn k_shapes(cx: &mut Context, _v: Option<Tokens>) -> Result<(), Error> {
     cx.declare_shape("voltik bipole", bipole_shape);
     cx.declare_shape("voltik coil", coil_shape);
     cx.declare_shape("rotaryswitch", rotary_shape);
+    cx.declare_shape("dipchip", chips::chip_shape);
+    cx.declare_shape("qfpchip", chips::chip_shape);
     cx.declare_shape("voltik pole", pole_shape);
     for name in variant_shapes() {
         cx.declare_shape(name, shape);

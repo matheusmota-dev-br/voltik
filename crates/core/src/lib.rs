@@ -76,7 +76,7 @@ fn definitions() -> String {
          bipoles/inductors/core distance/.initial=2pt, bipoles/inductors/dot x distance/.initial=4pt, bipoles/inductors/dot y distance/.initial=1pt,\n\
          resistor/.initial=american, inductor/.initial=cute, diode/.initial=empty, thyristor style/.initial=legacy, led arrows/.initial=anode, pd arrows/.initial=anode, diode whiskers/.initial=sloped, tjumper connections/.initial=00, tr/no input leads/.initial=false, tr/no output leads/.initial=false, tr/no leads/.initial=false, tr/number inputs/.initial=,\n\
          logic ports/.initial=american, american ports/.style={logic ports=american}, european ports/.style={logic ports=european}, ieee ports/.style={logic ports=ieee}, tubes/anodes/.initial=3, transistor circle/scale circle radius/.initial=1, transistor circle/relative thickness/.initial=1, tr/ferroel gate/.initial=false, transistors/arrow pos/.initial=mid, tr/legacy text/.initial=false, legacy transistors text/.style={tr/legacy text=true}, bipoles/cuteswitch/shape/.initial=ocirc, bipoles/cuteswitch/height/.initial=.6, bipoles/cuteswitch/thickness/.initial=1, bipoles/jumper/shape/.initial=ocirc, multipoles/rotary/channels/.initial=5, multipoles/rotary/angle/.initial=60, multipoles/rotary/wiper/.initial=20,\n\
-         multipoles/rotary/arrow/.initial=none, multipoles/rotary/thickness/.initial=1, multipoles/rotary/shape/.initial=ocirc, tripoles/spdt/width/.initial=.85, double bipole L/.initial=, double bipole R/.initial=, db/L invert/.initial=false, db/R invert/.initial=false,\n\
+         multipoles/rotary/arrow/.initial=none, multipoles/rotary/thickness/.initial=1, multipoles/rotary/shape/.initial=ocirc, multipoles/num pins/.initial=8, multipoles/dipchip/width/.initial=1.2, multipoles/dipchip/pin spacing/.initial=0.4, multipoles/qfpchip/pin spacing/.initial=0.4, chips/scale/.initial=1, multipoles/thickness/.initial=2, multipoles/external pins thickness/.initial=1, multipoles/external pins width/.initial=0.2, multipoles/external pad fraction/.initial=0, multipoles/topmark/.initial=true, multipoles/numbers/.initial=true, multipoles/draw only pins/.initial=all, multipoles/font/.initial=\\tiny, tripoles/spdt/width/.initial=.85, double bipole L/.initial=, double bipole R/.initial=, db/L invert/.initial=false, db/R invert/.initial=false,\n\
          double bipole L invert/.code={\\pgfkeys{/tikz/circuitikz/db/L invert=true}}, double bipole R invert/.code={\\pgfkeys{/tikz/circuitikz/db/R invert=true}},\n\
          every double bipole L/.style={}, every double bipole R/.style={}, transformer L1/.style={}, transformer L2/.style={}, en amp text/.initial=, component text/.initial=center, left text distance/.initial=.3em, tr/noinv input up/.initial=false, tr/noinv input down/.initial=false, tr/noinv output up/.initial=false,\n\
          tr/noinv output down/.initial=false, tr/filament/.initial=false, tr/nocathode/.initial=false, tr/fullcathode/.initial=false, tr/nixieanode/.initial=false,\n\
@@ -207,6 +207,17 @@ fn definitions() -> String {
     for (style, arrow) in [("rotary switch", ""), ("rotary switch -", "none"), ("rotary switch <-", "ccw"), ("rotary switch ->", "cw"), ("rotary switch <->", "both")] {
         keys.push(format!("{style}/.style={{voltik/rotary={{{arrow}}}{{#1}}}}, {style}/.default={{}}"));
     }
+    // the chips, and their options
+    keys.push("dipchip/.style={shape=dipchip, voltik/class fill=chips}".into());
+    keys.push("qfpchip/.style={shape=qfpchip, voltik/class fill=chips}".into());
+    for key in ["num pins", "external pins width", "external pad fraction", "draw only pins"] {
+        keys.push(format!("{key}/.style={{/tikz/circuitikz/multipoles/{key}={{#1}}}}"));
+    }
+    for (key, setting) in [("hide numbers", "numbers=false"), ("show numbers", "numbers=true"), ("no topmark", "topmark=false"), ("topmark", "topmark=true")] {
+        keys.push(format!("{key}/.style={{/tikz/circuitikz/multipoles/{setting}}}"));
+    }
+    keys.push("straight numbers/.style={}".into());
+    keys.push("rotated numbers/.style={}".into());
     keys.push("legacy transistors text/.style={/tikz/circuitikz/tr/legacy text=true}".into());
     keys.push("no ferroel gate/.style={/tikz/circuitikz/tr/ferroel gate=false}".into());
     // `tripoles/mos style/arrows`: every MOSFET with its arrow (`arrowmos`)
