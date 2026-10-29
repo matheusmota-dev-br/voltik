@@ -9,12 +9,17 @@
 use tikra::extension::{Context, Error, NodeShape, PathSegment, Point, ShapeBorder, ShapeInput, ShapePaint, ShapePath, Tokens};
 
 use crate::bipole::setting;
+pub use displays::{k_seven_segment_bits, k_seven_segment_val};
 
 mod amplifiers;
+mod blocks;
 mod chips;
+mod displays;
 mod doubles;
+mod flipflops;
 mod logic;
 mod muxdemux;
+mod symbols;
 mod transistors;
 mod tubes;
 use crate::components::Op;
@@ -52,6 +57,8 @@ pub enum Text {
     AboveRight([f64; 2]),
     /// Right of the point, its box's left edge there, centered on it (a transistor's).
     Right([f64; 2]),
+    /// Left of the point, its box's right edge there, centered on it (a TX antenna's).
+    Left([f64; 2]),
     /// Centered on the point (a magnetron's).
     Middle([f64; 2]),
     /// Above the point, centered, its baseline 0.6 of its height above it (a transformer's).
@@ -102,7 +109,15 @@ const fn node(name: &'static str, parts: &'static [Part], bounds: [f64; 4]) -> N
 
 /// Every size a setting changes, for its default.
 pub fn params() -> impl Iterator<Item = &'static Param> {
-    NODES.iter().chain(transistors::TRANSISTORS).chain(tubes::TUBES).chain(amplifiers::AMPLIFIERS).chain(doubles::DOUBLE_BIPOLES).chain(logic::LOGIC).flat_map(|n| n.params)
+    NODES
+        .iter()
+        .chain(transistors::TRANSISTORS)
+        .chain(tubes::TUBES)
+        .chain(amplifiers::AMPLIFIERS)
+        .chain(doubles::DOUBLE_BIPOLES)
+        .chain(logic::LOGIC)
+        .chain(blocks::BLOCKS)
+        .flat_map(|n| n.params)
 }
 
 impl Part {
@@ -285,6 +300,7 @@ impl Node {
             n if tubes::TUBES.iter().any(|t| t.name == n) => Some("tubes"),
             n if amplifiers::AMPLIFIERS.iter().any(|t| t.name == n) => Some("amplifiers"),
             n if logic::LOGIC.iter().any(|t| t.name == n) => Some("logic ports"),
+            n if blocks::class(n).is_some() => blocks::class(n),
             _ => None,
         }
     }
@@ -1284,19 +1300,6 @@ pub const NODES: &[Node] = &[
             [-0.2125, 0.2125, -0.4, 0.4],
         )
     },
-    // symbols
-    node("dc symbol", &[Part::Thick(&[M(-0.21, 0.105), L(0.21, 0.105), M(-0.21, -0.105), L(-0.07, -0.105), M(0.07, -0.105), L(0.21, -0.105)])], [-0.21, 0.21, -0.105, 0.105]),
-    node(
-        "ac symbol",
-        &[Part::Thick(&[
-            M(-0.21, 0.0),
-            C([-0.1758, 0.0537], [-0.143, 0.105], [-0.105, 0.105]),
-            C([-0.067, 0.105], [-0.0342, 0.0537], [0.0, 0.0]),
-            C([0.0342, -0.0537], [0.067, -0.105], [0.105, -0.105]),
-            C([0.143, -0.105], [0.1757, -0.0537], [0.21, 0.0]),
-        ])],
-        [-0.21, 0.21, -0.105, 0.105],
-    ),
 ];
 
 const CURRARROW: &[Op] = &[M(-0.0437, 0.0), L(-0.0437, -0.05), L(0.0625, 0.0), L(-0.0437, 0.05), Z];
@@ -1307,7 +1310,15 @@ const FLOWHEAD: &[Op] = &[M(0.1437, 0.0), L(0.1437, -0.05), L(0.25, 0.0), L(0.14
 pub const TERMINALS: &[&str] = &["circ", "ocirc", "diamondpole", "odiamondpole", "squarepole", "osquarepole", "rectjoinfill"];
 
 pub fn find(name: &str) -> Option<&'static Node> {
-    NODES.iter().chain(transistors::TRANSISTORS).chain(tubes::TUBES).chain(amplifiers::AMPLIFIERS).chain(doubles::DOUBLE_BIPOLES).chain(logic::LOGIC).find(|n| n.name == name)
+    NODES
+        .iter()
+        .chain(transistors::TRANSISTORS)
+        .chain(tubes::TUBES)
+        .chain(amplifiers::AMPLIFIERS)
+        .chain(doubles::DOUBLE_BIPOLES)
+        .chain(logic::LOGIC)
+        .chain(blocks::BLOCKS)
+        .find(|n| n.name == name)
 }
 
 /// The transistors', tubes' and amplifiers' options that change their drawing, in the order of their variants'
@@ -1341,7 +1352,7 @@ pub const VARIANT_FLAGS: &[&str] = &[
     "doublegate",
     "ferroel gate",
 ];
-pub const VARIANT_VALUES: &[&str] = &["number inputs", "collectors", "emitters", "bjt pins width", "bjt multi height"];
+pub const VARIANT_VALUES: &[&str] = &["number inputs", "collectors", "emitters", "bjt pins width", "bjt multi height", "inner inputs"];
 
 /// The transistors', tubes', amplifiers' and double bipoles' shapes (`npn`, `triode`, `op amp`,
 /// `transformer`…), without their variants.
@@ -1398,6 +1409,41 @@ fn variant(cx: &mut Context, base: &str) -> Result<Option<&'static Node>, Error>
     if setting(cx, "transistors/arrow pos")? == "end" {
         name.push_str("|arrow pos=end");
     }
+    // a logic port's sizes other than its default, as measured: `ieeestd or port|height=4`
+    if logic::LOGIC.iter().any(|n| n.name == base) {
+        let style = base.split(' ').next().unwrap_or_default();
+        let sizes: &[(String, &str, f64)] = &[
+            ("ieeestd ports/height".into(), "height", 2.0),
+            ("ieeestd ports/pin length".into(), "pin length", 0.7),
+            (format!("tripoles/{base}/height"), "height", 0.8),
+            (format!("tripoles/{base}/inner"), "inner", 0.3),
+            (format!("tripoles/{base}/angle"), "angle", 70.0),
+        ];
+        for (key, short, default) in sizes {
+            if key.starts_with("ieeestd") != (style == "ieeestd") || (style != "ieeestd" && style != "american") {
+                continue;
+            }
+            let value = crate::bipole::number(cx, key, *default);
+            if (value - default).abs() > 1e-9 {
+                name.push_str(&format!("|{short}={value}"));
+            }
+        }
+    }
+    // a negated European port's symbol (`tripoles/european not symbol=circle`), and its xnor's
+    if matches!(base, "european nand port" | "european nor port" | "european xnor port" | "european not port" | "european blank not port") {
+        let symbol = setting(cx, "tripoles/european not symbol")?;
+        if !symbol.is_empty() && symbol != "triangle" {
+            name.push_str(&format!("|not symbol={symbol}"));
+        }
+    }
+    // (its symbol is drawn, in the font it is measured in)
+    let font = Tokens::text("\\unexpanded\\expandafter{\\romannumeral-`0\\pgfkeysvalueof{/tikz/circuitikz/european ports font}}");
+    if base.starts_with("european") && !base.contains("blank") && !cx.expand(font)?.trim().is_empty() {
+        cx.warn(format!("voltik: european ports font on a {base} not drawn yet; its symbol is in the plain font"));
+    }
+    if base == "european xnor port" && setting(cx, "european xnor style")? == "direct" {
+        name.push_str("|xnor style=direct");
+    }
     // options that do not change this one (`arrow pos=end` on a MOSFET) are dropped
     let plain = name.replace("|number inputs=2", "").replace("|arrow pos=end", "").replace("|ferroel gate", "").replace("|arrowmos", "");
     let name = name.replace("|number inputs=2", "");
@@ -1420,6 +1466,9 @@ pub fn k_class_fill(cx: &mut Context, v: Option<Tokens>) -> Result<(), Error> {
     Ok(())
 }
 
+/// How far above an oscilloscope drawn as a node its text's box goes (cm).
+const OSCOPE_TEXT: f64 = 0.1133;
+
 /// A bipole as a node (`node[resistorshape]`): its anchors, and the bipole itself drawn after it
 /// between its `west` and `east`, as a `to` that fills it.
 fn bipole_shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
@@ -1432,7 +1481,27 @@ fn bipole_shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error
     let length = setting(cx, "bipoles/length")?;
     let scale = crate::bipole::number(cx, &format!("{}/scale", comp.class.name()), 1.0);
     let u = cx.length(Tokens::text(&length)).unwrap_or(1.4) * scale;
-    let (w, top, bottom) = (comp.width / 2.0 * u, comp.top * u, comp.bottom * u);
+    // a block's own size and texts, and the node's fill, go to the bipole drawn after it
+    let size = crate::components::blocks_size(cx, comp);
+    // stretched to its own size (`bipoles/oscope/width`), if it has one
+    let (own_w, own_h) = crate::bipole::own_size(cx, comp);
+    let (cw, ch) = size.unwrap_or((own_w.unwrap_or(comp.width), own_h.unwrap_or(comp.height)));
+    let (sx, sy) = (cw / comp.width.max(1e-9), ch / comp.height.max(1e-9));
+    let (w, top, bottom) = (cw / 2.0 * u, comp.top * ch / comp.height.max(1e-9) * u, comp.bottom * ch / comp.height.max(1e-9) * u);
+    let mut options = String::new();
+    if let Some((sw, sh)) = size {
+        let base = crate::components::block_setting_name(comp.name.split('|').next().unwrap_or(comp.name));
+        options.push_str(&format!(", bipoles/{base}/width={sw}, bipoles/{base}/height={sh}"));
+    }
+    for (key, macro_name) in [("t", "voltik@t"), ("t1", "voltik@ta"), ("t2", "voltik@tb")] {
+        let text = cx.macro_body(macro_name).to_text();
+        if !text.trim().is_empty() {
+            options.push_str(&format!(", {key}={{{text}}}"));
+        }
+    }
+    if let Some(fill) = &input.fill {
+        options.push_str(&format!(", fill={{{fill}}}"));
+    }
     // its ends on its line, its north and south its band's
     let mut anchors = compass(-w, w, -bottom, top);
     for (name, at) in anchors.iter_mut() {
@@ -1440,19 +1509,40 @@ fn bipole_shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error
             at.y = 0.0;
         }
     }
-    anchors.extend(comp.anchors.iter().map(|(name, p)| (name.to_string(), Point::new(p[0] * u, p[1] * u))));
+    anchors.extend(comp.anchors.iter().map(|(name, p)| (name.to_string(), Point::new(p[0] * cw / comp.width.max(1e-9) * u, p[1] * ch / comp.height.max(1e-9) * u))));
+    // a block's lateral anchors, `block left anchors pos` (and right) of the way up to its top
+    if comp.class == crate::components::Class::Blocks {
+        let left = crate::bipole::number(cx, "block left anchors pos", 0.5);
+        let right = crate::bipole::number(cx, "block right anchors pos", 0.5);
+        for (name, at) in anchors.iter_mut() {
+            match name.as_str() {
+                "left up" => at.y = left * top,
+                "left down" => at.y = -left * bottom,
+                "right up" => at.y = right * top,
+                "right down" => at.y = -right * bottom,
+                _ => {}
+            }
+        }
+    }
+    // a potentiometer's wiper, at `wiper pos` along it, as on a path
+    if comp.parts.iter().any(|p| matches!(p, crate::components::Part::Wiper { .. })) {
+        let x = (crate::bipole::number(cx, "wiper pos", 0.5) - 0.5) * comp.width * u * sx;
+        let top = comp.height / 2.0 * u * sy;
+        anchors.extend([("wiper".to_string(), Point::new(x, top + 0.25 * u * sy)), ("tip".to_string(), Point::new(x, top))]);
+    }
     anchors.push(("text".into(), Point::new(0.0, 0.0)));
     // (globally: it runs after the node, out of its options' group)
     // (`voltik/up`: the node's north, for the bipole to be mirrored with it, `yscale=-1`)
     cx.run(Tokens::text(&format!(
-        "\\gdef\\voltik@bp{{\\pgfextra{{\\xdef\\voltik@bn{{\\tikzlastnode}}}} (\\voltik@bn.west) to[{key}, voltik/fit, voltik/up=\\voltik@bn.north] (\\voltik@bn.east)}}"
+        "\\gdef\\voltik@bp{{\\pgfextra{{\\xdef\\voltik@bn{{\\tikzlastnode}}}} (\\voltik@bn.west) to[{key}, voltik/fit, voltik/up=\\voltik@bn.north{options}] (\\voltik@bn.east)}}"
     )))?;
-    let _ = input;
+    // an oscilloscope's text goes above it, as a label
+    let text = if comp.name == "oscope" { Point::new(-input.width / 2.0, top + OSCOPE_TEXT + input.depth) } else { Point::new(0.0, 0.0) };
     Ok(NodeShape {
         center: Point::new(0.0, 0.0),
         anchors,
         border: ShapeBorder::Point,
-        text: Point::new(0.0, 0.0),
+        text,
         paths: Vec::new(),
         // (its size is the bipole's, drawn after it: its box does not count)
         extent: Vec::new(),
@@ -1464,7 +1554,7 @@ fn bipole_shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error
 /// from its terminals to `inner` of the way in; none (empty) when it draws its own.
 fn double_bipole(cx: &mut Context) -> Result<bool, Error> {
     let (l, r) = (setting(cx, "double bipole L")?, setting(cx, "double bipole R")?);
-    let key = |shape: &str, default: &str| crate::components::BIPOLE_SHAPES.iter().find(|(s, _)| *s == shape).map_or(default.to_string(), |(_, k)| k.to_string());
+    let key = |shape: &str, default: &str| crate::components::bipole_shapes().find(|(s, _)| *s == shape).map_or(default.to_string(), |(_, k)| k.to_string());
     if l.is_empty() && r.is_empty() {
         cx.run(Tokens::text("\\gdef\\voltik@db{}"))?;
         return Ok(false);
@@ -1547,8 +1637,8 @@ fn transformer(cx: &mut Context, base: &str) -> Result<bool, Error> {
         }
         // L1 goes up from A2, L2 down from B1
         code.push_str(&format!(
-            "({n}.A2) -- ($({n}.A2)!{fl}!({n}.B2)$) to[L, voltik@trL1] ($({n}.A1)!{fl}!({n}.B1)$) -- ({n}.A1) \
-             ({n}.B1) -- ($({n}.A1)!{fr}!({n}.B1)$) to[L, voltik@trL2] ($({n}.A2)!{fr}!({n}.B2)$) -- ({n}.B2) "
+            "({n}.A2) -- ($({n}.A2)!{fl}!({n}.B2)$) to[L, mirror, voltik@trL1] ($({n}.A1)!{fl}!({n}.B1)$) -- ({n}.A1) \
+             ({n}.B1) -- ($({n}.A1)!{fr}!({n}.B1)$) to[L, mirror, voltik@trL2] ($({n}.A2)!{fr}!({n}.B2)$) -- ({n}.B2) "
         ));
     }
     // the coils' nodes, in the middle of each side
@@ -1725,6 +1815,32 @@ fn pole_shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> 
     Ok(t)
 }
 
+/// A component named by `to[R, name=R1]`: a node with its anchors (`\voltik@named`, `north=x,y;…`
+/// from its center on the canvas) and nothing drawn, so that `(R1)`, `(R1.north)` and a name prefix
+/// are as a node's. Notes the prefix (`\voltik@prefix`) for what `\ctikzgetanchor` answers.
+fn named_shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
+    let back = input.transform.inverse();
+    let mut anchors = Vec::new();
+    for item in cx.macro_text("voltik@named").split(';') {
+        let Some((name, xy)) = item.split_once('=') else { continue };
+        let Some((x, y)) = xy.split_once(',') else { continue };
+        if let (Ok(x), Ok(y)) = (x.trim().parse::<f64>(), y.trim().parse::<f64>()) {
+            // a component's own point overrides a compass point of the same name
+            anchors.retain(|(a, _): &(String, Point)| a != name.trim());
+            anchors.push((name.trim().to_string(), back.linear(Point::new(x, y))));
+        }
+    }
+    let corner = |name: &str| anchors.iter().find(|(a, _)| a == name).map(|(_, p)| *p);
+    let border = match (corner("south west"), corner("south east"), corner("north east"), corner("north west")) {
+        (Some(a), Some(b), Some(c), Some(d)) => ShapeBorder::Outline(vec![a, b, c, d]),
+        _ => ShapeBorder::Point,
+    };
+    let name = cx.macro_text("voltik@name");
+    let prefix = input.node.as_deref().and_then(|n| n.strip_suffix(name.as_str())).unwrap_or("").to_string();
+    cx.define_text("voltik@prefix", &prefix, true);
+    Ok(NodeShape { anchors, border, ..Default::default() })
+}
+
 /// `rotary switch=8 in 120 wiper 40` (and `rotary switch <-=…`, `->`, `<->`, `-`): the rotary switch
 /// with these, or its defaults, and an arrow.
 pub fn k_rotary(cx: &mut Context, v: Option<Tokens>) -> Result<(), Error> {
@@ -1745,9 +1861,9 @@ pub fn k_rotary(cx: &mut Context, v: Option<Tokens>) -> Result<(), Error> {
 pub fn k_muxdemux_def(cx: &mut Context, v: Option<Tokens>) -> Result<(), Error> {
     let mut list = Tokens::new();
     for (key, value) in v.unwrap_or_default().key_list() {
-        // a drawing behind it, in pgf's own commands
+        // a drawing on it, in pgf's own commands, kept for the shape
         if key.starts_with("bgpicture") {
-            cx.warn("voltik: muxdemux bgpicture not drawn yet; ignored");
+            cx.define("voltik@mdbg", value.unwrap_or_default());
             continue;
         }
         list = match value {
@@ -1769,8 +1885,15 @@ pub fn k_logic_port(cx: &mut Context, v: Option<Tokens>) -> Result<(), Error> {
     cx.keys(Tokens::text(&format!("{style} {kind} port")))
 }
 
+/// The blocks drawn as nodes (`mixer`, `bareantenna`…), each with its class.
+pub fn block_shapes() -> impl Iterator<Item = (&'static str, &'static str)> {
+    blocks::SHAPES.iter().map(|n| (*n, blocks::class(n).unwrap_or("blocks")))
+}
+
 /// `voltik/shapes`: declares every node component to tikra.
 pub fn k_shapes(cx: &mut Context, _v: Option<Tokens>) -> Result<(), Error> {
+    // the package's old-style tip, as long and wide as measured at the default line width
+    cx.declare_arrow_tip("latexslim", "Latex[length=4pt,width=3pt]");
     for n in NODES {
         cx.declare_shape(n.name, shape);
     }
@@ -1780,9 +1903,18 @@ pub fn k_shapes(cx: &mut Context, _v: Option<Tokens>) -> Result<(), Error> {
     cx.declare_shape("dipchip", chips::chip_shape);
     cx.declare_shape("qfpchip", chips::chip_shape);
     cx.declare_shape("muxdemux", muxdemux::muxdemux_shape);
+    cx.declare_shape("dc symbol", symbols::symbol_shape);
+    cx.declare_shape("ac symbol", symbols::symbol_shape);
     cx.declare_shape("wedgeinv", muxdemux::inversion_shape);
     cx.declare_shape("circleinv", muxdemux::inversion_shape);
+    cx.declare_shape("flipflop", flipflops::flipflop_shape);
+    cx.declare_shape("clockwedge", flipflops::clockwedge_shape);
+    cx.declare_shape("bare7seg", displays::seven_segment_shape);
     cx.declare_shape("voltik pole", pole_shape);
+    cx.declare_shape("voltik named", named_shape);
+    for name in blocks::SHAPES {
+        cx.declare_shape(name, shape);
+    }
     for name in variant_shapes() {
         cx.declare_shape(name, shape);
     }
@@ -1802,6 +1934,11 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
     }
     let n = if variant_shapes().any(|t| t == input.name) { variant(cx, &input.name)? } else { find(&input.name) };
     let Some(n) = n else { return Ok(NodeShape::default()) };
+    // a round block in a box (`mixer, boxed`), or only the box
+    let n = match find(&format!("{}|{}", n.name, if setting(cx, "blocks/box only")? == "true" { "box only" } else { "boxed" })) {
+        Some(boxed) if setting(cx, "blocks/boxed")? == "true" => boxed,
+        _ => n,
+    };
     // a double bipole with bipoles of its own draws only its anchors here
     let own = input.name == "double bipole" && double_bipole(cx)?;
     // a transformer whose coils are drawn as inductors draws its frame's core only
@@ -1831,6 +1968,13 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
     }
     // an `en amp` with an `en amp text` does not draw its ▷∞, the solid parts at its top
     let own_text = input.name == "en amp" && !setting(cx, "en amp text")?.is_empty();
+    // a transistor's circle in a color and dashes of its own (`transistor circle/color`, `dash`)
+    let circle_color = match setting(cx, "transistor circle/color")?.trim() {
+        "" | "default" => None,
+        c => Some(c.to_string()),
+    };
+    let circle_dash = setting(cx, "transistor circle/dash")?;
+    let circle_dash = dash(cx, &circle_dash)?;
     let paths = sized
         .parts
         .iter()
@@ -1858,9 +2002,13 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
                 Part::Stroke(k, _) if n.name.starts_with("cute") => ShapePaint::Stroke(k * w * lever),
                 Part::Stroke(k, _) => ShapePaint::Stroke(k * w),
             };
+            if matches!(part, Part::Thick(ops) if circled && is_circle(ops)) {
+                return ShapePath { segments: segments(ops, unit), paint, color: circle_color.clone(), dash: circle_dash.clone(), ..Default::default() };
+            }
             ShapePath { segments: segments(ops, unit), paint, ..Default::default() }
         })
         .collect();
+    let paths = blocks::inner(cx, n, paths)?;
     let [left, right, bottom, top] = sized.bounds;
     let mut anchors = compass(left * unit, right * unit, bottom * unit, top * unit);
     anchors.extend(sized.anchors.iter().map(|(name, p)| (name.to_string(), at(*p))));
@@ -1886,6 +2034,7 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
         Text::AboveLeft(p) => Point::new(p[0] * unit - input.width, p[1] * unit + sy + input.depth),
         Text::AboveRight(p) => Point::new(p[0] * unit, p[1] * unit + sy + input.depth),
         Text::Right(p) => Point::new(p[0] * unit, p[1] * unit + (input.depth - input.height) / 2.0),
+        Text::Left(p) => Point::new(p[0] * unit - input.width, p[1] * unit + (input.depth - input.height) / 2.0),
         Text::Over(p) => Point::new(p[0] * unit - input.width / 2.0, p[1] * unit + 0.6 * input.height),
         Text::Middle(p) => Point::new(p[0] * unit - input.width / 2.0, p[1] * unit + (input.depth - input.height) / 2.0),
     };
@@ -1909,8 +2058,8 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
     } else {
         text
     };
-    // `component text=left`: an amplifier's text starts `left text distance` from its left edge
-    let leftedge = sized.anchors.iter().find(|(a, _)| *a == "leftedge").map(|(_, p)| p[0]);
+    // `component text=left`: an amplifier's or a logic port's text starts `left text distance` from its left edge
+    let leftedge = sized.anchors.iter().find(|(a, _)| *a == "leftedge" || *a == "body left").map(|(_, p)| p[0]);
     let text = match leftedge {
         Some(x) if setting(cx, "component text")? == "left" => {
             let distance = setting(cx, "left text distance")?;
@@ -1925,7 +2074,42 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
         extent.push(Point::new(text.x - sx, text.y - input.depth - sy));
         extent.push(Point::new(text.x + input.width + sx, text.y + input.height + sy));
     }
-    Ok(NodeShape { center: Point::new(0.0, 0.0), anchors, border: ShapeBorder::Point, text, paths, extent, ..Default::default() })
+    let anchors = blocks::lateral(cx, n, anchors, unit);
+    // a round block's lines stop at its circle (or its box)
+    let border = match blocks::border(n) {
+        Some(ops) => ShapeBorder::Outline(outline_points(&segments(ops, unit))),
+        None => ShapeBorder::Point,
+    };
+    let mut out = NodeShape { center: Point::new(0.0, 0.0), anchors, border, text, paths, extent, ..Default::default() };
+    // `logic ports origin=center`: a port's point halfway between its west and east
+    if n.class() == Some("logic ports") && setting(cx, "logic ports origin")? == "center" {
+        let x = |name: &str| out.anchors.iter().find(|(a, _)| a == name).map(|(_, p)| p.x);
+        if let (Some(w), Some(e)) = (x("west"), x("east")) {
+            centered(&mut out, Point::new(-(w + e) / 2.0, 0.0));
+        }
+    }
+    Ok(out)
+}
+
+/// A shape moved by `d`, its `center` staying the node's point.
+fn centered(s: &mut NodeShape, d: Point) {
+    for (name, p) in s.anchors.iter_mut() {
+        if name != "center" {
+            *p = Point::new(p.x + d.x, p.y + d.y);
+        }
+    }
+    s.text = Point::new(s.text.x + d.x, s.text.y + d.y);
+    for path in s.paths.iter_mut() {
+        for seg in path.segments.iter_mut() {
+            *seg = shift(*seg, d);
+        }
+    }
+    for p in s.extent.iter_mut() {
+        *p = Point::new(p.x + d.x, p.y + d.y);
+    }
+    for t in s.texts.iter_mut() {
+        t.at = Point::new(t.at.x + d.x, t.at.y + d.y);
+    }
 }
 
 /// A terminal `half` (cm) across the half, with lines `w` wide.
@@ -1988,6 +2172,22 @@ fn outline_points(segments: &[PathSegment]) -> Vec<Point> {
         }
     }
     points
+}
+
+/// A dash pattern setting (`{{4pt}{4pt}{1pt}{4pt}}`, `none` for solid lines) as on and off
+/// lengths in cm; `None` for `default`, the node's own.
+fn dash(cx: &mut Context, spec: &str) -> Result<Option<Vec<f64>>, Error> {
+    let spec = spec.trim();
+    match spec {
+        "" | "default" => return Ok(None),
+        "none" => return Ok(Some(Vec::new())),
+        _ => {}
+    }
+    let mut lengths = Vec::new();
+    for part in spec.split(['{', '}']).map(str::trim).filter(|p| !p.is_empty()) {
+        lengths.push(cx.length(Tokens::text(part))?);
+    }
+    Ok(Some(lengths))
 }
 
 /// The compass anchors of a box, and their short names (`n`, `ne`, `left`…).

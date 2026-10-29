@@ -82,9 +82,15 @@ fn labels_clocks_and_negations() {
     let symbols = quiet(&format!(r"{base} \draw (0,0) node[chip, muxdemux label={{cL1=1, nL2=1, woR1=1, wiB1=-1}}] (M) {{}} (M-nL2.west) -- ++(-0.5,0);")).svg;
     let fewer = quiet(&format!(r"{base} \draw (0,0) node[chip, muxdemux label={{cL1=1, nL2=1, woR1=1, wiB1=-1}}, muxdemux label={{cL1=0}}] (M) {{}};")).svg;
     assert!(paths(&symbols).len() > paths(&fewer).len());
-    // the border labels along the sides, not yet
-    let r = convert(&format!(r"{base} \draw (0,0) node[chip, muxdemux label={{E=e}}] {{}};"));
-    assert!(r.warnings.iter().any(|w| w.contains("muxdemux label E")), "{:?}", r.warnings);
-    let r = convert(r"\draw (0,0) node[muxdemux, muxdemux def={bgpicture/.code={\pgfsetlinewidth{1mm}}}] {};");
-    assert!(r.warnings.iter().any(|w| w.contains("bgpicture")), "{:?}", r.warnings);
+    // the border labels along the sides, turned a quarter
+    let side = quiet(&format!(r"{base} \draw (0,0) node[chip, muxdemux label={{E=e, Wi=w}}] {{}};")).svg;
+    assert_eq!(side.matches("matrix(0 -1 1 0").count(), 2, "{side}");
+    // pin labels stay upright on a turned multiplexer, unless `rotated numbers`
+    let turned = |extra: &str| quiet(&format!(r"{base} \draw (0,0) node[chip, rotate=90, {extra} muxdemux label={{L1=a}}] {{}};")).svg;
+    assert!(!turned("").contains("matrix(0 -1 1 0"));
+    assert!(turned("rotated numbers,").contains("matrix(0 -1 1 0"));
+    // a drawing on it, in pgf's commands
+    let picture = r"\pgfpathmoveto{\pgfpoint{-1cm}{0cm}}\pgfpathlineto{\pgfpoint{1cm}{0cm}}\pgfusepath{draw}";
+    let drawn = quiet(&format!(r"\draw (0,0) node[muxdemux, muxdemux def={{bgpicture/.code={{{picture}}}}}] {{}};")).svg;
+    assert_eq!(paths(&drawn).len(), paths(&quiet(r"\draw (0,0) node[muxdemux] {};").svg).len() + 1);
 }

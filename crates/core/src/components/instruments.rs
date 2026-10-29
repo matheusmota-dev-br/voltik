@@ -4,7 +4,7 @@
 //! `bipoles/length`.
 
 use super::Op::{Close as Z, Curve as C, Line as L, Move as M};
-use super::Part::{Fill, Line, Solid, Stroke, Text, Thin};
+use super::Part::{Faint, Fill, Line, Solid, Text, Thin, Waveform};
 use super::{bipole, Class, Component};
 
 pub const COMPONENTS: &[Component] = &[
@@ -394,7 +394,7 @@ pub const COMPONENTS: &[Component] = &[
                 C([0.3, 0.2665], [0.2664, 0.3], [0.225, 0.3]),
                 Z,
             ]),
-            Stroke(
+            Faint(
                 0.5,
                 &[
                     M(-0.225, -0.1492),
@@ -423,7 +423,7 @@ pub const COMPONENTS: &[Component] = &[
                     L(0.2239, 0.15),
                 ],
             ),
-            Line(&[M(-0.225, -0.075), L(-0.015, 0.075), L(-0.015, -0.075), L(0.195, 0.075), L(0.195, -0.075)]),
+            Waveform,
         ],
     )
     .anchors(&[("in 1", [-0.12, -0.225]), ("in 2", [0.12, -0.225])]),

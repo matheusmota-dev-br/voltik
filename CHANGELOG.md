@@ -6,14 +6,38 @@ Each release has a headline (the line under its title), what changed, and the fi
 
 ## Unreleased
 
-Chips and multiplexers.
+Chips, multiplexers, flip-flops, displays, block diagrams and RF components; the manual's own voltages and style files.
 
 - The DIP and QFP chips (`dipchip`, `qfpchip`) with any number of pins (`num pins`), their leads or pads (`external pins width`, `external pad fraction`, `no input leads`, `draw only pins`), the orientation mark (`no topmark`) and the pins' numbers (`hide numbers`, `multipoles/font`), sized by `multipoles/dipchip/width`, `pin spacing` and `chips/scale`, with their anchors (`pin 1`, `bpin 1`, `dot`).
 - The multiplexers (`muxdemux`) shaped by `muxdemux def`, with or without an inset, their pins on four sides (`square pins`, `draw only left pins`…) and all their anchors (`lpin 1`, `bbpin 2`, `inset top`, `narrow center`…); the package's `demux`, `one bit adder` and `ALU`; the class `muxdemuxes`.
 - `muxdemux label`: texts by the pins, inside and outside (`L1`, `LU1`, `BR2`…), by the borders (`N`, `Si`), clock wedges (`cL2`), negation circles as nodes (`M-nL1`) and wedges (`wiB1`, `woR1`); the inversion marks `wedgeinv` and `circleinv`.
-- Drawn with tikra 1.6.0 and its math labels by mathra 1.7.1.
+- The flip-flops (`flipflop`, `flipflop def` with texts, clock wedges and negation circles as nodes `FF-N4`), the package's `latch`, `flipflop SR`, `D`, `T` and `JK`, `add async SR`, `dot on notQ`, `\ctikztextnot` and `clockwedge`; their texts stay upright when they turn.
+- The seven segment displays: `bare7seg`, `seven segment val=A dot off box on`, `seven segment bits=…`, and their sizes and colors.
+- Logic ports: the European negation symbols (`tripoles/european not symbol`) and `european xnor style=direct`, `logic ports origin=center`, `inner inputs`, `component text=left`, `tgate`, `double tgate`, `blank port`, `blank not port`, and the sizes the manual shows (`tripoles/american or port/height`, `ieeestd ports/height`…); `american` and `european` set the ports too.
+- The pins' numbers and labels stay upright on a turned chip or multiplexer (`straight numbers`, or turn with it by `rotated numbers`), and the multiplexers' border labels along the sides (`E`, `Wi`…) are turned a quarter (tikra#39).
+- `\rotatebox`, `\raisebox` and `\scalebox` in any text turn, raise and scale it, as graphicx does.
+- The transformer sources' three-phase windings (`prim=delta`, `sec=wye`, `tert=zig`, `eyw`, `xdelta`), turned and scaled (`sources/symbol/delta rot`, `prim rot`, `delta scale`), their extra winding (`oo upper winding`, `upper=…`) with its anchors, and `ootrans size=large`; `bipoles/oosource/width` and `height`; the waveform sources' `sources/symbol/rotate` and `thickness`; the noise sources' `fillcolor`, hatched with `dashed`.
+- The oscilloscope's waveforms (`bipoles/oscope/waveform=sin`…), size (`bipoles/oscope/width`, `height`) and half-transparent grid, its text above it as a node; the instruments' screens kept upright (`straight instruments`, or `rotated instruments`); the current tap's `bipoles/currtap/…`.
+- The `dc symbol` and `ac symbol` sized and with their text above them (`dc symbol segments`…); the wiggly fuse's poles (`bipoles/wfuse/dots`, `shape`), the microphone's `bar thickness`, the spark gap's `sparkgap end arrow` and `gap`, the barrier's cross; `transistor circle/color` and `dash`; the `latexslim` tip, `\ctikztunablearrow` and subcircuits (`\ctikzsubcircuitdef`, `\ctikzsubcircuitactivate`).
+- A potentiometer drawn as a node has its `wiper`; a transformer's coils drawn as inductors (`transformer L1`, `L2`) curve toward its core; `\si{\%}` writes a percent sign.
+- The block diagram components: on a path, the filters, amplifiers, generators, converters, attenuators and the radio and TV blocks (`lowpass`, `amp`, `adc`, `sacdc`, `trx`…), boxed (`amp, boxed`), the plot filters (`lowpassp`, `ideal filter`), with their texts (`t=`, `t1`, `t2`), sizes (`bipoles/amp/width`), inner color and lateral anchors (`block left anchors pos`); as nodes the mixers, adders, oscillators and circulators (`boxed`, `box only`), splitters, couplers, `mzm` and `gridnode`, and every block as a node shape (`powershape`).
+- The RF components: antennas, `waves`, `harmonics`, the microstrips (`mstline`, `mslstub`, `msport`, `msrstub`), the transmission line `TL` (`bipoles/tline/bare`), `tlinestub` and `match`.
+- `bgpicture` in `muxdemux def`: pgf's code drawn on the multiplexer, its x axis from -1 cm to 1 cm across it.
+- Voltages and currents as CircuiTikZ places them: American signs on every voltage source but the American ones (which carry theirs), an American source's label closer to it; a voltage source's current reversed with electric-field voltages whatever its side (`i_=…`); `bipole/is voltage=false` after a source's value keeps its side and direction (the manual's mix); and the labels of voltages and currents with no outer sep, as TeX's.
+- Labels kerned as TeX's T1 Latin Modern kerns them (tikra#48, mathra#81).
+- `v`, `i` and `f` without a value draw nothing, as in TeX: only their anchors are there (`R1-Vfrom`…).
+- A named component is a node, as in CircuiTikZ: `(R1)` is its center, and `name prefix` (and a `pic`'s name) names it. `\ctikzgetdirection` and `\ctikzgetanchor` answer what TeX does: directions in the picture's own coordinates from 0 to 360 (`333.43495`, a label's `333`), a current's arrow (`R1-Iarrow`), and the anchors of labels that keep straight (`base`, `north`, `mid west`, `-45`); a raised voltage's `Vlab` its side's anchor.
+- Labels along a line turn in the picture's own coordinates (`label/align=rotate`, `smart`), so that `transform shape` turns them once; upside down only strictly between 90 and 270 degrees.
+- The labels of LEDs and photodiodes clear their arrows.
+- The manual's own voltages, currents and flows: `vif queue add={macro}{a}{b}{c}` runs `\macro{R1}{a}{b}{c}` once the component is drawn (naming it when it has no name), `\ctikzactivatevoltagedirections{vpms}` (and `current`, `flow`) gives a style its variants (`vpms^>`), and `use auto vif`; styles of two or more arguments in `\ctikzset`.
+- The style files: `\ctikzloadstyle{example}`, `romano` and `legacy`, and their `… circuit style`.
+- `bipole label style={…}` (and `annotation`, `voltage`, `current`, `flow`) in a `to` sets the style of its labels; the style comes after voltik's own settings of the label (`outer sep=5pt`); American voltage signs keep the color of the path.
+- `fullgeneric` and `tfullgeneric`; `bipoles/fix tunable direction=false` turns the variable components' arrows as before 1.8; `tunable end arrow` ends them.
+- `voltage shift sources adjust`: a source's voltage shifted by that times `voltage shift`.
+- Colors of xcolor's cmyk model as TeX's PDF shows them (`cyan` is `#00aeef`; tikra#53), the picture environment (`\fourdots`), `\NewDocumentCommand`, the `Jack Tap` tip and pictures in a `\scalebox` (tikra#53); subcircuits placed by measuring them, without drawing them (tikra#53).
+- Drawn by tikra 1.7.0 and mathra 1.8.0 (tikra#39, tikra#48, tikra#52, tikra#53, mathra#81). 540 of the manual's 541 components and 470 of its 505 examples match TeX.
 
-Figures: `chips`, `multiplexers`
+Figures: `chips`, `multiplexers`, `flip-flops`, `three-phase-and-scopes`, `block-diagrams`
 
 ## 0.13.0 - 2026-10-29
 

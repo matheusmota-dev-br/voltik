@@ -8,7 +8,8 @@
 //! is one (an odd one at its tip); the bottom and top pins stick out straight down and up, from the
 //! slanted side or, with `square pins=1`, to the same line. `muxdemux label` adds texts by the pins
 //! (inside, `L1`, or outside, `LU1`), by the borders (`N`, `Ni`) and the clock wedges (`cL1`),
-//! negation circles (`nL1`, nodes of their own, `M-nL1`) and wedges (`wiL1`, `woL1`).
+//! negation circles (`nL1`, nodes of their own, `M-nL1`) and wedges (`wiL1`, `woL1`); `bgpicture`
+//! in `muxdemux def` draws pgf's code on it.
 
 use tikra::extension::{Context, Error, NodeShape, PathSegment, Point, ShapeBorder, ShapeInput, ShapePaint, ShapePath, ShapeText, TextAnchor, Tokens};
 
@@ -132,8 +133,7 @@ pub fn muxdemux_shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape,
     if !pins.is_empty() {
         paths.push(ShapePath { segments: pins, paint: ShapePaint::Stroke(thin), ..Default::default() });
     }
-    let texts = labels(cx, &borders, reach, b, unit, thin, &mut paths, &mut anchors)?;
-    super::chips::turned_texts(cx, input, &texts)?;
+    let texts = labels(cx, &borders, x, reach, b, unit, thin, &mut paths, &mut anchors)?;
     Ok(NodeShape {
         center: p(0.0, 0.0),
         anchors,
@@ -157,12 +157,13 @@ fn sep(cx: &mut Context, key: &str) -> f64 {
 }
 
 /// The texts, clock wedges, negation circles and wedges of `muxdemux label` (`\voltik@mdl`, the
-/// later of a key winning), drawn by the pins of `borders` and by the box `reach` high; the
+/// later of a key winning), drawn by the pins of `borders` and by the box `width` by `reach` (halves); the
 /// circles' nodes are made after the shape, by `\voltik@md`.
 #[allow(clippy::too_many_arguments)]
 fn labels(
     cx: &mut Context,
     borders: &[(char, Vec<Point>, Point)],
+    width: f64,
     reach: f64,
     b: f64,
     unit: f64,
@@ -192,6 +193,7 @@ fn labels(
         let at = head.rfind(side)?;
         Some((format!("{}{}", &head[..at], &head[at + 1..]), side.to_ascii_lowercase(), n))
     };
+    let upright = setting(cx, "multipoles/straight numbers")? != "false";
     let clock = number(cx, "muxdemux/clock wedge size", 0.2) * b;
     let wedge = (number(cx, "wedge inversion mark/width", 0.2) * unit, number(cx, "wedge inversion mark/height", 0.1) * unit);
     let radius = number(cx, "nodes width", 0.04) * unit;
@@ -210,14 +212,22 @@ fn labels(
             "Ni" => Some((p(0.0, reach - seps[2].1), TextAnchor::North)),
             "S" => Some((p(0.0, -reach - seps[2].1), TextAnchor::North)),
             "Si" => Some((p(0.0, -reach + seps[2].1), TextAnchor::South)),
-            "E" | "Ei" | "W" | "Wi" => {
-                cx.warn(format!("voltik: muxdemux label {key} (turned along its border) not drawn yet"));
-                None
-            }
+            _ => None,
+        };
+        // along the sides, turned a quarter
+        let side = match key.as_str() {
+            "E" => Some((p(width + seps[2].0, 0.0), TextAnchor::North)),
+            "Ei" => Some((p(width - seps[2].0, 0.0), TextAnchor::South)),
+            "W" => Some((p(-width - seps[2].0, 0.0), TextAnchor::South)),
+            "Wi" => Some((p(-width + seps[2].0, 0.0), TextAnchor::North)),
             _ => None,
         };
         if let Some((at, anchor)) = border {
-            texts.push(ShapeText { text: value.clone(), at, anchor, font: Some(fonts[2].clone()) });
+            texts.push(ShapeText { text: value.clone(), at, anchor, font: Some(fonts[2].clone()), ..Default::default() });
+            continue;
+        }
+        if let Some((at, anchor)) = side {
+            texts.push(ShapeText { text: value.clone(), at, anchor, font: Some(fonts[2].clone()), turn: 90.0, ..Default::default() });
             continue;
         }
         let Some((kind, side, n)) = parse(key) else { continue };
@@ -235,7 +245,7 @@ fn labels(
                     'b' => (p(at.x, at.y + sy + c), TextAnchor::South),
                     _ => (p(at.x, at.y - sy - c), TextAnchor::North),
                 };
-                texts.push(ShapeText { text: value.clone(), at, anchor, font: Some(fonts[0].clone()) });
+                texts.push(ShapeText { text: value.clone(), at, anchor, font: Some(fonts[0].clone()), upright, ..Default::default() });
             }
             "U" | "D" | "TL" | "TR" | "BL" | "BR" => {
                 let (sx, sy) = seps[1];
@@ -249,7 +259,7 @@ fn labels(
                     ('t', "L") => (p(at.x - sx, at.y + sy), TextAnchor::SouthEast),
                     _ => (p(at.x + sx, at.y + sy), TextAnchor::SouthWest),
                 };
-                texts.push(ShapeText { text: value.clone(), at, anchor, font: Some(fonts[1].clone()) });
+                texts.push(ShapeText { text: value.clone(), at, anchor, font: Some(fonts[1].clone()), upright, ..Default::default() });
             }
             "c" if on => {
                 let q = |a: f64, t: f64| p(at.x + out.x * a + turn.x * t, at.y + out.y * a + turn.y * t);
@@ -290,6 +300,13 @@ fn labels(
     }
     if !wedges.is_empty() {
         paths.push(ShapePath { segments: wedges, paint: ShapePaint::Stroke(thin), ..Default::default() });
+    }
+    // `bgpicture`: pgf's code, its x axis from -1 cm to 1 cm across the shape
+    let picture = cx.macro_body("voltik@mdbg").to_text();
+    if !picture.trim().is_empty() {
+        circles.push_str(&format!(
+            "\\pgfextra{{\\begin{{pgfscope}}\\pgftransformshift{{\\pgfpointanchor{{\\voltik@tn}}{{center}}}}\\pgftransformscale{{{width}}}{picture}\\end{{pgfscope}}}} "
+        ));
     }
     let code = if circles.is_empty() { String::new() } else { format!("\\pgfextra{{\\xdef\\voltik@tn{{\\tikzlastnode}}}} {circles}") };
     cx.run(Tokens::text(&format!("\\gdef\\voltik@md{{{code}}}")))?;

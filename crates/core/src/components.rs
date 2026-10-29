@@ -57,9 +57,19 @@ pub enum Part {
     Channel(&'static [Op]),
     /// Stroked `k` times the path's line width with round caps: a cute switch's lever.
     Lever(f64, &'static [Op]),
+    /// Stroked `k` times as wide as the component's outline, half transparent (an oscilloscope's
+    /// grid).
+    Faint(f64, &'static [Op]),
+    /// Stroked thick times the setting it names: a microphone's bar (`bipoles/mic/bar thickness`).
+    Weighted(&'static str, &'static [Op]),
+    /// An oscilloscope's trace, as `bipoles/oscope/waveform` says.
+    Waveform,
     /// Text in a font of `size` pt, its baseline starting at the point, `shift` away from it, turned
     /// by `turn` degrees: the point stretches with the component, the shift does not.
     Text { at: [f64; 2], shift: [f64; 2], size: f64, text: &'static str, turn: f64 },
+    /// Stroked `k` times the path's line width, with TikZ options of its own (a filter's grid:
+    /// `draw opacity=.3, dash pattern=…`).
+    Styled(f64, &'static str, &'static [Op]),
 }
 
 use Part::{Arrow, Body, Fill, Line, Modifier, Solid, Text, Thin};
@@ -82,6 +92,7 @@ pub enum Class {
     Switches,
     Transistors,
     LogicPorts,
+    Blocks,
 }
 
 impl Class {
@@ -102,6 +113,7 @@ impl Class {
             Class::Switches => "switches",
             Class::Transistors => "transistors",
             Class::LogicPorts => "logic ports",
+            Class::Blocks => "blocks",
         }
     }
 }
@@ -237,6 +249,9 @@ pub const COMPONENTS: &[Component] = &[
         ],
     ),
     bipole("tgeneric", Class::Resistors, 0.8, 0.28, &[Body(TBOX), TUNABLE]).band(0.35, 0.35).anchors(&[("wiper", [-0.2, -0.35]), ("tip", [0.2, 0.35])]),
+    // the generic ones filled with the color they are drawn in
+    resistor("fullgeneric", &[Solid(BOX), Line(BOX)]),
+    bipole("tfullgeneric", Class::Resistors, 0.8, 0.28, &[Solid(TBOX), Line(TBOX), TUNABLE]).band(0.35, 0.35).anchors(&[("wiper", [-0.2, -0.35]), ("tip", [0.2, 0.35])]),
     resistor("ageneric", &[Body(BOX), Solid(DARK_END), Thin(DARK_END)]),
     resistor(
         "memristor",
@@ -440,6 +455,8 @@ pub const ALIASES: &[(&str, Target)] = &[
     ("sgeneric", Fixed("sgeneric")),
     ("singeneric", Fixed("singeneric")),
     ("tgeneric", Fixed("tgeneric")),
+    ("fullgeneric", Fixed("fullgeneric")),
+    ("tfullgeneric", Fixed("tfullgeneric")),
     ("ageneric", Fixed("ageneric")),
     ("memristor", Fixed("memristor")),
     ("Mr", Fixed("memristor")),
@@ -553,6 +570,8 @@ const VOLTS: &[(&str, Volts)] = &[
     ("sgeneric", volts(0.15, 0.225, 0.3828)),
     ("singeneric", volts(0.15, 0.225, 0.3828)),
     ("tgeneric", volts(0.35, 0.525, 0.7128)),
+    ("fullgeneric", generic_volts(0.15, 0.3, 0.4653)),
+    ("tfullgeneric", volts(0.35, 0.525, 0.7128)),
     ("ageneric", generic_volts(0.15, 0.3, 0.4653)),
     ("memristor", generic_volts(0.15, 0.3, 0.4653)),
     ("american resistor", volts(0.15, 0.225, 0.3828)),
@@ -775,8 +794,10 @@ impl Component {
     }
 }
 
+mod blocks;
 mod diodes;
 mod instruments;
+pub use blocks::{names as block_names, setting_name as block_setting_name, size as blocks_size, text as block_text};
 mod mechanicals;
 mod misc;
 mod sources;
@@ -784,8 +805,17 @@ mod switches;
 mod transistors;
 
 /// The tables of components, by group of the manual.
-const GROUPS: &[&[Component]] =
-    &[COMPONENTS, sources::COMPONENTS, instruments::COMPONENTS, mechanicals::COMPONENTS, misc::COMPONENTS, diodes::COMPONENTS, switches::COMPONENTS, transistors::COMPONENTS];
+const GROUPS: &[&[Component]] = &[
+    COMPONENTS,
+    sources::COMPONENTS,
+    instruments::COMPONENTS,
+    mechanicals::COMPONENTS,
+    misc::COMPONENTS,
+    diodes::COMPONENTS,
+    switches::COMPONENTS,
+    transistors::COMPONENTS,
+    blocks::COMPONENTS,
+];
 
 /// The diodes' keys: the short ones (`D`, `sD`, `Ty`, `triac`…) follow the `diode` setting (`empty`,
 /// `full`, `stroke`; the styles `empty diodes`, `full diodes`, `stroke diodes`), the others name a
@@ -1190,13 +1220,18 @@ pub const BIPOLE_SHAPES: &[(&str, &str)] = &[
     ("xgenericshape", "xgeneric"),
 ];
 
+/// The bipoles' node shapes, with the blocks'.
+pub fn bipole_shapes() -> impl Iterator<Item = &'static (&'static str, &'static str)> {
+    BIPOLE_SHAPES.iter().chain(blocks::SHAPES)
+}
+
 pub fn find(name: &str) -> Option<&'static Component> {
     GROUPS.iter().flat_map(|g| g.iter()).find(|c| c.name == name)
 }
 
 /// Every key that names a component, and what it names.
 pub fn aliases() -> impl Iterator<Item = &'static (&'static str, Target)> {
-    ALIASES.iter().chain(SOURCE_ALIASES).chain(OTHER_ALIASES).chain(DIODE_ALIASES).chain(SWITCH_ALIASES).chain(TRANSISTOR_ALIASES)
+    ALIASES.iter().chain(SOURCE_ALIASES).chain(OTHER_ALIASES).chain(DIODE_ALIASES).chain(SWITCH_ALIASES).chain(TRANSISTOR_ALIASES).chain(blocks::ALIASES)
 }
 
 pub fn target(key: &str) -> Option<Target> {
@@ -1420,3 +1455,48 @@ pub const ARROW_INSET: f64 = 0.6;
 pub fn arrow_length(width: f64) -> f64 {
     2.79 / 72.0 * 2.54 + 3.0 * width
 }
+
+/// The traces of an oscilloscope's screen (`bipoles/oscope/waveform`), measured at its default size.
+pub const WAVEFORMS: &[(&str, &[Op])] = &[
+    ("ramps", &[Op::Move(-0.225, -0.075), Op::Line(-0.015, 0.075), Op::Line(-0.015, -0.075), Op::Line(0.195, 0.075), Op::Line(0.195, -0.075)]),
+    (
+        "sin",
+        &[
+            Op::Move(-0.18, 0.0),
+            Op::Curve([-0.1507, 0.0614], [-0.1226, 0.12], [-0.0901, 0.12]),
+            Op::Curve([-0.0575, 0.12], [-0.0294, 0.0614], [0.0, 0.0]),
+            Op::Curve([0.0294, -0.0614], [0.0574, -0.12], [0.09, -0.12]),
+            Op::Curve([0.1226, -0.12], [0.1506, -0.0614], [0.18, 0.0]),
+        ],
+    ),
+    (
+        "square",
+        &[
+            Op::Move(-0.225, -0.075),
+            Op::Line(-0.18, -0.075),
+            Op::Line(-0.18, 0.075),
+            Op::Line(0.0, 0.075),
+            Op::Line(0.0, -0.075),
+            Op::Line(0.18, -0.075),
+            Op::Line(0.18, 0.075),
+            Op::Line(0.225, 0.075),
+        ],
+    ),
+    (
+        "triangle",
+        &[Op::Move(-0.225, 0.0), Op::Line(-0.18, -0.075), Op::Line(-0.09, 0.075), Op::Line(0.0, -0.075), Op::Line(0.09, 0.075), Op::Line(0.18, -0.075), Op::Line(0.225, 0.0)],
+    ),
+    (
+        "lissajous",
+        &[
+            Op::Move(0.15, 0.105),
+            Op::Curve([0.1003, 0.1382], [-0.0072, 0.118], [-0.09, 0.0601]),
+            Op::Curve([-0.1729, 0.0021], [-0.1997, -0.0719], [-0.15, -0.105]),
+            Op::Curve([-0.1003, -0.1381], [0.0072, -0.118], [0.09, -0.0599]),
+            Op::Curve([0.1729, -0.002], [0.1997, 0.0719], [0.15, 0.105]),
+            Op::Close,
+        ],
+    ),
+    ("zero", &[Op::Move(-0.225, 0.0), Op::Line(0.225, 0.0)]),
+    ("none", &[]),
+];

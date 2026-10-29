@@ -57,7 +57,8 @@ fn the_pins_follow_the_options() {
 #[test]
 fn a_chip_is_filled_and_scaled() {
     let svg = quiet(r"\draw (0,0) node[dipchip, fill=yellow] {};").svg;
-    assert!(svg.contains("fill=\"#ff0\"") || svg.contains("fill=\"#ffff00\"") || svg.contains("rgb(255,255,0)"), "{svg}");
+    // xcolor's yellow is cmyk, drawn as Ghostscript draws it
+    assert!(svg.contains("fill=\"#fff200\""), "{svg}");
     let big = |s: &str| quiet(&format!(r"\ctikzset{{chips/scale={s}}} \draw (0,0) node[dipchip, hide numbers] {{}};")).svg;
     assert_ne!(paths(&big("1")), paths(&big("2")));
 }
