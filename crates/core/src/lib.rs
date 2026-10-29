@@ -33,6 +33,7 @@ const KEYS: &[(&str, KeyFn)] = &[
     ("/tikz/voltik/shapes", nodes::k_shapes),
     ("/tikz/voltik/class fill", nodes::k_class_fill),
     ("/tikz/voltik/rotary", nodes::k_rotary),
+    ("/tikz/voltik/logic port", nodes::k_logic_port),
 ];
 
 /// The settings each class of components has (`resistors/scale`), with their initial values.
@@ -73,7 +74,8 @@ fn definitions() -> String {
          bipoles/length/.initial=1.4cm, bipoles/thickness/.initial=2,\n\
          resistors/zigs/.initial=3, inductors/coils/.initial=, wiper pos/.initial=0.5, quadpoles style/.initial=, nodes width/.initial=0.04,\n\
          bipoles/inductors/core distance/.initial=2pt, bipoles/inductors/dot x distance/.initial=4pt, bipoles/inductors/dot y distance/.initial=1pt,\n\
-         resistor/.initial=american, inductor/.initial=cute, diode/.initial=empty, thyristor style/.initial=legacy, led arrows/.initial=anode, pd arrows/.initial=anode, diode whiskers/.initial=sloped, tjumper connections/.initial=00, tubes/anodes/.initial=3, transistor circle/scale circle radius/.initial=1, transistor circle/relative thickness/.initial=1, tr/ferroel gate/.initial=false, transistors/arrow pos/.initial=mid, tr/legacy text/.initial=false, legacy transistors text/.style={tr/legacy text=true}, bipoles/cuteswitch/shape/.initial=ocirc, bipoles/cuteswitch/height/.initial=.6, bipoles/cuteswitch/thickness/.initial=1, bipoles/jumper/shape/.initial=ocirc, multipoles/rotary/channels/.initial=5, multipoles/rotary/angle/.initial=60, multipoles/rotary/wiper/.initial=20,\n\
+         resistor/.initial=american, inductor/.initial=cute, diode/.initial=empty, thyristor style/.initial=legacy, led arrows/.initial=anode, pd arrows/.initial=anode, diode whiskers/.initial=sloped, tjumper connections/.initial=00, tr/no input leads/.initial=false, tr/no output leads/.initial=false, tr/no leads/.initial=false, tr/number inputs/.initial=,\n\
+         logic ports/.initial=american, american ports/.style={logic ports=american}, european ports/.style={logic ports=european}, ieee ports/.style={logic ports=ieee}, tubes/anodes/.initial=3, transistor circle/scale circle radius/.initial=1, transistor circle/relative thickness/.initial=1, tr/ferroel gate/.initial=false, transistors/arrow pos/.initial=mid, tr/legacy text/.initial=false, legacy transistors text/.style={tr/legacy text=true}, bipoles/cuteswitch/shape/.initial=ocirc, bipoles/cuteswitch/height/.initial=.6, bipoles/cuteswitch/thickness/.initial=1, bipoles/jumper/shape/.initial=ocirc, multipoles/rotary/channels/.initial=5, multipoles/rotary/angle/.initial=60, multipoles/rotary/wiper/.initial=20,\n\
          multipoles/rotary/arrow/.initial=none, multipoles/rotary/thickness/.initial=1, multipoles/rotary/shape/.initial=ocirc, tripoles/spdt/width/.initial=.85, double bipole L/.initial=, double bipole R/.initial=, db/L invert/.initial=false, db/R invert/.initial=false,\n\
          double bipole L invert/.code={\\pgfkeys{/tikz/circuitikz/db/L invert=true}}, double bipole R invert/.code={\\pgfkeys{/tikz/circuitikz/db/R invert=true}},\n\
          every double bipole L/.style={}, every double bipole R/.style={}, transformer L1/.style={}, transformer L2/.style={}, en amp text/.initial=, component text/.initial=center, left text distance/.initial=.3em, tr/noinv input up/.initial=false, tr/noinv input down/.initial=false, tr/noinv output up/.initial=false,\n\
@@ -210,6 +212,16 @@ fn definitions() -> String {
     // `tripoles/mos style/arrows`: every MOSFET with its arrow (`arrowmos`)
     keys.push("/tikz/circuitikz/tripoles/mos style/arrows/.style={/tikz/circuitikz/tr/arrowmos=true}".into());
     keys.push("/tikz/circuitikz/tripoles/mos style/no arrows/.style={/tikz/circuitikz/tr/arrowmos=false}".into());
+    // the logic ports by the `logic ports` style (`and port`: American, European or IEEE), and their leads
+    for kind in ["and", "or", "nand", "nor", "xor", "xnor", "buffer", "not"] {
+        keys.push(format!("{kind} port/.style={{voltik/logic port={kind}}}"));
+    }
+    for style in ["american", "european", "ieee"] {
+        keys.push(format!("{style} ports/.style={{/tikz/circuitikz/logic ports={style}}}"));
+    }
+    keys.push("input leads/.style={/tikz/circuitikz/tr/no input leads=false, /tikz/circuitikz/tr/no leads=false}".into());
+    keys.push("output leads/.style={/tikz/circuitikz/tr/no output leads=false, /tikz/circuitikz/tr/no leads=false}".into());
+    keys.push("all leads/.style={/tikz/circuitikz/tr/no input leads=false, /tikz/circuitikz/tr/no output leads=false, /tikz/circuitikz/tr/no leads=false}".into());
     // `n=R1`: a component's name, as `name=R1`
     keys.push("n/.style={name={#1}}".into());
     // `t=…`: the text inside an instrument
@@ -255,6 +267,7 @@ fn definitions() -> String {
         "diode whiskers".into(),
         "tjumper connections".into(),
         "component text".into(),
+        "logic ports".into(),
         "bipoles/jumper/shape".into(),
         "bipoles/cuteswitch/shape".into(),
         "left text distance".into(),
@@ -396,6 +409,9 @@ fn option_style(option: &str) -> Option<&'static str> {
         "fulldiode" | "fulldiodes" => "full diodes",
         "strokediode" | "strokediodes" => "stroke diodes",
         "legacytransistorstext" => "legacy transistors text",
+        "americanports" => "american ports",
+        "europeanports" => "european ports",
+        "ieeeports" => "ieee ports",
         _ => return None,
     })
 }

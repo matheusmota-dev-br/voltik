@@ -12,6 +12,7 @@ use crate::bipole::setting;
 
 mod amplifiers;
 mod doubles;
+mod logic;
 mod transistors;
 mod tubes;
 use crate::components::Op;
@@ -99,7 +100,7 @@ const fn node(name: &'static str, parts: &'static [Part], bounds: [f64; 4]) -> N
 
 /// Every size a setting changes, for its default.
 pub fn params() -> impl Iterator<Item = &'static Param> {
-    NODES.iter().chain(transistors::TRANSISTORS).chain(tubes::TUBES).chain(amplifiers::AMPLIFIERS).chain(doubles::DOUBLE_BIPOLES).flat_map(|n| n.params)
+    NODES.iter().chain(transistors::TRANSISTORS).chain(tubes::TUBES).chain(amplifiers::AMPLIFIERS).chain(doubles::DOUBLE_BIPOLES).chain(logic::LOGIC).flat_map(|n| n.params)
 }
 
 impl Part {
@@ -281,6 +282,7 @@ impl Node {
             n if transistors::TRANSISTORS.iter().any(|t| t.name == n) => Some("transistors"),
             n if tubes::TUBES.iter().any(|t| t.name == n) => Some("tubes"),
             n if amplifiers::AMPLIFIERS.iter().any(|t| t.name == n) => Some("amplifiers"),
+            n if logic::LOGIC.iter().any(|t| t.name == n) => Some("logic ports"),
             _ => None,
         }
     }
@@ -1303,12 +1305,15 @@ const FLOWHEAD: &[Op] = &[M(0.1437, 0.0), L(0.1437, -0.05), L(0.25, 0.0), L(0.14
 pub const TERMINALS: &[&str] = &["circ", "ocirc", "diamondpole", "odiamondpole", "squarepole", "osquarepole", "rectjoinfill"];
 
 pub fn find(name: &str) -> Option<&'static Node> {
-    NODES.iter().chain(transistors::TRANSISTORS).chain(tubes::TUBES).chain(amplifiers::AMPLIFIERS).chain(doubles::DOUBLE_BIPOLES).find(|n| n.name == name)
+    NODES.iter().chain(transistors::TRANSISTORS).chain(tubes::TUBES).chain(amplifiers::AMPLIFIERS).chain(doubles::DOUBLE_BIPOLES).chain(logic::LOGIC).find(|n| n.name == name)
 }
 
 /// The transistors', tubes' and amplifiers' options that change their drawing, in the order of their variants'
 /// names (`npn|bodydiode`), and the ones with a value.
 pub const VARIANT_FLAGS: &[&str] = &[
+    "no input leads",
+    "no output leads",
+    "no leads",
     "noinv input up",
     "noinv input down",
     "noinv output up",
@@ -1334,7 +1339,7 @@ pub const VARIANT_FLAGS: &[&str] = &[
     "doublegate",
     "ferroel gate",
 ];
-pub const VARIANT_VALUES: &[&str] = &["collectors", "emitters", "bjt pins width", "bjt multi height"];
+pub const VARIANT_VALUES: &[&str] = &["number inputs", "collectors", "emitters", "bjt pins width", "bjt multi height"];
 
 /// The transistors', tubes', amplifiers' and double bipoles' shapes (`npn`, `triode`, `op amp`,
 /// `transformer`…), without their variants.
@@ -1344,8 +1349,9 @@ pub fn variant_shapes() -> impl Iterator<Item = &'static str> {
         .chain(tubes::TUBES)
         .chain(amplifiers::AMPLIFIERS)
         .chain(doubles::DOUBLE_BIPOLES)
+        .chain(logic::LOGIC)
         .map(|n| n.name)
-        .filter(|n| !n.contains('|') && !n.contains('@'))
+        .filter(|n| !n.contains('|') && !n.contains('@') && !n.contains('~'))
 }
 
 /// The transistors' shapes, without their variants.
@@ -1391,7 +1397,8 @@ fn variant(cx: &mut Context, base: &str) -> Result<Option<&'static Node>, Error>
         name.push_str("|arrow pos=end");
     }
     // options that do not change this one (`arrow pos=end` on a MOSFET) are dropped
-    let plain = name.replace("|arrow pos=end", "").replace("|ferroel gate", "").replace("|arrowmos", "");
+    let plain = name.replace("|number inputs=2", "").replace("|arrow pos=end", "").replace("|ferroel gate", "").replace("|arrowmos", "");
+    let name = name.replace("|number inputs=2", "");
     match find(&name).or_else(|| find(&name.replace("|arrow pos=end", ""))).or_else(|| find(&plain)) {
         Some(n) => Ok(Some(n)),
         None => {
@@ -1721,6 +1728,17 @@ pub fn k_rotary(cx: &mut Context, v: Option<Tokens>) -> Result<(), Error> {
     cx.keys(Tokens::text(&format!(
         "shape=rotaryswitch, /tikz/circuitikz/multipoles/rotary/channels={n}, /tikz/circuitikz/multipoles/rotary/angle={angle}, /tikz/circuitikz/multipoles/rotary/wiper={wiper}{arrow}, voltik/class fill=switches, append after command={{\\voltik@rs}}"
     )))
+}
+
+/// `voltik/logic port={and}`: the port of the `logic ports` style (`ieee` draws `ieeestd and port`).
+pub fn k_logic_port(cx: &mut Context, v: Option<Tokens>) -> Result<(), Error> {
+    let kind = cx.expand(v.unwrap_or_default())?;
+    let style = match setting(cx, "logic ports")?.as_str() {
+        "european" => "european",
+        "ieee" => "ieeestd",
+        _ => "american",
+    };
+    cx.keys(Tokens::text(&format!("{style} {kind} port")))
 }
 
 /// `voltik/shapes`: declares every node component to tikra.
