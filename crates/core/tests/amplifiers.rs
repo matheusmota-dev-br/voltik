@@ -1,4 +1,5 @@
-//! Amplifiers: each node draws with its anchors and its `+` and `-`, and `noinv input up` swaps them.
+//! Amplifiers, transformers and motors: each node draws with its anchors, an amplifier with its `+`
+//! and `-` (`noinv input up` swaps them), a transformer with the inductors' style.
 
 fn convert(body: &str) -> voltik::Output {
     voltik::convert(&format!("\\begin{{circuitikz}}{body}\\end{{circuitikz}}")).unwrap()
@@ -37,4 +38,23 @@ fn the_signs_are_drawn_and_swap() {
     // the anchors swap with them
     let at = |opts: &str| paths(&quiet(&format!(r"\draw (0,0) node[{opts}] (A) {{}}; \draw[red] (A.+) -- (0,0);")).svg).last().cloned();
     assert_ne!(at("op amp"), at("op amp, noinv input up"));
+}
+
+#[test]
+fn transformers_follow_the_inductors_and_quadpoles_style() {
+    let draw = |pre: &str| paths(&quiet(&format!(r"{pre} \draw (0,0) node[transformer] (T) {{}} (T.A1) -- (T.B2) (T.inner dot A1) -- (T.outer dot B2);")).svg);
+    let cute = draw("");
+    assert_ne!(draw(r"\ctikzset{inductor=american}"), cute);
+    assert_ne!(draw(r"\ctikzset{inductor=european}"), cute);
+    assert_ne!(draw(r"\ctikzset{quadpoles style=inline}"), cute);
+    for node in ["transformer core", "gyrator", "double bipole"] {
+        quiet(&format!(r"\draw (0,0) node[{node}] (T) {{}} (T.A1) -- (T.A2) -- (T.B1) -- (T.B2);"));
+    }
+}
+
+#[test]
+fn electro_mechanical_devices() {
+    // its circle is white unless filled, over its brushes
+    assert!(quiet(r"\draw (0,0) node[elmech] (M) {M} (M.top) -- (M.bottom);").svg.contains("fill=\"#ffffff\""));
+    quiet(r"\draw (0,0) to[Telmech=M, n=motor] (2,0) (motor.top) -- ++(0,1);");
 }
