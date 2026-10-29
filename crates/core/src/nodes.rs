@@ -154,6 +154,57 @@ fn mix_ops(base: &[Op], others: &[(f64, &[Op])]) -> Vec<Op> {
     out
 }
 
+/// A closed path of four curves: a transistor's circle.
+fn is_circle(ops: &[Op]) -> bool {
+    ops.len() == 6 && matches!(ops[0], Op::Move(..)) && matches!(ops[5], Op::Close) && ops[1..5].iter().all(|o| matches!(o, Op::Curve(..)))
+}
+
+/// A transistor's circle `k` times as large, from its left side: its paths (the closed ones of four
+/// curves) and its anchors (`circle C`…).
+fn scale_circle(sized: &mut Sized, k: f64) {
+    let Some((_, ops)) = sized.parts.iter().find(|(_, ops)| is_circle(ops)) else { return };
+    let xs: Vec<f64> = ops
+        .iter()
+        .flat_map(|o| match *o {
+            Op::Move(x, _) | Op::Line(x, _) => vec![x],
+            Op::Curve(a, b, c) => vec![a[0], b[0], c[0]],
+            Op::Close => vec![],
+        })
+        .collect();
+    let left = xs.iter().copied().fold(f64::MAX, f64::min);
+    let right = xs.iter().copied().fold(f64::MIN, f64::max);
+    // (it starts at its right, level with its center)
+    let cy = match ops[0] {
+        Op::Move(_, y) => y,
+        _ => 0.0,
+    };
+    let pivot = [left, cy];
+    let grow = |p: [f64; 2]| [pivot[0] + k * (p[0] - pivot[0]), pivot[1] + k * (p[1] - pivot[1])];
+    for (_, ops) in sized.parts.iter_mut().filter(|(_, ops)| is_circle(ops)) {
+        for o in ops.iter_mut() {
+            *o = match *o {
+                Op::Move(x, y) => {
+                    let q = grow([x, y]);
+                    Op::Move(q[0], q[1])
+                }
+                Op::Line(x, y) => {
+                    let q = grow([x, y]);
+                    Op::Line(q[0], q[1])
+                }
+                Op::Curve(a, b, c) => Op::Curve(grow(a), grow(b), grow(c)),
+                Op::Close => Op::Close,
+            };
+        }
+    }
+    for (name, p) in sized.anchors.iter_mut() {
+        if name.starts_with("circle") {
+            *p = grow(*p);
+        }
+    }
+    let r = (right - left) / 2.0 * k;
+    sized.extent.extend([[pivot[0], pivot[1] - r], [pivot[0] + 2.0 * r, pivot[1] + r]]);
+}
+
 /// A node drawn with its sizes: its parts, box, anchors, extent and the shift of its text.
 struct Sized {
     parts: Vec<(Part, Vec<Op>)>,
@@ -1281,6 +1332,7 @@ pub const VARIANT_FLAGS: &[&str] = &[
     "fdsoi",
     "fdsoidot",
     "doublegate",
+    "ferroel gate",
 ];
 pub const VARIANT_VALUES: &[&str] = &["collectors", "emitters", "bjt pins width", "bjt multi height"];
 
@@ -1298,7 +1350,7 @@ pub fn variant_shapes() -> impl Iterator<Item = &'static str> {
 
 /// The transistors' shapes, without their variants.
 pub fn transistor_shapes() -> impl Iterator<Item = &'static str> {
-    transistors::TRANSISTORS.iter().map(|n| n.name).filter(|n| !n.contains('|'))
+    transistors::TRANSISTORS.iter().map(|n| n.name).filter(|n| !n.contains('|') && !n.contains('@'))
 }
 
 /// The variant of transistor, tube or amplifier `base` its options ask for, or the plain one (and a warning) when
@@ -1327,7 +1379,20 @@ fn variant(cx: &mut Context, base: &str) -> Result<Option<&'static Node>, Error>
             name.push_str(&format!("|{key}={value}"));
         }
     }
-    match find(&name) {
+    // a multi-anode tube's anodes (`tubes/anodes`, 3)
+    if base == "matube" {
+        let anodes = crate::bipole::number(cx, "tubes/anodes", 3.0).round();
+        if anodes != 3.0 {
+            name.push_str(&format!("|anodes={anodes}"));
+        }
+    }
+    // the transistors' arrows at the end (`transistors/arrow pos=end`)
+    if setting(cx, "transistors/arrow pos")? == "end" {
+        name.push_str("|arrow pos=end");
+    }
+    // options that do not change this one (`arrow pos=end` on a MOSFET) are dropped
+    let plain = name.replace("|arrow pos=end", "").replace("|ferroel gate", "").replace("|arrowmos", "");
+    match find(&name).or_else(|| find(&name.replace("|arrow pos=end", ""))).or_else(|| find(&plain)) {
         Some(n) => Ok(Some(n)),
         None => {
             cx.warn(format!("voltik: {} not drawn yet; drawn as a plain {base}", name.replace('|', ", ")));
@@ -1697,8 +1762,22 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
     let at = |p: [f64; 2]| Point::new(p[0] * unit, p[1] * unit);
     let w = input.line_width;
     let filled = !cx.macro_text("voltik@fill").is_empty();
-    let sized = sized(cx, n)?;
+    // a tube wider than tall has its own measures
+    let n = match find(&format!("{}~wide", n.name)) {
+        Some(wide) if crate::bipole::number(cx, "tubes/width", 1.0) > crate::bipole::number(cx, "tubes/height", 1.4) => wide,
+        _ => n,
+    };
+    let mut sized = sized(cx, n)?;
+    let circled = n.name.contains("tr circle");
+    let circle_thickness = crate::bipole::number(cx, "transistor circle/relative thickness", 1.0);
+    // the class's `thickness` (`tubes/thickness=4`), times the line width, for the thick lines
+    let thick = n.class().and_then(|c| setting(cx, &format!("{c}/thickness")).ok()).and_then(|t| t.parse::<f64>().ok()).unwrap_or(2.0);
     let lever = crate::bipole::number(cx, "bipoles/cuteswitch/thickness", 1.0);
+    // `transistor circle/scale circle radius`: a transistor's circle grows from its left side
+    let radius = crate::bipole::number(cx, "transistor circle/scale circle radius", 1.0);
+    if (radius - 1.0).abs() > 1e-9 && n.name.contains("tr circle") {
+        scale_circle(&mut sized, radius);
+    }
     // an `en amp` with an `en amp text` does not draw its ▷∞, the solid parts at its top
     let own_text = input.name == "en amp" && !setting(cx, "en amp text")?.is_empty();
     let paths = sized
@@ -1710,7 +1789,9 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
         .map(|(part, ops)| {
             let paint = match *part {
                 Part::Thin(_) => ShapePaint::Stroke(w),
-                Part::Thick(_) => ShapePaint::Stroke(2.0 * w),
+                // a transistor's circle, `transistor circle/relative thickness` of the others
+                Part::Thick(ops) if circled && is_circle(ops) => ShapePaint::Stroke(thick * w * circle_thickness),
+                Part::Thick(_) => ShapePaint::Stroke(thick * w),
                 Part::Thicker(_) => ShapePaint::Stroke(3.0 * w),
                 Part::Fill(_) => ShapePaint::Fill,
                 Part::Solid(_) => ShapePaint::Solid,
@@ -1758,6 +1839,25 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
         Text::Middle(p) => Point::new(p[0] * unit - input.width / 2.0, p[1] * unit + (input.depth - input.height) / 2.0),
     };
     let text = Point::new(text.x + sized.text_shift[0] * unit, text.y + sized.text_shift[1] * unit);
+    // a transistor's text: up or down (`component text`), or near its collector (`legacy
+    // transistors text`); measured on CircuiTikZ: 0.7 of its height away (0.95 and twice as far
+    // right for the multi-terminal BJTs)
+    let text = if transistors::TRANSISTORS.iter().any(|t| t.name == n.name) {
+        let mode = setting(cx, "component text")?;
+        let legacy = setting(cx, "tr/legacy text")? == "true";
+        let anchor = sized.anchors.iter().find(|(a, _)| *a == "text").map_or([0.05, 0.0], |(_, p)| *p);
+        let bjt = n.name.starts_with("bjt");
+        let (k, x) = if bjt { (0.95, 2.0 * anchor[0]) } else { (0.7, anchor[0]) };
+        let middle = |y: f64| Point::new(x * unit, y * unit + (input.depth - input.height) / 2.0);
+        match mode.as_str() {
+            "up" | "left" => middle(k * top),
+            "down" => middle(k * bottom),
+            _ if legacy && !bjt => Point::new(2.0 * anchor[0] * unit, 0.7 * top * unit),
+            _ => text,
+        }
+    } else {
+        text
+    };
     // `component text=left`: an amplifier's text starts `left text distance` from its left edge
     let leftedge = sized.anchors.iter().find(|(a, _)| *a == "leftedge").map(|(_, p)| p[0]);
     let text = match leftedge {

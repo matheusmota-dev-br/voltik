@@ -73,7 +73,7 @@ fn definitions() -> String {
          bipoles/length/.initial=1.4cm, bipoles/thickness/.initial=2,\n\
          resistors/zigs/.initial=3, inductors/coils/.initial=, wiper pos/.initial=0.5, quadpoles style/.initial=, nodes width/.initial=0.04,\n\
          bipoles/inductors/core distance/.initial=2pt, bipoles/inductors/dot x distance/.initial=4pt, bipoles/inductors/dot y distance/.initial=1pt,\n\
-         resistor/.initial=american, inductor/.initial=cute, diode/.initial=empty, thyristor style/.initial=legacy, led arrows/.initial=anode, pd arrows/.initial=anode, diode whiskers/.initial=sloped, tjumper connections/.initial=00, bipoles/cuteswitch/shape/.initial=ocirc, bipoles/cuteswitch/height/.initial=.6, bipoles/cuteswitch/thickness/.initial=1, bipoles/jumper/shape/.initial=ocirc, multipoles/rotary/channels/.initial=5, multipoles/rotary/angle/.initial=60, multipoles/rotary/wiper/.initial=20,\n\
+         resistor/.initial=american, inductor/.initial=cute, diode/.initial=empty, thyristor style/.initial=legacy, led arrows/.initial=anode, pd arrows/.initial=anode, diode whiskers/.initial=sloped, tjumper connections/.initial=00, tubes/anodes/.initial=3, transistor circle/scale circle radius/.initial=1, transistor circle/relative thickness/.initial=1, tr/ferroel gate/.initial=false, transistors/arrow pos/.initial=mid, tr/legacy text/.initial=false, legacy transistors text/.style={tr/legacy text=true}, bipoles/cuteswitch/shape/.initial=ocirc, bipoles/cuteswitch/height/.initial=.6, bipoles/cuteswitch/thickness/.initial=1, bipoles/jumper/shape/.initial=ocirc, multipoles/rotary/channels/.initial=5, multipoles/rotary/angle/.initial=60, multipoles/rotary/wiper/.initial=20,\n\
          multipoles/rotary/arrow/.initial=none, multipoles/rotary/thickness/.initial=1, multipoles/rotary/shape/.initial=ocirc, tripoles/spdt/width/.initial=.85, double bipole L/.initial=, double bipole R/.initial=, db/L invert/.initial=false, db/R invert/.initial=false,\n\
          double bipole L invert/.code={\\pgfkeys{/tikz/circuitikz/db/L invert=true}}, double bipole R invert/.code={\\pgfkeys{/tikz/circuitikz/db/R invert=true}},\n\
          every double bipole L/.style={}, every double bipole R/.style={}, transformer L1/.style={}, transformer L2/.style={}, en amp text/.initial=, component text/.initial=center, left text distance/.initial=.3em, tr/noinv input up/.initial=false, tr/noinv input down/.initial=false, tr/noinv output up/.initial=false,\n\
@@ -205,6 +205,11 @@ fn definitions() -> String {
     for (style, arrow) in [("rotary switch", ""), ("rotary switch -", "none"), ("rotary switch <-", "ccw"), ("rotary switch ->", "cw"), ("rotary switch <->", "both")] {
         keys.push(format!("{style}/.style={{voltik/rotary={{{arrow}}}{{#1}}}}, {style}/.default={{}}"));
     }
+    keys.push("legacy transistors text/.style={/tikz/circuitikz/tr/legacy text=true}".into());
+    keys.push("no ferroel gate/.style={/tikz/circuitikz/tr/ferroel gate=false}".into());
+    // `tripoles/mos style/arrows`: every MOSFET with its arrow (`arrowmos`)
+    keys.push("/tikz/circuitikz/tripoles/mos style/arrows/.style={/tikz/circuitikz/tr/arrowmos=true}".into());
+    keys.push("/tikz/circuitikz/tripoles/mos style/no arrows/.style={/tikz/circuitikz/tr/arrowmos=false}".into());
     // `n=R1`: a component's name, as `name=R1`
     keys.push("n/.style={name={#1}}".into());
     // `t=…`: the text inside an instrument
@@ -300,6 +305,10 @@ fn definitions() -> String {
     s.push_str("\\tikzset{name/.code={\\def\\voltik@name{#1}\\pgfkeys{/tikz/voltik@name={#1}}}}\n");
     // `\scalebox{…}[…]{text}`: the text, unscaled (a mirrored text in a mirrored node reads the same)
     s.push_str("\\def\\scalebox#1{\\@ifnextchar[{\\voltik@sbo}{\\voltik@sb}}\\def\\voltik@sbo[#1]#2{#2}\\def\\voltik@sb#1{#1}\n");
+    // the manual's text helpers: a text flipped back in a flipped node (`\\ctikzflipx`), without its
+    // depth (`\\killdepth`), turned (`\\rotatebox`): the text itself
+    s.push_str("\\def\\raisebox#1{\\@ifnextchar[{\\voltik@rbo}{\\voltik@sb}}\\def\\voltik@rbo[#1]{\\@ifnextchar[{\\voltik@sbo}{\\voltik@sb}}\n");
+    s.push_str("\\def\\ctikzflipx#1{#1}\\def\\ctikzflipy#1{#1}\\def\\ctikzflipxy#1{#1}\\def\\killdepth#1{#1}\\def\\rotatebox#1#2{#2}\n");
     // siunitx's unit macros, for a unit written outside `\SI` (which is rewritten before, in `convert`)
     for (name, symbol) in label::UNITS {
         s.push_str(&format!("\\def\\{name}{{{symbol}}}"));
@@ -311,7 +320,8 @@ fn definitions() -> String {
     s.push_str("\\def\\voltik@cs{}\\def\\voltik@rs{}\\def\\voltik@bp{}\\def\\voltik@db{}\\def\\voltik@tr{}\\def\\voltik@bn{}\\def\\voltik@coil{-0}\n");
     s.push_str("\\pgfkeys{/tikz/voltik/shapes}\n");
     // the node components' sizes (`tripoles/op amp/width`), at their defaults
-    let mut sizes: Vec<&nodes::Param> = nodes::params().collect();
+    // (the defaults of the measured sizes, not of a tube's wide measures)
+    let mut sizes: Vec<&nodes::Param> = nodes::params().filter(|p| !p.name.contains('~')).collect();
     sizes.dedup_by_key(|p| p.setting);
     for p in sizes {
         s.push_str(&format!("\\pgfkeys{{/tikz/circuitikz/{}/.initial={}}}\n", p.setting, p.default));
@@ -385,6 +395,7 @@ fn option_style(option: &str) -> Option<&'static str> {
         "emptydiode" | "emptydiodes" => "empty diodes",
         "fulldiode" | "fulldiodes" => "full diodes",
         "strokediode" | "strokediodes" => "stroke diodes",
+        "legacytransistorstext" => "legacy transistors text",
         _ => return None,
     })
 }

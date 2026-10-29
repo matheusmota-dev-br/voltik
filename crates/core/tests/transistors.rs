@@ -75,3 +75,33 @@ fn tubes_draw_with_their_anchors_and_options() {
         assert_ne!(draw(opts), draw(base), "{opts}");
     }
 }
+
+#[test]
+fn transistor_texts_and_options() {
+    let text = |opts: &str| quiet(&format!(r"\draw (0,0) node[npn{opts}] {{$Q$}};")).svg;
+    let plain = text("");
+    for opts in [", component text=up", ", component text=down", ", legacy transistors text"] {
+        assert_ne!(text(opts), plain, "{opts}");
+    }
+    // the manual's text helpers
+    quiet(r"\draw (0,0) node[npn, xscale=-1] {\ctikzflipx{T1}} (2,0) node[nmos] {\killdepth{q1}} (4,0) node {\rotatebox{90}{x} \raisebox{1pt}[2pt][0pt]{y}};");
+    let draw = |pre: &str, node: &str| paths(&quiet(&format!(r"{pre} \draw (0,0) node[{node}] {{}};")).svg);
+    assert_ne!(draw("", "nmos, ferroel gate"), draw("", "nmos"));
+    assert_eq!(draw(r"\ctikzset{ferroel gate}", "npn"), draw("", "npn"), "an option a shape does not have changes nothing");
+    assert_ne!(draw(r"\ctikzset{transistors/arrow pos=end}", "npn"), draw("", "npn"));
+    assert_ne!(draw(r"\ctikzset{transistors/jfet gate height=0.5}", "njfet"), draw("", "njfet"));
+    assert_ne!(draw(r"\ctikzset{transistor circle/scale circle radius=1.4}", "npn, tr circle"), draw("", "npn, tr circle"));
+    assert_ne!(draw(r"\ctikzset{tripoles/mos style/arrows}", "nmos"), draw("", "nmos"));
+}
+
+#[test]
+fn tubes_sizes_and_anodes() {
+    let draw = |pre: &str, node: &str| paths(&quiet(&format!(r"{pre} \draw (0,0) node[{node}] (T) {{}};")).svg);
+    let triode = draw("", "triode");
+    for pre in [r"\ctikzset{tubes/width=1.2}", r"\ctikzset{tubes/width=2, tubes/height=1}", r"\ctikzset{tubes/thickness=4}"] {
+        assert_ne!(draw(pre, "triode"), triode, "{pre}");
+    }
+    assert_ne!(draw(r"\ctikzset{tubes/filament angle=40, tubes/filament distance=0.2}", "triode, filament"), draw("", "triode, filament"));
+    quiet(r"\ctikzset{tubes/anodes=10, tubes/width=3.6, tubes/height=1} \draw (0,0) node[matube, filament, nocathode] (A) {} (A.anode 10) -- (A.anode 1);");
+    assert_ne!(draw(r"\ctikzset{monopoles/dynode/arc pos=0.7, monopoles/dynode/top width=0.5}", "dynode"), draw("", "dynode"));
+}
