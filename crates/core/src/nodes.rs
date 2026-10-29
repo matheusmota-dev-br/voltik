@@ -2001,7 +2001,14 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
     let circled = n.name.contains("tr circle");
     let circle_thickness = crate::bipole::number(cx, "transistor circle/relative thickness", 1.0);
     // the class's `thickness` (`tubes/thickness=4`), times the line width, for the thick lines
-    let thick = n.class().and_then(|c| setting(cx, &format!("{c}/thickness")).ok()).and_then(|t| t.parse::<f64>().ok()).unwrap_or(2.0);
+    // (the amplifiers' and logic ports' is the tripoles', `tripoles/thickness`, unless their own is set)
+    let tripole = matches!(n.class(), Some("amplifiers" | "logic ports"));
+    let thick = n
+        .class()
+        .and_then(|c| setting(cx, &format!("{c}/thickness")).ok())
+        .and_then(|t| t.parse::<f64>().ok())
+        .or_else(|| tripole.then(|| crate::bipole::number(cx, "tripoles/thickness", 2.0)))
+        .unwrap_or(2.0);
     let lever = crate::bipole::number(cx, "bipoles/cuteswitch/thickness", 1.0);
     // `transistor circle/scale circle radius`: a transistor's circle grows from its left side
     let radius = crate::bipole::number(cx, "transistor circle/scale circle radius", 1.0);

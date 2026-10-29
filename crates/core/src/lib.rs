@@ -222,12 +222,13 @@ fn definitions() -> String {
     // the American ports' sizes that voltik has measured some of (`tripoles/american or port/height`)
     s.push_str("\\pgfkeys{/tikz/circuitikz/.cd");
     for kind in ["and", "or", "nand", "nor", "xor", "xnor"] {
-        s.push_str(&format!(", tripoles/american {kind} port/height/.initial=.8"));
+        // (`input height` changes none of the ports measured, with 2 or 3 inputs)
+        s.push_str(&format!(", tripoles/american {kind} port/height/.initial=.8, tripoles/american {kind} port/input height/.initial=.5"));
         if kind.ends_with("or") {
             s.push_str(&format!(", tripoles/american {kind} port/inner/.initial=0.3, tripoles/american {kind} port/angle/.initial=70"));
         }
     }
-    s.push_str("}\n");
+    s.push_str(", tripoles/thickness/.initial=2}\n");
     // `\ctikztextnot{Q}`: a text with a bar over it
     s.push_str("\\def\\ctikztextnot#1{\\ensuremath{\\overline{\\mbox{#1}}}}\n");
     let mut keys: Vec<String> = vec![
