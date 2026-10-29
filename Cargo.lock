@@ -732,14 +732,14 @@ dependencies = [
 
 [[package]]
 name = "voltik"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "tikra",
 ]
 
 [[package]]
 name = "voltik-cli"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "tikra",
  "voltik",
@@ -747,7 +747,7 @@ dependencies = [
 
 [[package]]
 name = "voltik-python"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "pyo3",
  "voltik",
@@ -755,7 +755,7 @@ dependencies = [
 
 [[package]]
 name = "voltik-wasm"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "serde_json",
  "voltik",
