@@ -4,9 +4,9 @@ What changed in each release of voltik: the crates `voltik` and `voltik-cli`, `@
 
 Each release has a headline (the line under its title), what changed, and the figures of [`corpus/`](corpus) that show it (`Figures:`), drawn by the site with today's voltik. `scripts/release.sh` will not release a version without its section here, and makes the GitHub release from it.
 
-## Unreleased
+## 0.11.0 - 2026-10-29
 
-Transformers and motors.
+Transformers and motors, the sizes of components, and bipoles as nodes.
 
 - The double bipoles as nodes: `transformer` and `transformer core`, their coils by the `inductor` setting, `gyrator` and `double bipole`, each also `quadpoles style=inline`, with their anchors (`A1`…`B2`, the dots).
 - The electro-mechanical device `elmech`, and `Telmech` on a path.
