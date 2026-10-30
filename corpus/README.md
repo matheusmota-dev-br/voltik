@@ -4,6 +4,7 @@ Hand-made circuits, one folder per topic, used by the gallery of the site and by
 
 | Folder | What its figures show |
 |---|---|
+| `classics/` | Circuits every textbook has: rectifiers, op-amp stages, transistor pairs, oscillators, CMOS gates, latches, counters, converters, and the infinite networks (ladders, grids, the resistor cube) |
 | `circuits/` | Small whole circuits: filters, dividers, ladders, resonant tanks |
 | `components/` | The components of each family, side by side: resistive bipoles, American and European resistors, capacitors, inductors |
 | `labels/` | Labels and annotations: sides, units, straight, rotated and smart alignment |

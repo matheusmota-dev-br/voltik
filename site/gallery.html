@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>voltik gallery</title>
-<meta name="description" content="voltik's corpus of circuits, by topic, drawn live in your browser from their CircuiTikZ source: whole circuits, labels and annotations, American and European styles.">
+<meta name="description" content="voltik's corpus of circuits, by topic, drawn live in your browser from their CircuiTikZ source: classic circuits, whole circuits, labels and annotations, American and European styles.">
 <link rel="icon" href="pkg/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="pkg/favicon-32.png" type="image/png" sizes="32x32">
 <link rel="apple-touch-icon" href="pkg/apple-touch-icon.png">
@@ -67,6 +67,7 @@
   const escape = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   // the folders of corpus/, in this order: title, what they show, and the figure on their card
   const TOPICS = {
+    "classics": ["Classic circuits", "Circuits every textbook has: rectifiers, op-amp stages, transistor pairs, oscillators, CMOS gates, latches and counters, converters, and the infinite networks: ladders, grids and the resistor cube.", "astable-multivibrator"],
     "circuits": ["Circuits", "Small whole circuits: filters, dividers, ladders and resonant tanks.", "ladder-network"],
     "labels": ["Labels", "Labels and annotations: sides, units, straight, rotated and smart alignment.", "labels-around"],
     "styles": ["Styles and settings", "American and European styles, \\ctikzset settings, mirror and invert.", "european-styles"],
