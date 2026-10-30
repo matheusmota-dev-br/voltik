@@ -181,9 +181,8 @@ Warnings, by how many items they appear in (the varying part replaced by …):
 |---:|---|
 | 53 | `option … not supported: ignored` |
 | 1 | `voltik: oscilloscope waveform mywave not drawn yet; drawn as ramps` |
-| 1 | `E-REC-N column N: unsupported text command: \color; written as is` |
-| 1 | `\draw: figure: unknown anchor: QN.circle top; statement ignored` |
 | 1 | `\draw: figure: unknown anchor: QN.circle bottom; statement ignored` |
+| 1 | `\draw: figure: unknown anchor: QN.circle top; statement ignored` |
 | 1 | `\draw: figure: unknown anchor: T-LN.midtap; statement ignored` |
 | 1 | `voltik: pole \p is not drawn yet` |
 
@@ -204,30 +203,30 @@ Other options voltik does not know, likewise:
 | 2 | `arrow` |
 | 2 | `angle` |
 | 2 | `nodes width` |
-| 2 | `inner blocks dashed` |
 | 2 | `dashed blocks pattern` |
+| 2 | `inner blocks dashed` |
 | 2 | `thickness` |
-| 2 | `mos style` |
 | 2 | `nocircle` |
-| 2 | `plus` |
+| 2 | `mos style` |
 | 2 | `minus` |
+| 2 | `plus` |
 | 2 | `en amp text A` |
-| 2 | `switch end arrow` |
 | 2 | `switch start arrow` |
+| 2 | `switch end arrow` |
 | 2 | `open poles fill` |
 | 1 | `use fpu reciprocal` |
 | 1 | `pic anchor` |
 | 1 | `tunable end arrow` |
-| 1 | `tunable start arrow` |
 | 1 | `wiper end arrow` |
+| 1 | `tunable start arrow` |
 | 1 | `onelinechoke` |
 | 1 | `cthick` |
 | 1 | `twolineschoke` |
 | 1 | `gto gate end arrow` |
 | 1 | `opto start arrow` |
+| 1 | `inner minus` |
 | 1 | `inner plus` |
 | 1 | `margin` |
-| 1 | `inner minus` |
 | 1 | `sign rotation` |
 | 1 | `index position` |
 | 1 | `current arrow scale` |
@@ -235,7 +234,7 @@ Other options voltik does not know, likewise:
 | 1 | `blocks dc segments` |
 | 1 | `blocks dc in segments` |
 | 1 | `gridlines` |
-| 1 | `ideal filter number high` |
+| 1 | `ideal filter numbers` |
 
 Errors of the items that fail:
 
