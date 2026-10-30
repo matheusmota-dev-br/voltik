@@ -71,8 +71,16 @@ pub fn nodes(cx: &mut Context, placed: &Placed, frame: &Frame, unit: f64) -> Res
             d => cx.length(Tokens::text(&d)).unwrap_or(0.0),
         };
         let stacked = cx.macro_text(&format!("voltik@{which}lines")) == "2";
+        // two lines: a `tabular` as the manual's, its middle on the math axis
         let text = match text.to_text().split_once(" and ") {
-            Some((first, second)) if stacked => format!("{}\\\\{}", units(first), units(second)),
+            Some((first, second)) if stacked => {
+                let column = match setting(cx, &format!("{which}2 halign"))?.as_str() {
+                    "c" => 'c',
+                    "r" => 'r',
+                    _ => 'l',
+                };
+                format!("\\begin{{tabular}}{{@{{}}{column}@{{}}}}{}\\\\{}\\end{{tabular}}", units(first), units(second))
+            }
             _ => units(&text.to_text()),
         };
         // the direction from the component to the label, on the canvas
@@ -88,19 +96,17 @@ pub fn nodes(cx: &mut Context, placed: &Placed, frame: &Frame, unit: f64) -> Res
             }
         };
         if stacked && !rotate {
-            // two lines, as the manual's `tabular`: `l2 halign` (l, c, r) aligns them, `l2 valign`
+            // two lines, as the manual's `tabular` (`l2 halign`, l, c or r, aligns them): `l2 valign`
             // (b, c, t) puts the first one's baseline above, around or at the label's (measured)
-            let halign = setting(cx, &format!("{which}2 halign"))?;
             let valign = setting(cx, &format!("{which}2 valign"))?;
-            let align = match halign.as_str() {
-                "c" => "center",
-                "r" => "right",
-                _ => "left",
-            };
+            // (below the line, TeX sets them the same whatever `valign` says)
+            let below = (225.0..315.0).contains(&outward.rem_euclid(360.0));
+            // (from the `tabular`'s baseline, half a line under the first one's)
             let lift = match valign.as_str() {
-                "b" => 12.0,
-                "t" => 0.0,
-                _ => 6.1,
+                _ if below => 0.0,
+                "b" => 5.9,
+                "t" => -6.1,
+                _ => 0.0,
             } * tikra::extension::PT;
             let reach = placed.reach(side) * MARGIN + extra;
             let (anchor, at) = match outward.rem_euclid(360.0) {
@@ -109,7 +115,7 @@ pub fn nodes(cx: &mut Context, placed: &Placed, frame: &Frame, unit: f64) -> Res
                 a if (135.0..225.0).contains(&a) => ("base east", placed.mid.plus(Point::new(-reach - 3.6 * tikra::extension::PT + INNER_SEP, lift - 2.1 * tikra::extension::PT))),
                 _ => ("base west", placed.mid.plus(Point::new(reach + 3.6 * tikra::extension::PT - INNER_SEP, lift - 2.1 * tikra::extension::PT))),
             };
-            s.push_str(&format!(" node[{options}align={align},anchor={anchor}] at {} {{{text}}}", frame.coordinate(at)));
+            s.push_str(&format!(" node[{options}anchor={anchor}] at {} {{{text}}}", frame.coordinate(at)));
             record(cx, &name, node, &tex_anchor(local, side), 0.0);
             continue;
         }
@@ -132,11 +138,14 @@ pub fn nodes(cx: &mut Context, placed: &Placed, frame: &Frame, unit: f64) -> Res
             let border = placed.mid.plus(placed.normal.scale(side * (placed.reach(side) * MARGIN + extra)));
             // the node keeps TikZ's inner sep, as CircuiTikZ's do (it counts in the picture's size):
             // at the sides, its anchor is that much nearer, so that the text stays where it was
+            let level = (local / 90.0 - (local / 90.0).round()).abs() < 1e-4;
             let (anchor, shift) = match outward.rem_euclid(360.0) {
-                a if (45.0..135.0).contains(&a) => ("base", Point::new(0.0, ABOVE)),
-                a if (225.0..315.0).contains(&a) => ("base", Point::new(0.0, -BELOW)),
-                a if (135.0..225.0).contains(&a) => ("mid east", Point::new(-SIDE + INNER_SEP, 0.0)),
-                _ => ("mid west", Point::new(SIDE - INNER_SEP, 0.0)),
+                // a slanted line: the label's border point that faces the line, as TeX anchors it
+                _ if !level => (tex_anchor(local, side), Point::new(0.0, 0.0)),
+                a if (45.0..135.0).contains(&a) => ("base".into(), Point::new(0.0, ABOVE)),
+                a if (225.0..315.0).contains(&a) => ("base".into(), Point::new(0.0, -BELOW)),
+                a if (135.0..225.0).contains(&a) => ("mid east".into(), Point::new(-SIDE + INNER_SEP, 0.0)),
+                _ => ("mid west".into(), Point::new(SIDE - INNER_SEP, 0.0)),
             };
             let at = border.plus(shift);
             s.push_str(&format!(" node[{options}anchor={anchor}] at {} {{{text}}}", frame.coordinate(at)));

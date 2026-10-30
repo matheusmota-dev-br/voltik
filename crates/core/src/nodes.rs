@@ -6,7 +6,7 @@
 //! is measured on what CircuiTikZ draws, in `bipoles/length` (1.4 cm), with the node's point at the
 //! origin; the terminals are `nodes width` (0.04) across the half.
 
-use tikra::extension::{Context, Error, NodeShape, PathSegment, Point, ShapeBorder, ShapeInput, ShapePaint, ShapePath, Tokens};
+use tikra::extension::{Context, Error, NodeShape, PathSegment, Point, ShapeBorder, ShapeInput, ShapePaint, ShapePath, ShapeText, TextAnchor, Tokens};
 
 use crate::bipole::setting;
 pub use displays::{k_seven_segment_bits, k_seven_segment_val};
@@ -179,8 +179,40 @@ fn is_circle(ops: &[Op]) -> bool {
 
 /// A transistor's circle `k` times as large, from its left side: its paths (the closed ones of four
 /// curves) and its anchors (`circle C`…).
-fn scale_circle(sized: &mut Sized, k: f64) {
-    let Some((_, ops)) = sized.parts.iter().find(|(_, ops)| is_circle(ops)) else { return };
+/// A dynode's arc, which its sizes do not change linearly: a circle's arc across its 0.4 wide stem
+/// with its lowest point at `arc pos` of its height, meeting the stem's ends at 90° minus `arc
+/// angle` from the horizontal; none at `arc angle=90` (measured).
+fn dynode_arc(cx: &mut Context, sized: &mut Sized) {
+    let Some((_, ops)) = sized.parts.iter_mut().find(|(part, _)| matches!(part, Part::Thin(_))) else { return };
+    let angle = crate::bipole::number(cx, "monopoles/dynode/arc angle", 30.0);
+    let low = crate::bipole::number(cx, "monopoles/dynode/arc pos", 0.5) * 0.8;
+    let theta = (90.0 - angle).to_radians();
+    let mut arc = Vec::new();
+    if theta.sin() > 1e-6 {
+        let r = 0.2 / theta.sin();
+        let (cx0, cy0) = (0.0, low + r);
+        let at = |a: f64| [cx0 + r * a.cos(), cy0 + r * a.sin()];
+        let down = -std::f64::consts::FRAC_PI_2;
+        // two curves, from the left end to the lowest point and on to the right end
+        let k = 4.0 / 3.0 * (theta / 4.0).tan() * r;
+        let start = at(down - theta);
+        arc.push(Op::Move(start[0], start[1]));
+        for (a0, a1) in [(down - theta, down), (down, down + theta)] {
+            let (p0, p1) = (at(a0), at(a1));
+            let c1 = [p0[0] - k * a0.sin(), p0[1] + k * a0.cos()];
+            let c2 = [p1[0] + k * a1.sin(), p1[1] - k * a1.cos()];
+            arc.push(Op::Curve(c1, c2, p1));
+        }
+    }
+    // the stem stays: what follows the arc's two curves
+    let stem: Vec<Op> = ops.iter().skip_while(|o| !matches!(o, Op::Move(x, _) if x.abs() < 1e-9)).copied().collect();
+    arc.extend(stem);
+    *ops = arc;
+}
+
+/// A transistor's circle: its left and right ends and the height of its center, in the node's units.
+fn circle_of(sized: &Sized) -> Option<(f64, f64, f64)> {
+    let (_, ops) = sized.parts.iter().find(|(_, ops)| is_circle(ops))?;
     let xs: Vec<f64> = ops
         .iter()
         .flat_map(|o| match *o {
@@ -196,6 +228,11 @@ fn scale_circle(sized: &mut Sized, k: f64) {
         Op::Move(_, y) => y,
         _ => 0.0,
     };
+    Some((left, right, cy))
+}
+
+fn scale_circle(sized: &mut Sized, k: f64) {
+    let Some((left, right, cy)) = circle_of(sized) else { return };
     let pivot = [left, cy];
     let grow = |p: [f64; 2]| [pivot[0] + k * (p[0] - pivot[0]), pivot[1] + k * (p[1] - pivot[1])];
     for (_, ops) in sized.parts.iter_mut().filter(|(_, ops)| is_circle(ops)) {
@@ -1436,11 +1473,6 @@ fn variant(cx: &mut Context, base: &str) -> Result<Option<&'static Node>, Error>
             name.push_str(&format!("|not symbol={symbol}"));
         }
     }
-    // (its symbol is drawn, in the font it is measured in)
-    let font = Tokens::text("\\unexpanded\\expandafter{\\romannumeral-`0\\pgfkeysvalueof{/tikz/circuitikz/european ports font}}");
-    if base.starts_with("european") && !base.contains("blank") && !cx.expand(font)?.trim().is_empty() {
-        cx.warn(format!("voltik: european ports font on a {base} not drawn yet; its symbol is in the plain font"));
-    }
     if base == "european xnor port" && setting(cx, "european xnor style")? == "direct" {
         name.push_str("|xnor style=direct");
     }
@@ -1462,6 +1494,7 @@ pub fn k_class_fill(cx: &mut Context, v: Option<Tokens>) -> Result<(), Error> {
     let fill = setting(cx, &format!("{class}/fill"))?;
     if !fill.is_empty() && fill != "none" {
         cx.keys(Tokens::text(&format!("fill={{{fill}}}")))?;
+        cx.define_text("voltik@cfill", &class, false);
     }
     Ok(())
 }
@@ -1533,8 +1566,9 @@ fn bipole_shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error
     anchors.push(("text".into(), Point::new(0.0, 0.0)));
     // (globally: it runs after the node, out of its options' group)
     // (`voltik/up`: the node's north, for the bipole to be mirrored with it, `yscale=-1`)
+    // (in a group with a local current point: the path goes on from the node's point, not its east)
     cx.run(Tokens::text(&format!(
-        "\\gdef\\voltik@bp{{\\pgfextra{{\\xdef\\voltik@bn{{\\tikzlastnode}}}} (\\voltik@bn.west) to[{key}, voltik/fit, voltik/up=\\voltik@bn.north{options}] (\\voltik@bn.east)}}"
+        "\\gdef\\voltik@bp{{\\pgfextra{{\\xdef\\voltik@bn{{\\tikzlastnode}}}} {{[current point is local] (\\voltik@bn.west) to[{key}, voltik/fit, voltik/up=\\voltik@bn.north{options}] (\\voltik@bn.east)}}}}"
     )))?;
     // an oscilloscope's text goes above it, as a label
     let text = if comp.name == "oscope" { Point::new(-input.width / 2.0, top + OSCOPE_TEXT + input.depth) } else { Point::new(0.0, 0.0) };
@@ -1894,6 +1928,11 @@ pub fn block_shapes() -> impl Iterator<Item = (&'static str, &'static str)> {
 pub fn k_shapes(cx: &mut Context, _v: Option<Tokens>) -> Result<(), Error> {
     // the package's old-style tip, as long and wide as measured at the default line width
     cx.declare_arrow_tip("latexslim", "Latex[length=4pt,width=3pt]");
+    // the jack taps' shorthands: `^` up, `v` down (swapped), `f` filled
+    cx.declare_arrow_tip("^", "Jack Tap");
+    cx.declare_arrow_tip("^f", "Jack Tap[fill]");
+    cx.declare_arrow_tip("v", "Jack Tap[swap]");
+    cx.declare_arrow_tip("vf", "Jack Tap[swap,fill]");
     for n in NODES {
         cx.declare_shape(n.name, shape);
     }
@@ -1959,12 +1998,23 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
     let circled = n.name.contains("tr circle");
     let circle_thickness = crate::bipole::number(cx, "transistor circle/relative thickness", 1.0);
     // the class's `thickness` (`tubes/thickness=4`), times the line width, for the thick lines
-    let thick = n.class().and_then(|c| setting(cx, &format!("{c}/thickness")).ok()).and_then(|t| t.parse::<f64>().ok()).unwrap_or(2.0);
+    // (the amplifiers' and logic ports' is the tripoles', `tripoles/thickness`, unless their own is set)
+    let tripole = matches!(n.class(), Some("amplifiers" | "logic ports"));
+    let thick = n
+        .class()
+        .and_then(|c| setting(cx, &format!("{c}/thickness")).ok())
+        .and_then(|t| t.parse::<f64>().ok())
+        .or_else(|| tripole.then(|| crate::bipole::number(cx, "tripoles/thickness", 2.0)))
+        .unwrap_or(2.0);
     let lever = crate::bipole::number(cx, "bipoles/cuteswitch/thickness", 1.0);
     // `transistor circle/scale circle radius`: a transistor's circle grows from its left side
     let radius = crate::bipole::number(cx, "transistor circle/scale circle radius", 1.0);
+    let circle = if circled { circle_of(&sized) } else { None };
     if (radius - 1.0).abs() > 1e-9 && n.name.contains("tr circle") {
         scale_circle(&mut sized, radius);
+    }
+    if n.name == "dynode" {
+        dynode_arc(cx, &mut sized);
     }
     // an `en amp` with an `en amp text` does not draw its ▷∞, the solid parts at its top
     let own_text = input.name == "en amp" && !setting(cx, "en amp text")?.is_empty();
@@ -1975,10 +2025,25 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
     };
     let circle_dash = setting(cx, "transistor circle/dash")?;
     let circle_dash = dash(cx, &circle_dash)?;
+    // a European port's symbol in `european ports font`: a text at its middle, upright, instead of
+    // the glyphs measured in the plain font
+    let symbol = match european_symbol(n.name) {
+        Some(text) => {
+            let font = Tokens::text("\\unexpanded\\expandafter{\\romannumeral-`0\\pgfkeysvalueof{/tikz/circuitikz/european ports font}}");
+            let font = cx.expand(font)?.trim().to_string();
+            (!font.is_empty()).then_some((text, font))
+        }
+        None => None,
+    };
+    // the class's fill taken back later in the node's options (`circuitikz/logic ports/fill=none`)
+    let class_fill = cx.macro_text("voltik@cfill");
+    let unfilled = !class_fill.is_empty() && matches!(setting(cx, &format!("{class_fill}/fill"))?.trim(), "" | "none");
     let paths = sized
         .parts
         .iter()
         .filter(|_| !own)
+        .filter(|(part, _)| symbol.is_none() || !matches!(part, Part::Solid(_)))
+        .filter(|(part, _)| !(unfilled && matches!(part, Part::Fill(_))))
         .filter(|(part, ops)| !coils || (matches!(part, Part::Thick(_)) && !ops.iter().any(|op| matches!(op, Op::Curve(..) | Op::Close))))
         .filter(|(part, ops)| !(own_text && matches!(part, Part::Solid(_)) && ops.iter().all(|op| !matches!(op, Op::Move(_, y) | Op::Line(_, y) if *y < 0.5))))
         .map(|(part, ops)| {
@@ -1988,6 +2053,8 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
                 Part::Thick(ops) if circled && is_circle(ops) => ShapePaint::Stroke(thick * w * circle_thickness),
                 Part::Thick(_) => ShapePaint::Stroke(thick * w),
                 Part::Thicker(_) => ShapePaint::Stroke(3.0 * w),
+                // a logic port's negation circle hides its lead, as a pole does
+                Part::Fill(ops) if is_circle(ops) && n.class() == Some("logic ports") => ShapePaint::Background,
                 Part::Fill(_) => ShapePaint::Fill,
                 Part::Solid(_) => ShapePaint::Solid,
                 Part::Pole(_) => ShapePaint::Background,
@@ -2049,10 +2116,28 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
         let bjt = n.name.starts_with("bjt");
         let (k, x) = if bjt { (0.95, 2.0 * anchor[0]) } else { (0.7, anchor[0]) };
         let middle = |y: f64| Point::new(x * unit, y * unit + (input.depth - input.height) / 2.0);
-        match mode.as_str() {
-            "up" | "left" => middle(k * top),
-            "down" => middle(k * bottom),
-            _ if legacy && !bjt => Point::new(2.0 * anchor[0] * unit, 0.7 * top * unit),
+        // with a circle, measured on CircuiTikZ (a `nigfetebulk`): the text up or down by the
+        // circle's right side, moving with it as `scale circle radius` grows it (each time by its
+        // own radius times 0.3625 right and 0.5765 away); otherwise right of it, as far as its
+        // right end goes; the legacy text stays where it is without a circle
+        let grown = radius - 1.0;
+        match (mode.as_str(), circle) {
+            ("up" | "left" | "down", Some((left, right, _))) if !bjt => {
+                let r = (right - left) / 2.0;
+                let x = left + grown * r + r * (1.99 + 0.3625 * grown);
+                if mode == "down" {
+                    Point::new(x * unit, -r * (0.889 + 0.5765 * grown) * unit - input.height)
+                } else {
+                    Point::new(x * unit, r * (0.91 + 0.5765 * grown) * unit + input.depth)
+                }
+            }
+            ("up" | "left", _) => middle(k * top),
+            ("down", _) => middle(k * bottom),
+            _ if legacy && !bjt => {
+                let plain = find(&n.name.replace("|tr circle", "")).and_then(|p| p.anchors.iter().find(|(a, _)| *a == "text").map(|(_, p)| *p)).unwrap_or(anchor);
+                Point::new(2.0 * plain[0] * unit, 0.7 * top * unit)
+            }
+            (_, Some((left, right, _))) => Point::new(text.x + grown * (right - left) * unit, text.y),
             _ => text,
         }
     } else {
@@ -2081,6 +2166,16 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
         None => ShapeBorder::Point,
     };
     let mut out = NodeShape { center: Point::new(0.0, 0.0), anchors, border, text, paths, extent, ..Default::default() };
+    // `en amp text`: where the ▷∞ goes, its baseline there, mirrored and turned with the node
+    if own_text {
+        let text = setting(cx, "en amp text")?;
+        out.texts.push(ShapeText { text, at: Point::new(-0.0235, 0.7562), anchor: TextAnchor::Base, ..Default::default() });
+    }
+    if let Some((text, font)) = symbol {
+        let middle = sized.anchors.iter().find(|(a, _)| *a == "text").map_or([0.0, 0.0], |(_, p)| *p);
+        let (color, font) = font_color(&font);
+        out.texts.push(ShapeText { text: format!("{color}{text}"), at: at(middle), font: Some(font), upright: true, ..Default::default() });
+    }
     // `logic ports origin=center`: a port's point halfway between its west and east
     if n.class() == Some("logic ports") && setting(cx, "logic ports origin")? == "center" {
         let x = |name: &str| out.anchors.iter().find(|(a, _)| a == name).map(|(_, p)| p.x);
@@ -2089,6 +2184,28 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
         }
     }
     Ok(out)
+}
+
+/// Font commands split into their `\color{…}`, which a shape's text takes as its color, and the rest.
+fn font_color(font: &str) -> (String, String) {
+    match font.find("\\color{") {
+        Some(i) => {
+            let end = font[i..].find('}').map_or(font.len(), |e| i + e + 1);
+            (font[i..end].to_string(), format!("{}{}", &font[..i], &font[end..]))
+        }
+        None => (String::new(), font.to_string()),
+    }
+}
+
+/// The symbol of a European port, as TeX writes it.
+fn european_symbol(name: &str) -> Option<&'static str> {
+    match name.split('|').next().unwrap_or(name) {
+        "european and port" | "european nand port" => Some("\\&"),
+        "european or port" | "european nor port" => Some("$\\scriptstyle\\geq$\\enspace 1"),
+        "european xor port" | "european xnor port" => Some("=1"),
+        "european buffer port" | "european not port" => Some("1"),
+        _ => None,
+    }
 }
 
 /// A shape moved by `d`, its `center` staying the node's point.

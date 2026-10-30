@@ -55,8 +55,10 @@ pub fn k_component(cx: &mut Context, v: Option<Tokens>) -> Result<(), Error> {
         match kind {
             Some(Source::Voltage) => vif::set(cx, "v", &variant, value)?,
             Some(Source::Current) => vif::set(cx, "i", &variant, value)?,
-            // a transistor's value is its text, in its middle (and a motor's)
-            _ if components::find(&name).is_some_and(|c| c.class == components::Class::Transistors || c.name == "Telmech") => cx.define("voltik@t", value),
+            // a transistor's value is its text, in its middle (and a motor's, and a path-style logic port's)
+            _ if components::find(&name).is_some_and(|c| matches!(c.class, components::Class::Transistors | components::Class::LogicPorts) || c.name == "Telmech") => {
+                cx.define("voltik@t", value)
+            }
             _ => label::set(cx, "l", 1, value),
         }
     }
@@ -278,6 +280,7 @@ pub fn k_place(cx: &mut Context, _v: Option<Tokens>) -> Result<(), Error> {
         _ => 1.0,
     };
     let scale = scale * large;
+    let comp = if large != 1.0 && comp.name == "oosourcetrans" { components::find("oosourcetrans large").unwrap_or(comp) } else { comp };
     // the class's width and height settings, when given, are the same for all its components (but
     // for the ones that are wider than the others, by their ratio)
     // a bipole drawn as a node (`node[resistorshape]`) fills the node's width, whatever its size
@@ -779,6 +782,23 @@ impl Look<'_> {
         self.path_scaled(ops, [1.0, 1.0])
     }
 
+    /// Ops of the default frame as a path that keeps upright around `center`, wherever the
+    /// component turns: a three-phase symbol, which TeX does not turn with its source.
+    fn path_upright(&self, ops: &[Op], center: [f64; 2]) -> String {
+        let c = self.canvas(center);
+        let at = |p: [f64; 2]| self.frame.coordinate(Point::new(c.x + (p[0] - center[0]) * self.x, c.y + (p[1] - center[1]) * self.y));
+        let mut s = String::new();
+        for op in ops {
+            match *op {
+                Op::Move(x, y) => s.push_str(&format!(" {}", at([x, y]))),
+                Op::Line(x, y) => s.push_str(&format!(" -- {}", at([x, y]))),
+                Op::Curve(c1, c2, p) => s.push_str(&format!(" .. controls {} and {} .. {}", at(c1), at(c2), at(p))),
+                Op::Close => s.push_str(" -- cycle"),
+            }
+        }
+        s
+    }
+
     fn path_scaled(&self, ops: &[Op], k: [f64; 2]) -> String {
         let at = |p: [f64; 2]| self.frame.coordinate(self.placed.at(p[0] * k[0], p[1] * k[1]));
         let mut s = String::new();
@@ -1045,13 +1065,14 @@ type Winding = (&'static str, [f64; 2], f64);
 /// symbol's point and how much bigger than the others it is drawn.
 const WINDINGS: &[(&str, &[Winding])] = &[
     ("oosourcetrans", &[("prim", [-0.18, 0.0], 1.0), ("sec", [0.18, 0.0], 1.0)]),
+    ("oosourcetrans large", &[("prim", [-0.1494, 0.0], 1.0), ("sec", [0.1494, 0.0], 1.0)]),
     ("oosourceatrans", &[("prim", [0.07, 0.0], 1.2)]),
     ("ooosource", &[("prim", [-0.1537, 0.0], 1.0), ("sec", [0.135, 0.1667], 1.0), ("tert", [0.135, -0.1667], 1.0)]),
 ];
 
 /// The extra winding above a transformer source (`oo upper winding`): its circle's center, and its
 /// radius at size 1, in `bipoles/length`.
-const UPPER: &[(&str, [f64; 2])] = &[("oosourcetrans", [0.0, 0.234]), ("oosourceatrans", [0.07, 0.234])];
+const UPPER: &[(&str, [f64; 2])] = &[("oosourcetrans", [0.0, 0.234]), ("oosourcetrans large", [0.0, 0.234]), ("oosourceatrans", [0.07, 0.234])];
 const UPPER_RADIUS: f64 = 0.18;
 
 /// A three-phase symbol's size: the radius it reaches, in `bipoles/length`.
@@ -1140,7 +1161,7 @@ fn windings(cx: &mut Context, look: &Look, comp: &components::Component, scale: 
                 }
             }
         }
-        code.push_str(&format!("\\draw[-,solid,fill=none,miter limit=10,line width={}cm]{};", num(width), look.path(&ops)));
+        code.push_str(&format!("\\draw[-,solid,fill=none,miter limit=10,line width={}cm]{};", num(width), look.path_upright(&ops, at)));
     }
     code
 }
