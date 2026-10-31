@@ -4,7 +4,7 @@ What changed in each release of voltik: the crates `voltik` and `voltik-cli`, `@
 
 Each release has a headline (the line under its title), what changed, and the figures of [`corpus/`](corpus) that show it (`Figures:`), drawn by the site with today's voltik. `scripts/release.sh` will not release a version without its section here, and makes the GitHub release from it.
 
-## Unreleased
+## 0.16.0 - 2026-10-30
 
 The rest of the CircuiTikZ manual: 1053 of 1055 figures match TeX, no option of the manual is ignored any more, and the conformance run now counts the 9 it could not compile.
 
