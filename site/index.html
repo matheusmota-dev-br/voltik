@@ -148,12 +148,11 @@
   <section id="docs">
     <h2>Use it</h2>
     <p class="lead">Pick your platform. All four packages run the same core, so a figure gives the same SVG, byte for byte, wherever it is converted.</p>
-    <p class="lead">voltik is not on crates.io, npm or PyPI yet: for now each package is installed from <a href="https://github.com/matheusmota-dev-br/voltik">the repository</a>, and its releases are its <a href="https://github.com/matheusmota-dev-br/voltik/releases">tags</a>.</p>
     <div class="usage">
       <div class="card platform">
-        <div class="platform-head"><h3>JavaScript and TypeScript</h3><a class="pill" href="https://github.com/matheusmota-dev-br/voltik/tree/main/npm">from GitHub</a></div>
-        <p>Node, bundlers (Vite, webpack, esbuild) and browsers. Types included. Building it needs Rust with the <code>wasm32-unknown-unknown</code> target and <code>wasm-bindgen-cli</code>.</p>
-        <code class="cmd">git clone https://github.com/matheusmota-dev-br/voltik &amp;&amp; voltik/npm/build.sh &amp;&amp; npm install ./voltik/npm/pkg</code>
+        <div class="platform-head"><h3>JavaScript and TypeScript</h3><a class="pill" href="https://www.npmjs.com/package/@mathlabs/voltik">npm</a></div>
+        <p>Node, bundlers (Vite, webpack, esbuild) and browsers. Types included.</p>
+        <code class="cmd">npm install @mathlabs/voltik</code>
 <pre data-lang="js">import { init, circuitikzToSvg, render, png } from "@mathlabs/voltik";
 
 await init();  // browsers and bundlers; Node needs nothing
@@ -162,9 +161,9 @@ const { warnings, alt, description } = render(code);  // and the figure in words
 const bytes = png(svg, { dpi: 300 });</pre>
       </div>
       <div class="card platform">
-        <div class="platform-head"><h3>Python</h3><a class="pill" href="https://github.com/matheusmota-dev-br/voltik/tree/main/crates/python">from GitHub</a></div>
-        <p>Python 3.9 and later. Types included. pip builds the wheel, so it needs Rust.</p>
-        <code class="cmd">pip install "git+https://github.com/matheusmota-dev-br/voltik#subdirectory=crates/python"</code>
+        <div class="platform-head"><h3>Python</h3><a class="pill" href="https://pypi.org/project/voltik/">PyPI</a></div>
+        <p>Python 3.9 and later, with wheels for Linux, macOS and Windows. Types included.</p>
+        <code class="cmd">pip install voltik</code>
 <pre data-lang="py">import voltik
 
 svg = voltik.circuitikz_to_svg(r"\begin{circuitikz}\draw (0,0) to[R=$R$] (2,0);\end{circuitikz}")
@@ -173,9 +172,9 @@ voltik.render(code)["warnings"]
 voltik.render(code)["description"]  # the figure in words</pre>
       </div>
       <div class="card platform">
-        <div class="platform-head"><h3>Terminal</h3><a class="pill" href="https://github.com/matheusmota-dev-br/voltik/tree/main/crates/cli">from GitHub</a></div>
+        <div class="platform-head"><h3>Terminal</h3><a class="pill" href="https://crates.io/crates/voltik-cli">crates.io</a></div>
         <p>One binary: a <code>.tex</code> file or stdin to SVG or PNG.</p>
-        <code class="cmd">cargo install --git https://github.com/matheusmota-dev-br/voltik voltik-cli</code>
+        <code class="cmd">cargo install voltik-cli</code>
 <pre data-lang="sh">voltik circuit.tex -o circuit.svg
 voltik circuit.tex -o circuit.png --dpi 300
 voltik circuit.tex -o circuit.png --transparent
@@ -183,9 +182,9 @@ cat circuit.tex | voltik --warnings
 voltik circuit.tex --describe</pre>
       </div>
       <div class="card platform">
-        <div class="platform-head"><h3>Rust</h3><a class="pill" href="https://github.com/matheusmota-dev-br/voltik/tree/main/crates/core">from GitHub</a></div>
-        <p>The core itself, for servers and native apps; its <code>LIBRARY</code> can also be given to tikra next to other libraries. API docs with <code>cargo doc --open</code>.</p>
-        <code class="cmd">cargo add voltik --git https://github.com/matheusmota-dev-br/voltik</code>
+        <div class="platform-head"><h3>Rust</h3><a class="pill" href="https://crates.io/crates/voltik">crates.io</a></div>
+        <p>The core itself, for servers and native apps; its <code>LIBRARY</code> can also be given to tikra next to other libraries. API docs on <a href="https://docs.rs/voltik">docs.rs</a>.</p>
+        <code class="cmd">cargo add voltik</code>
 <pre data-lang="rust">let out = voltik::convert(code)?;
 std::fs::write("circuit.svg", &amp;out.svg)?;
 std::fs::write("circuit.png", voltik::png(&amp;out.svg, 300.0, true)?)?;</pre>
@@ -440,10 +439,10 @@ std::fs::write("circuit.png", voltik::png(&amp;out.svg, 300.0, true)?)?;</pre>
 
   // the install command for each platform, in the hero
   const INSTALL = [
-    ["npm", "git clone https://github.com/matheusmota-dev-br/voltik && voltik/npm/build.sh && npm install ./voltik/npm/pkg"],
-    ["pip", "pip install \"git+https://github.com/matheusmota-dev-br/voltik#subdirectory=crates/python\""],
-    ["CLI", "cargo install --git https://github.com/matheusmota-dev-br/voltik voltik-cli"],
-    ["Rust", "cargo add voltik --git https://github.com/matheusmota-dev-br/voltik"],
+    ["npm", "npm install @mathlabs/voltik"],
+    ["pip", "pip install voltik"],
+    ["CLI", "cargo install voltik-cli"],
+    ["Rust", "cargo add voltik"],
   ];
   function showInstall(i) {
     $("install-cmd").innerHTML = colorCode(INSTALL[i][1], "sh");
