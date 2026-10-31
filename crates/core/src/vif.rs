@@ -201,7 +201,9 @@ pub fn vif(cx: &mut Context, comp: &Component, span: &Span, name: &str) -> Resul
             if kind == "f" {
                 out.draw.push_str(&format!("\\draw[-,solid,line width={}cm] {} -- {};", num(thin), span.coordinate(from, across), span.coordinate(to, across)));
             }
-            out.draw.push_str(&head(span, span.at(tip, across), span.placed.along.scale(dir), u, thin));
+            // (`current arrow scale`: 16 is its size; the smaller, the bigger the arrow)
+            let size = 16.0 / number(cx, "current arrow scale").filter(|s| *s > 0.0).unwrap_or(16.0);
+            out.draw.push_str(&head(span, span.at(tip, across), span.placed.along.scale(dir), u * size, thin));
         }
         // `\ctikzgetdirection{R1-Iarrow}`: the way the arrow points (drawn or not), in whole degrees as TeX truncates them
         if kind == "i" && !name.is_empty() {
@@ -359,7 +361,7 @@ fn voltage(cx: &mut Context, comp: &Component, span: &Span, name: &str, out: &mu
             // nothing at -1, as much the other way at -2)
             let shift = number(cx, "voltage shift").unwrap_or(0.0) * adjust;
             let raise = if shift <= -1.0 { 1.0 + shift } else { 1.0 };
-            let across = if raised && !open { side * (straight + raise * (STRAIGHT_LABEL + RAISED) * u) } else { side * push };
+            let across = if raised && !open { side * (straight + raise * (STRAIGHT_LABEL + RAISED) * head_u) } else { side * push };
             let font = setting(cx, "voltage/american font")?;
             let font = if font.is_empty() { String::new() } else { format!("font={{{font}}},") };
             let plus_sign = cx.expand(Tokens::text("\\unexpanded\\expandafter{\\romannumeral-`0\\pgfkeysvalueof{/tikz/circuitikz/voltage/american plus}}"))?;
@@ -376,7 +378,14 @@ fn voltage(cx: &mut Context, comp: &Component, span: &Span, name: &str, out: &mu
                 lab = span.at(mid, across);
                 lab_anchor = "center".to_string();
             } else {
-                lab = span.at(mid, side * (straight + american_label));
+                lab = match comp.source_volts() {
+                    // an American voltage source drawn as a passive one (`bipole/override source vif`)
+                    // keeps a source's label
+                    Some([_, above, gap]) if comp.source() == Source::Voltage && comp.name.starts_with("american") => {
+                        span.at(mid, side * ((above + gap - AMERICAN_SOURCE_LABEL) * y + push - VOLTAGE_SEP))
+                    }
+                    _ => span.at(mid, side * (straight + american_label)),
+                };
                 lab_anchor = anchor.clone();
             }
         }

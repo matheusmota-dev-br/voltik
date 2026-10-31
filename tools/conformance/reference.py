@@ -27,6 +27,11 @@ cd $job
 start=$(date +%s%N)
 timeout 120 pdflatex -interaction=batchmode -halt-on-error doc.tex >/dev/null 2>&1
 status=$?
+# tikzmark's `pic anchor` places a pic by what the first run wrote to the .aux
+if [ $status -eq 0 ] && grep -q 'pic anchor' doc.tex; then
+  timeout 120 pdflatex -interaction=batchmode -halt-on-error doc.tex >/dev/null 2>&1
+  status=$?
+fi
 end=$(date +%s%N)
 ok=false
 if [ $status -eq 0 ] && [ -f doc.pdf ]; then

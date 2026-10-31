@@ -165,6 +165,120 @@ fn voltages_of_the_users_own() {
 }
 
 #[test]
+fn queued_macros_run_at_the_end_of_the_picture() {
+    // the component's nodes are there by then, and a key's `.default` reaches the `to`
+    let r = quiet(
+        r"\newcommand\sign[4]{\node[#2] at (#1voltage.center) {x};}
+          \ctikzset{sign v/.style={vif queue add={sign}{#1}{}{}}, sign v/.default=red}
+          \draw (0,0) to[R, v=a, sign v] (3,0) to[R, name=R2, v=b, sign v=blue] (3,3);",
+    );
+    assert!(r.svg.contains("#ff0000") && r.svg.contains("#0000ff"), "{}", r.svg);
+    // `\ctikzprocessvif` runs them earlier, and once
+    let r = quiet(
+        r"\newcommand\mark[4]{\coordinate (#1-seen) at (#1-Vto);\draw[red] (#1-Vfrom) -- (#1-Vto);}
+          \ctikzset{mark v/.style={vif queue add={mark}{}{}{}}}
+          \draw (0,0) to[R, name=R1, v=a, mark v] (3,0);
+          \ctikzprocessvif
+          \draw (R1-seen) -- ++(1,0);",
+    );
+    assert_eq!(r.svg.matches("stroke=\"#ff0000\"").count(), 1, "{}", r.svg);
+}
+
+#[test]
+fn an_overridden_american_source_keeps_a_source_label() {
+    // TeX: its label at 0.56 cm of the line, where a passive component's would be at 0.7
+    let r = quiet(r"\ctikzset{voltage=american, bipole/override source vif=true} \draw (0,0) to[V, name=V1, v=a] (2,0); \draw (0,0) -- (V1-Vlab);");
+    let d = paths(&r.svg).pop().unwrap();
+    let n = numbers(&d);
+    assert!((n[3] - n[1]).abs() < 0.62 * 28.45, "{d}");
+}
+
+#[test]
+fn an_arrow_into_a_block() {
+    let n = |body: &str| paths(&quiet(body).svg).len();
+    assert_eq!(n(r"\draw (0,0) to[amp, >] (3,0);"), n(r"\draw (0,0) to[amp] (3,0);") + 1);
+    // the next `to` has none, and `>=` still names the arrow tip
+    assert_eq!(n(r"\draw (0,0) to[amp, >] (3,0) to[amp] (6,0);"), n(r"\draw (0,0) to[amp] (3,0) to[amp] (6,0);") + 1);
+    assert_eq!(n(r"\draw[>=Stealth] (0,0) to[amp] (3,0);"), n(r"\draw (0,0) to[amp] (3,0);"));
+}
+
+#[test]
+fn a_chokes_core_lines_and_a_coils_tap() {
+    let n = |body: &str| paths(&quiet(body).svg).len();
+    let one = n(r"\draw (0,0) to[cute choke] (3,0);");
+    assert_eq!(n(r"\draw (0,0) to[cute choke, twolineschoke] (3,0);"), one + 1);
+    assert_eq!(n(r"\ctikzset{twolineschoke} \draw (0,0) to[cute choke, onelinechoke] (3,0);"), one);
+    assert!(quiet(r"\ctikzset{bipoles/cutechoke/cthick=2} \draw (0,0) to[cute choke] (3,0);").svg.contains("stroke-width"));
+    // both coils' taps, with the even turns of `inductors/coils=6` too
+    quiet(r"\draw (0,0) node[transformer, circuitikz/inductors/coils=6](T){}; \draw (T-L2.midtap) -- ++(1,0) (T-L1.midtap) -- ++(-1,0);");
+}
+
+#[test]
+fn a_pole_under_transform_shape_is_as_big_as_its_node() {
+    let radius = |body: &str| {
+        let d = paths(&quiet(body).svg).pop().unwrap();
+        let x: Vec<f64> = numbers(&d).into_iter().step_by(2).collect();
+        x.iter().copied().fold(f64::MIN, f64::max) - x.iter().copied().fold(f64::MAX, f64::min)
+    };
+    let pole = radius(r"\begin{scope}[scale=3, transform shape] \path (0,0) to[short, -o] (1,0); \end{scope}");
+    let node = radius(r"\begin{scope}[scale=3, transform shape] \path (1,0) node[ocirc]{}; \end{scope}");
+    assert!((pole - node).abs() < 0.2, "{pole} {node}");
+}
+
+#[test]
+fn partial_borders_and_the_body_diode() {
+    let n = |body: &str| paths(&quiet(body).svg).len();
+    let whole = n(r"\draw (0,0) node[npn, tr circle]{};");
+    // each part drawn on its own, the left out ones gone, and the anchors of the circle
+    assert_eq!(n(r"\ctikzset{transistor circle/partial borders=2211} \draw (0,0) node[npn, tr circle]{};"), whole + 3);
+    assert_eq!(n(r"\ctikzset{transistor circle/partial borders=0011} \draw (0,0) node[npn, tr circle](Q){}; \draw (Q.circle top) -- (Q.circle bottom);"), whole + 2);
+    let tube = n(r"\draw (0,0) node[triode]{};");
+    assert_eq!(n(r"\ctikzset{tubes/partial borders=012012} \draw (0,0) node[triode]{};"), tube + 3);
+    // no dots at `dot scale=0`, and the diode's color
+    let diode = |o: &str| quiet(&format!(r"\draw (0,0) node[nigfete, bodydiode, {o}]{{}};")).svg;
+    assert!(diode("circuitikz/transistor bodydiode/color=red").contains("#ff0000"));
+    assert!(paths(&diode("circuitikz/transistor bodydiode/dot scale=0")).len() < paths(&diode("circuitikz/transistor bodydiode/dot scale=1")).len());
+}
+
+#[test]
+fn the_sizes_of_what_is_measured_at_one_size() {
+    let d = |body: &str| paths(&quiet(body).svg).join(" ");
+    for (a, b) in [
+        (r"\draw (0,0) node[gridnode]{};", r"\draw (0,0) node[gridnode, gridlines=3]{};"),
+        (r"\draw (0,0) node[npn, schottky base]{};", r"\ctikzset{tripoles/schottky base size=0.1} \draw (0,0) node[npn, schottky base]{};"),
+        (r"\draw (0,0) node[msrstub]{};", r"\draw (0,0) node[msrstub, circuitikz/monopoles/msrstub/radius=0]{};"),
+        (r"\draw (0,0) node[proximeter]{};", r"\draw (0,0) node[proximeter, circuitikz/proximeter/hlines position=0.1]{};"),
+        (r"\draw (0,0) to[R, i=f] (2,0);", r"\draw (0,0) to[R, i=f, current arrow scale=8] (2,0);"),
+        (r"\draw (0,0) node[nigbt]{};", r"\ctikzset{tripoles/igbt/outer base height=0.3} \draw (0,0) node[nigbt]{};"),
+        (r"\draw (0,0) node[vcc]{};", r"\ctikzset{monopoles/vcc/arrow={Latex[blue]}} \draw (0,0) node[vcc]{};"),
+        (r"\draw (0,0) node[op amp]{};", r"\ctikzset{amplifiers/plus={}} \draw (0,0) node[op amp]{};"),
+        (r"\draw (0,0) node[npn, schottky base]{};", r"\draw (0,0) node[npn, schottky base, no schottky base]{};"),
+        (r"\draw (0,0) node[or port]{};", r"\ctikzset{logic ports draw input leads=false} \draw (0,0) node[or port]{};"),
+    ] {
+        assert_ne!(d(a), d(b), "{b}");
+    }
+}
+
+#[test]
+fn open_poles_fill_and_opacity() {
+    let r = quiet(r"\ctikzset{open poles fill=red} \tikzset{open poles opacity=0.5} \draw (0,0) to[short, -o] (1,0) node[ocirc]{};");
+    assert_eq!(r.svg.matches("fill=\"#ff0000\"").count(), 2, "{}", r.svg);
+    assert_eq!(r.svg.matches("fill-opacity=\"0.5\"").count(), 2, "{}", r.svg);
+}
+
+#[test]
+fn a_split_two_port_stays_upright() {
+    // its diagonal goes from bottom left to top right whichever way the path goes
+    let diagonal = |to: &str| {
+        let r = quiet(&format!(r"\draw (0,0) to[twoportsplit] {to};"));
+        let d = paths(&r.svg).into_iter().find(|d| !d.contains('Z') && numbers(d).len() == 4 && numbers(d)[0] != numbers(d)[2] && numbers(d)[1] != numbers(d)[3]).unwrap();
+        let n = numbers(&d);
+        (n[2] - n[0]) * (n[3] - n[1]) < 0.0
+    };
+    assert!(diagonal("(3,0)") && diagonal("(0,-3)") && diagonal("(0,3)") && diagonal("(-3,0)"));
+}
+
+#[test]
 fn style_files() {
     // `\ctikzloadstyle{example}` gives `example circuit style`
     let plain = quiet(r"\draw (0,0) node[op amp] {};").svg;

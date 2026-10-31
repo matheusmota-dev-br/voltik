@@ -123,10 +123,11 @@ fn k_ctikzset(cx: &mut Context, v: Option<Tokens>) -> Result<(), Error> {
         return Ok(());
     }
     for (key, value) in keys {
-        let handler =
-            [".style", ".append style", ".prefix style", ".code", ".style 2 args", ".code 2 args", ".style args", ".code args"].iter().any(|h| key.ends_with(&format!("/{h}")))
-                || key.contains("/.style n args")
-                || key.contains("/.code n args");
+        let handler = [".style", ".append style", ".prefix style", ".code", ".style 2 args", ".code 2 args", ".style args", ".code args", ".default"]
+            .iter()
+            .any(|h| key.ends_with(&format!("/{h}")))
+            || key.contains("/.style n args")
+            || key.contains("/.code n args");
         // (but the labels' styles, which a `to` sets by its own keys of their names)
         let own = key.starts_with("bipole ") && key.split('/').next().is_some_and(|k| k.trim().ends_with(" style"));
         if handler && !own && key.matches('/').count() == 1 {
@@ -162,6 +163,9 @@ fn definitions() -> String {
         s.push_str(&format!("\\def\\voltik@style@{name}{{\\tikzset{{{name} circuit style/.style={{/tikz/circuitikz/.cd, {settings}}}}}}}\n"));
     }
     s.push_str("\\def\\voltik@vqadd#1#2#3#4{\\expandafter\\def\\expandafter\\voltik@vq\\expandafter{\\voltik@vq\\csname #1\\endcsname{\\voltik@qn}{#2}{#3}{#4}}}\n");
+    s.push_str(
+        "\\def\\voltik@queue{}\\def\\ctikzprocessvif{\\voltik@queue\\gdef\\voltik@queue{}}\\tikzset{every picture/.append style={execute at end picture=\\ctikzprocessvif}}\n",
+    );
     // `\ctikzactivatevoltagedirections{vpms}`: `vpms^>={…}` is `vpms={…}` with its `v` a `v^>`
     for (kind, what) in [("v", "voltage"), ("i", "current"), ("f", "flow")] {
         s.push_str(&format!("\\def\\ctikzactivate{what}directions#1{{"));
@@ -285,7 +289,13 @@ fn definitions() -> String {
     for name in nodes::NODES.iter().map(|n| n.name).chain(nodes::TERMINALS.iter().copied()).chain(nodes::variant_shapes()) {
         // and its class's `fill` (`\ctikzset{amplifiers/fill=cyan}`)
         match nodes::find(name).and_then(|n| n.class()) {
-            Some(class) if name.starts_with("cute spdt") => keys.push(format!("{name}/.style={{shape={name}, voltik/class fill={class}, append after command={{\\voltik@cs}}}}")),
+            Some(class) if name.starts_with("cute spdt") => {
+                keys.push(format!("{name}/.style={{shape={name}, voltik/class fill={class}, append after command={{\\voltik@na\\voltik@cs}}}}"))
+            }
+            // (arrows of a look of their own are drawn after it)
+            Some(class) if class == "transistors" => keys.push(format!("{name}/.style={{shape={name}, voltik/class fill={class}, append after command={{\\voltik@na}}}}")),
+            // a supply's arrow, when it is one of TikZ's, is drawn after it
+            Some(class) if name == "vcc" || name == "vee" => keys.push(format!("{name}/.style={{shape={name}, voltik/class fill={class}, append after command={{\\voltik@sa}}}}")),
             Some(class) => keys.push(format!("{name}/.style={{shape={name}, voltik/class fill={class}}}")),
             // a double bipole draws the bipoles of `double bipole L` and `R` after it
             None if name == "double bipole" => keys.push(format!("{name}/.style={{shape={name}, append after command={{\\voltik@db}}}}")),
@@ -424,10 +434,30 @@ fn definitions() -> String {
     }
     s.push_str("}\n");
     keys.push("oo upper winding/.style={/tikz/circuitikz/bipoles/oosourcetrans/upper=#1}, oo upper winding/.default=default".into());
+    // the partial borders, the body diode's look and the open poles' fill
+    s.push_str("\\pgfkeys{/tikz/circuitikz/.cd, transistor circle/partial borders/.initial=none, transistor circle/partial border dash/.initial={{2pt}{2pt}}, tubes/partial borders/.initial=none, tubes/partial border dash/.initial={{2pt}{2pt}}, transistor bodydiode/scale/.initial=0.3, transistor bodydiode/dot scale/.initial=0.7, transistor bodydiode/relative thickness/.initial=1, transistor bodydiode/color/.initial=default, transistor bodydiode/dash/.initial=default, tripoles/igbt/outer base height/.initial=, tripoles/igbt/outer base thickness/.initial=1, open poles fill/.initial=white, poles/open fill opacity/.initial=1}\n");
+    keys.push("open poles opacity/.style={/tikz/circuitikz/poles/open fill opacity=#1}".into());
+    // the amplifiers' signs, the supplies' arrows and the sizes of what is drawn at one size
+    s.push_str("\\pgfkeys{/tikz/circuitikz/.cd, amplifiers/plus/.initial=default, amplifiers/minus/.initial=default, amplifiers/symbol font/.initial=, monopoles/vcc/arrow/.initial=legacy, monopoles/vee/arrow/.initial=legacy, tripoles/schottky base size/.initial=0.05, monopoles/msrstub/radius/.initial=0.125, proximeter/hlines position/.initial=0.3, proximeter/hlines thickness/.initial=0.5, current arrow scale/.initial=16, blocks/gridnode/gridlines/.initial=7, logic ports draw input leads/.code={\\def\\voltik@a{#1}\\def\\voltik@b{false}\\ifx\\voltik@a\\voltik@b\\pgfkeys{/tikz/circuitikz/tr/no input leads=true}\\else\\pgfkeys{/tikz/circuitikz/tr/no input leads=false}\\fi}}\n");
+    keys.push("amp plus/.style={/tikz/circuitikz/amplifiers/plus={#1}}".into());
+    keys.push("amp minus/.style={/tikz/circuitikz/amplifiers/minus={#1}}".into());
+    keys.push("amp symbol font/.style={/tikz/circuitikz/amplifiers/symbol font={#1}}".into());
+    keys.push("no schottky base/.style={/tikz/circuitikz/tr/schottky base=false}".into());
+    keys.push("gridlines/.style={/tikz/circuitikz/blocks/gridnode/gridlines=#1}".into());
+    keys.push("current arrow scale/.style={/tikz/circuitikz/current arrow scale=#1}".into());
+    // `to[amp, >]`: an arrow into the block
+    keys.push("bare arrow/.code={\\def\\voltik@gt{1}}".into());
+    // a cute choke's core: its thickness and one or two lines
+    s.push_str("\\pgfkeys{/tikz/circuitikz/.cd, bipoles/cutechoke/cthick/.initial=1, bipoles/cutechoke/lines/.initial=1}\n");
+    for (name, lines) in [("onelinechoke", 1), ("twolineschoke", 2)] {
+        keys.push(format!("{name}/.style={{/tikz/circuitikz/bipoles/cutechoke/lines={lines}}}"));
+        s.push_str(&format!("\\pgfkeys{{/tikz/circuitikz/{name}/.style={{/tikz/circuitikz/bipoles/cutechoke/lines={lines}}}}}\n"));
+    }
     // the miscellaneous bipoles' own settings
     s.push_str("\\pgfkeys{/tikz/circuitikz/.cd, bipoles/mic/bar thickness/.initial=1, sparkgap end arrow/.initial=default, sparkgap/gap/.initial=0.05, bipoles/noise sources/fillcolor/.initial=, bipoles/currtap/dot size/.initial=0.5, bipoles/currtap/fill/.initial=default, bipoles/currtap/color/.initial=default, bipoles/currtap/thickness/.initial=default, bipoles/currtap/dash/.initial=default, transistor circle/color/.initial=default, transistor circle/dash/.initial=default, sources/symbol/rotate/.initial=90, csources/symbol/rotate/.initial=90, csources/symbol/thickness/.initial=1, bipoles/wfuse/dots/.initial=true, bipoles/wfuse/shape/.initial=ocirc}\n");
     // settings of components that a `to[…]` or a style can give too (`bipoles/oscope/width=1`)
     for key in [
+        "bipoles/cutechoke/cthick",
         "bipoles/oscope/waveform",
         "bipoles/oscope/width",
         "bipoles/oscope/height",
@@ -437,6 +467,46 @@ fn definitions() -> String {
         "bipoles/wfuse/dots",
         "sparkgap end arrow",
         "sparkgap/gap",
+        "nodes width",
+        "dashed blocks pattern",
+        "blocks dc segments",
+        "blocks dc in segments",
+        "blocks dc out segments",
+        "blocks/filter grid/color",
+        "blocks/filter grid/dash",
+        "blocks/filter grid/thickness",
+        "blocks/filter grid/opacity",
+        "blocks/filter plot/relative thickness",
+        "blocks/filter plot/rounding",
+        "ideal filter number low",
+        "ideal filter number high",
+        "bipoles/dcisource/angle",
+        "bipoles/isourcesin/angle",
+        "bipoles/smeter/index position",
+        "bipoles/qmeter/index position",
+        "sources/symbol/sign rotation",
+        "bipoles/vsourceam/inner plus",
+        "bipoles/vsourceam/inner minus",
+        "bipoles/vsourceam/margin",
+        "bipoles/cvsourceam/inner plus",
+        "bipoles/cvsourceam/inner minus",
+        "bipoles/cvsourceam/margin",
+        "opto start arrow",
+        "opto end arrow",
+        "switch start arrow",
+        "switch end arrow",
+        "tunable start arrow",
+        "tunable end arrow",
+        "wiper start arrow",
+        "wiper end arrow",
+        "gto gate start arrow",
+        "gto gate end arrow",
+        "opto arrows/color",
+        "opto arrows/dash",
+        "opto arrows/relative thickness",
+        "switch arrows/color",
+        "switch arrows/dash",
+        "switch arrows/relative thickness",
         "bipoles/noise sources/fillcolor",
         "bipoles/currtap/dot size",
         "bipoles/currtap/fill",
@@ -471,6 +541,33 @@ fn definitions() -> String {
     s.push_str("\\def\\ctikzsubcircuitactivate#1{\\expandafter\\gdef\\csname #1\\endcsname##1##2{\\pgfextra{\\pgfkeys{/tikz/voltik/subcircuit={#1}{##2}}} ++(\\voltik@scx,\\voltik@scy) \\csname voltik@sc@#1\\endcsname{##1}}}\n");
     // `\ctikztunablearrow[options]{thickness}{length}{angle}{name}`: an arrow across a component
     s.push_str("\\newcommand{\\ctikztunablearrow}[5][]{\\pgfkeys{/tikz/voltik/tunable arrow={#1}{#2}{#3}{#4}{#5}}}\n");
+    // the poles by `bipole/nodes/left` and `right`, as `bipole nodes`
+    s.push_str("\\pgfkeys{/tikz/circuitikz/bipole/nodes/left/.code={\\def\\voltik@ps{#1}}, /tikz/circuitikz/bipole/nodes/right/.code={\\def\\voltik@pe{#1}}}\n");
+    // what was left of the transistors, crossings and transformer cores
+    s.push_str("\\pgfkeys{/tikz/circuitikz/.cd, transistor solderdot scale/.initial=0.7, tripoles/nmosd/depletion color/.initial=default, tripoles/pmosd/depletion color/.initial=default, tr gap fill/.initial=none, tripoles/hemt/split gate/.initial=, crossing vertical/color/.initial=default, crossing vertical/dash/.initial=default, crossing vertical/relative thickness/.initial=1, transformer core/color/.initial=default, transformer core/dash/.initial=default, transformer core/relative thickness/.initial=1}\n");
+    s.push_str("\\pgfkeys{/tikz/circuitikz/.cd, american or shape/.initial=pointy, ieeestd ports/not radius/.initial=0.154, ieeestd ports/xor bar distance/.initial=0.192, ieeestd ports/xor leads in/.initial=0.192}\n");
+    // the blocks: their dashes, the dc lines, and the plots of the filters
+    s.push_str("\\pgfkeys{/tikz/circuitikz/.cd, blocks/inner dashed/.initial=false, dashed blocks pattern/.initial={{1mm}{1mm}}, blocks dc segments/.initial=1, blocks dc in segments/.initial=, blocks dc out segments/.initial=, blocks/filter grid/color/.initial=default, blocks/filter grid/dash/.initial={{0.04cm}{0.04cm}}, blocks/filter grid/thickness/.initial=0.5, blocks/filter grid/opacity/.initial=0.3, blocks/filter plot/relative thickness/.initial=2, blocks/filter plot/rounding/.initial=0.15, blocks/ideal numbers/.initial=false, ideal filter number low/.initial=0, ideal filter number high/.initial=1, inner blocks dashed/.style={/tikz/circuitikz/blocks/inner dashed=#1}, inner blocks dashed/.default=true, ideal filter numbers/.style={/tikz/circuitikz/blocks/ideal numbers=#1}, ideal filter numbers/.default=true}\n");
+    keys.push("inner blocks dashed/.style={/tikz/circuitikz/blocks/inner dashed=#1}, inner blocks dashed/.default=true".into());
+    keys.push("ideal filter numbers/.style={/tikz/circuitikz/blocks/ideal numbers=#1}, ideal filter numbers/.default=true".into());
+    keys.push("tr gap fill/.style={/tikz/circuitikz/tr gap fill={#1}}".into());
+    keys.push("en amp text A/.style={/tikz/circuitikz/en amp text={$\\mathstrut{\\triangleright}\\,\\mathrm{A}$}}".into());
+    // the sources' and meters' own settings
+    s.push_str("\\pgfkeys{/tikz/circuitikz/.cd, bipoles/dcisource/angle/.initial=80, bipoles/isourcesin/angle/.initial=90, bipoles/smeter/index position/.initial=80, bipoles/qmeter/index position/.initial=80, sources/symbol/sign rotation/.initial=default");
+    for source in ["vsourceam", "cvsourceam"] {
+        s.push_str(&format!(", bipoles/{source}/inner plus/.initial=, bipoles/{source}/inner minus/.initial=, bipoles/{source}/margin/.initial=0.7"));
+    }
+    s.push_str("}\n");
+    // the arrows' tips and looks (`opto end arrow`, `switch arrows/color`…)
+    s.push_str("\\pgfkeys{/tikz/circuitikz/.cd");
+    for group in ["opto", "switch", "wiper", "gto gate"] {
+        s.push_str(&format!(", {group} start arrow/.initial=default, {group} end arrow/.initial=default"));
+    }
+    for style in ["opto arrows", "switch arrows"] {
+        s.push_str(&format!(", {style}/color/.initial=default, {style}/dash/.initial=default, {style}/relative thickness/.initial=1"));
+    }
+    s.push_str("}\n");
+    s.push_str("\\pgfkeys{/tikz/circuitikz/.cd, transistors/gate thickness/.initial=1, transistors/rounded caps/.initial=false}\n");
     s.push_str("\\pgfkeys{/tikz/circuitikz/.cd, tunable start arrow/.initial=default, tunable end arrow/.initial=default, bipoles/fix tunable direction/.initial=true, voltage shift sources adjust/.initial=0.5}\n");
     // the dc and ac symbols, with their sizes and text above them
     s.push_str("\\pgfkeys{/tikz/circuitikz/.cd, dc symbol/width/.initial=0.3, dc symbol/height/.initial=0.15, dc symbol/text offset/.initial=6pt, dc symbol/segments/.initial=2, dc symbol/relative thickness/.initial=1, ac symbol/width/.initial=0.3, ac symbol/height/.initial=0.15, ac symbol/text offset/.initial=6pt}\n");
@@ -496,6 +593,13 @@ fn definitions() -> String {
     // `tripoles/mos style/arrows`: every MOSFET with its arrow (`arrowmos`)
     keys.push("/tikz/circuitikz/tripoles/mos style/arrows/.style={/tikz/circuitikz/tr/arrowmos=true}".into());
     keys.push("/tikz/circuitikz/tripoles/mos style/no arrows/.style={/tikz/circuitikz/tr/arrowmos=false}".into());
+    keys.push("/tikz/circuitikz/tripoles/mos style/.code={\\pgfkeys{/tikz/circuitikz/tripoles/mos style/#1}}".into());
+    // `tripoles/pmos style/emptycircle`: a PMOS's circle empty, or none (`nocircle`)
+    for (style, empty, none) in [("emptycircle", "true", "false"), ("nocircle", "false", "true"), ("fullcircle", "false", "false")] {
+        keys.push(format!("/tikz/circuitikz/tripoles/pmos style/{style}/.style={{/tikz/circuitikz/tr/emptycircle={empty}, /tikz/circuitikz/tr/nocircle={none}}}"));
+    }
+    // (for the double precision of TeX's arithmetic: nothing here)
+    keys.push("use fpu reciprocal/.code={}".into());
     // the logic ports by the `logic ports` style (`and port`: American, European or IEEE), and their leads
     for kind in ["and", "or", "nand", "nor", "xor", "xnor", "buffer", "not"] {
         keys.push(format!("{kind} port/.style={{voltik/logic port={kind}}}"));
@@ -606,7 +710,7 @@ fn definitions() -> String {
     s.push_str("\\tikzset{name/.code={\\def\\voltik@name{#1}\\pgfkeys{/tikz/voltik@name={#1}}}}\n");
     // the manual's text helpers: a text flipped back in a flipped node (`\\ctikzflipx`), without its
     // depth (`\\killdepth`): the text itself
-    s.push_str("\\def\\ctikzflipx#1{#1}\\def\\ctikzflipy#1{#1}\\def\\ctikzflipxy#1{#1}\\def\\killdepth#1{#1}\n");
+    s.push_str("\\def\\ctikzflipx#1{\\scalebox{-1}[1]{#1}}\\def\\ctikzflipy#1{\\scalebox{1}[-1]{#1}}\\def\\ctikzflipxy#1{\\scalebox{-1}[-1]{#1}}\\def\\killdepth#1{#1}\n");
     // siunitx's unit macros, for a unit written outside `\SI` (which is rewritten before, in `convert`)
     for (name, symbol) in label::UNITS {
         s.push_str(&format!("\\def\\{name}{{{symbol}}}"));
@@ -616,7 +720,7 @@ fn definitions() -> String {
     s.push_str("\\def\\voltik@ts{0}\\expandafter\\let\\csname pgfk@/tikz/voltik@ts/.@cmd\\expandafter\\endcsname\\csname pgfk@/tikz/transform shape/.@cmd\\endcsname\n");
     s.push_str("\\tikzset{transform shape/.code={\\def\\voltik@ts{1}\\pgfkeys{/tikz/voltik@ts}}}\n");
     s.push_str(
-        "\\def\\voltik@cs{}\\def\\voltik@rs{}\\def\\voltik@md{}\\def\\voltik@mdl{}\\def\\voltik@mdbg{}\\def\\voltik@bp{}\\def\\voltik@db{}\\def\\voltik@tr{}\\def\\voltik@bn{}\\def\\voltik@coil{-0}\\def\\voltik@prefix{}\\def\\voltik@named{}\n",
+        "\\def\\voltik@sa{}\\def\\voltik@na{}\\def\\voltik@cs{}\\def\\voltik@rs{}\\def\\voltik@md{}\\def\\voltik@mdl{}\\def\\voltik@mdbg{}\\def\\voltik@bp{}\\def\\voltik@db{}\\def\\voltik@tr{}\\def\\voltik@bn{}\\def\\voltik@coil{-0}\\def\\voltik@prefix{}\\def\\voltik@named{}\n",
     );
     s.push_str("\\def\\voltik@ff{}\\def\\voltik@ffd{}\n");
     s.push_str("\\pgfkeys{/tikz/voltik/shapes}\n");
@@ -635,7 +739,7 @@ fn definitions() -> String {
     s.push_str("}\n");
     // the circuit's own defaults, reset at each `to`
     s.push_str(
-        "\\def\\voltik@kind{short}\\def\\voltik@fit{0}\\def\\voltik@up{}\\def\\voltik@ps{}\\def\\voltik@pe{}\\def\\voltik@mirror{0}\\def\\voltik@invert{0}\\def\\voltik@l{}\\def\\voltik@t{}\\def\\voltik@a{}\\def\\voltik@fill{}\\def\\voltik@name{}\\def\\voltik@v{}\\def\\voltik@i{}\\def\\voltik@f{}\\def\\voltik@llines{1}\\def\\voltik@alines{1}\\def\\voltik@von{0}\\def\\voltik@ion{0}\\def\\voltik@vpassive{}\\def\\voltik@ipassive{}\\def\\voltik@voverride{}\\def\\voltik@ioverride{}\\def\\voltik@fon{0}\\def\\voltik@vq{}\\def\\voltik@vvar{}\\def\\voltik@ivar{}\\def\\voltik@fvar{}\n",
+        "\\def\\voltik@gt{0}\\def\\voltik@kind{short}\\def\\voltik@fit{0}\\def\\voltik@up{}\\def\\voltik@ps{}\\def\\voltik@pe{}\\def\\voltik@mirror{0}\\def\\voltik@invert{0}\\def\\voltik@l{}\\def\\voltik@t{}\\def\\voltik@a{}\\def\\voltik@fill{}\\def\\voltik@name{}\\def\\voltik@v{}\\def\\voltik@i{}\\def\\voltik@f{}\\def\\voltik@llines{1}\\def\\voltik@alines{1}\\def\\voltik@von{0}\\def\\voltik@ion{0}\\def\\voltik@vpassive{}\\def\\voltik@ipassive{}\\def\\voltik@voverride{}\\def\\voltik@ioverride{}\\def\\voltik@fon{0}\\def\\voltik@vq{}\\def\\voltik@vvar{}\\def\\voltik@ivar{}\\def\\voltik@fvar{}\n",
     );
     s
 }

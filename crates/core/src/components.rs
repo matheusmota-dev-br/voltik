@@ -57,6 +57,9 @@ pub enum Part {
     Channel(&'static [Op]),
     /// Stroked `k` times the path's line width with round caps: a cute switch's lever.
     Lever(f64, &'static [Op]),
+    /// A cute choke's core: `bipoles/cutechoke/cthick` times the outline's width, doubled by
+    /// `twolineschoke`.
+    ChokeCore(&'static [Op]),
     /// Stroked `k` times as wide as the component's outline, half transparent (an oscilloscope's
     /// grid).
     Faint(f64, &'static [Op]),
@@ -401,17 +404,17 @@ pub const COMPONENTS: &[Component] = &[
     inductor("variable cute inductor", 0.6, &[Arrow { from: [-0.12, -0.15], to: [0.12, 0.3], thin: false }, Part::Coil])
         .band(0.3, 0.15)
         .anchors(&[("wiper", [-0.12, -0.15]), ("tip", [0.12, 0.3])]),
-    inductor("cute inductive sensor", 0.6, &[Part::Coil, Modifier(&[M(0.24, 0.3), L(-0.24, -0.195), L(-0.48, -0.195)])]).band(0.15, 0.075).anchors(&[
+    inductor("cute inductive sensor", 0.6, &[Part::Coil, Modifier(&[M(0.24, 0.3), L(-0.24, -0.195), L(-0.48, -0.195)])]).band(0.3, 0.195).anchors(&[
         ("wiper", [-0.48, -0.195]),
         ("tip", [0.24, 0.3]),
         ("label", [-0.24, -0.195]),
     ]),
-    inductor("cute choke", 0.6, &[Part::Coil, Line(&[M(-0.3, 0.191), L(0.3, 0.191)])]).band(0.15, 0.075),
+    inductor("cute choke", 0.6, &[Part::Coil, Part::ChokeCore(&[M(-0.3, 0.191), L(0.3, 0.191)])]).band(0.15, 0.075),
     inductor("american inductor", 0.8, &[Part::Arches]).band(0.15, 0.05),
     inductor("variable american inductor", 0.8, &[Part::Arches, Arrow { from: [-0.16, -0.1], to: [0.16, 0.3], thin: false }])
         .band(0.3, 0.1)
         .anchors(&[("wiper", [-0.16, -0.1]), ("tip", [0.16, 0.3])]),
-    inductor("american inductive sensor", 0.8, &[Part::Arches, Modifier(&[M(0.32, 0.3), L(-0.32, -0.13), L(-0.64, -0.13)])]).band(0.15, 0.05).anchors(&[
+    inductor("american inductive sensor", 0.8, &[Part::Arches, Modifier(&[M(0.32, 0.3), L(-0.32, -0.13), L(-0.64, -0.13)])]).band(0.3, 0.13).anchors(&[
         ("wiper", [-0.64, -0.13]),
         ("tip", [0.32, 0.3]),
         ("label", [-0.32, -0.13]),
@@ -420,7 +423,7 @@ pub const COMPONENTS: &[Component] = &[
     bipole("variable european inductor", Class::Inductors, 0.8, 0.28, &[EURO_VARIABLE_INDUCTOR[0], EURO_VARIABLE_INDUCTOR[1], TUNABLE])
         .band(0.35, 0.35)
         .anchors(&[("wiper", [-0.2, -0.35]), ("tip", [0.2, 0.35])]),
-    inductor("european inductive sensor", 0.8, &[EURO_INDUCTOR[0], EURO_INDUCTOR[1], Modifier(&[M(0.4, 0.3), L(-0.16, -0.3), L(-0.4, -0.3)])]).anchors(&[
+    inductor("european inductive sensor", 0.8, &[EURO_INDUCTOR[0], EURO_INDUCTOR[1], Modifier(&[M(0.4, 0.3), L(-0.16, -0.3), L(-0.4, -0.3)])]).band(0.3, 0.3).anchors(&[
         ("wiper", [-0.4, -0.3]),
         ("tip", [0.4, 0.3]),
         ("label", [-0.16, -0.3]),

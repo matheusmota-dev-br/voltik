@@ -6,7 +6,7 @@
 //! is measured on what CircuiTikZ draws, in `bipoles/length` (1.4 cm), with the node's point at the
 //! origin; the terminals are `nodes width` (0.04) across the half.
 
-use tikra::extension::{Context, Error, NodeShape, PathSegment, Point, ShapeBorder, ShapeInput, ShapePaint, ShapePath, ShapeText, TextAnchor, Tokens};
+use tikra::extension::{Context, Error, LineCap, NodeShape, PathSegment, Point, ShapeBorder, ShapeInput, ShapePaint, ShapePath, ShapeText, TextAnchor, Tokens};
 
 use crate::bipole::setting;
 pub use displays::{k_seven_segment_bits, k_seven_segment_val};
@@ -229,6 +229,407 @@ fn circle_of(sized: &Sized) -> Option<(f64, f64, f64)> {
         _ => 0.0,
     };
     Some((left, right, cy))
+}
+
+/// Moves every point of a part.
+fn move_ops(ops: &mut [Op], f: impl Fn([f64; 2]) -> [f64; 2]) {
+    for o in ops.iter_mut() {
+        *o = match *o {
+            Op::Move(x, y) => {
+                let q = f([x, y]);
+                Op::Move(q[0], q[1])
+            }
+            Op::Line(x, y) => {
+                let q = f([x, y]);
+                Op::Line(q[0], q[1])
+            }
+            Op::Curve(a, b, c) => Op::Curve(f(a), f(b), f(c)),
+            Op::Close => Op::Close,
+        };
+    }
+}
+
+/// A supply's arrow given as one of TikZ's (`monopoles/vcc/arrow={Latex[blue]}`): noted to be drawn
+/// after the node, from its center to its `arrow tip`, instead of its own lines. `\\scaledwidth`
+/// in it is the plain arrow's width, scaling with the node.
+fn supply_arrow(cx: &mut Context, input: &ShapeInput, n: &Node, unit: f64) -> Result<bool, Error> {
+    if !matches!(n.name, "vcc" | "vee") {
+        return Ok(false);
+    }
+    let arrow = setting(cx, &format!("monopoles/{}/arrow", n.name))?;
+    let arrow = arrow.trim();
+    if arrow.is_empty() || arrow == "legacy" {
+        cx.run(Tokens::text("\\gdef\\voltik@sa{}"))?;
+        return Ok(false);
+    }
+    let width = 0.2 * unit * input.transform.factor();
+    cx.run(Tokens::text(&format!(
+        "\\gdef\\voltik@sa{{\\pgfextra{{\\def\\scaledwidth{{{width}cm}}\\xdef\\voltik@tn{{\\tikzlastnode}}\\draw[-{{{arrow}}}] (\\voltik@tn.center) -- (\\voltik@tn.arrow tip);}}}}"
+    )))?;
+    Ok(true)
+}
+
+/// A glyph's box, among a part's points.
+fn bounds(ops: &[Op]) -> [f64; 4] {
+    let mut b = [f64::MAX, f64::MIN, f64::MAX, f64::MIN];
+    let mut see = |p: [f64; 2]| b = [b[0].min(p[0]), b[1].max(p[0]), b[2].min(p[1]), b[3].max(p[1])];
+    for o in ops {
+        match *o {
+            Op::Move(x, y) | Op::Line(x, y) => see([x, y]),
+            Op::Curve(_, _, c) => see(c),
+            Op::Close => {}
+        }
+    }
+    b
+}
+
+/// `amplifiers/plus`, `amplifiers/minus` (`amp plus`, `amp minus`) and `amp symbol font`: an
+/// amplifier's measured signs to leave out, and the texts instead, centered where they were.
+fn amplifier_signs(cx: &mut Context, n: &Node, sized: &Sized, unit: f64) -> Result<(Vec<Vec<Op>>, Vec<ShapeText>), Error> {
+    if n.class() != Some("amplifiers") {
+        return Ok((Vec::new(), Vec::new()));
+    }
+    let (plus, minus) = (setting(cx, "amplifiers/plus")?, setting(cx, "amplifiers/minus")?);
+    let font = setting(cx, "amplifiers/symbol font")?;
+    if plus.trim() == "default" && minus.trim() == "default" && font.trim().is_empty() {
+        return Ok((Vec::new(), Vec::new()));
+    }
+    let mut parts = Vec::new();
+    let mut texts = Vec::new();
+    for (_, ops) in sized.parts.iter().filter(|(part, _)| matches!(part, Part::Solid(_))) {
+        let [left, right, low, high] = bounds(ops);
+        let (w, h) = (right - left, high - low);
+        let text = match (w, h) {
+            (w, h) if (0.14..0.2).contains(&w) && h < 0.03 => &minus,
+            (w, h) if (0.14..0.2).contains(&w) && (0.14..0.2).contains(&h) => &plus,
+            _ => continue,
+        };
+        parts.push(ops.clone());
+        let text = match text.trim() {
+            "default" if std::ptr::eq(text, &plus) => "$+$",
+            "default" => "$-$",
+            t => t,
+        };
+        if !text.is_empty() {
+            let at = Point::new((left + right) / 2.0 * unit, (low + high) / 2.0 * unit);
+            // (a `\\color` among the font commands goes around the text, which holds it)
+            let (font, text) = match font.split_once("\\color{").and_then(|(before, rest)| rest.split_once('}').map(|(color, after)| (before, color, after))) {
+                Some((before, color, after)) => (format!("{before}{after}"), format!("\\textcolor{{{color}}}{{{text}}}")),
+                None => (font.clone(), text.to_string()),
+            };
+            let (font, text) = if font.contains("\\boldmath") { (font.replace("\\boldmath", ""), format!("{{\\boldmath {text}}}")) } else { (font, text) };
+            let font = (!font.trim().is_empty()).then_some(font);
+            texts.push(ShapeText { text, at, font, ..Default::default() });
+        }
+    }
+    Ok((parts, texts))
+}
+
+/// The sizes of what is measured at one size: a Schottky base's hooks, a grid node's lines, a radial
+/// stub's inner radius, a proximeter's lines and a transistor's arrow (`current arrow scale`).
+fn sizes(cx: &mut Context, n: &Node, sized: &mut Sized) -> Result<(), Error> {
+    if n.name.contains("schottky base") {
+        let k = crate::bipole::number(cx, "tripoles/schottky base size", 0.05) / 0.05;
+        for (_, ops) in sized.parts.iter_mut().filter(|(part, _)| matches!(part, Part::Thick(_))) {
+            for i in 0..ops.len().saturating_sub(3) {
+                if let [Op::Move(x, y), Op::Line(..), Op::Line(..), Op::Line(..)] = ops[i..i + 4] {
+                    move_ops(&mut ops[i + 1..i + 4], |p| [x + k * (p[0] - x), y + k * (p[1] - y)]);
+                }
+            }
+        }
+    }
+    // a double bipole's source: its plus up with rising-potential voltages
+    if n.name == "double bipole" && matches!(setting(cx, "voltage dir")?.as_str(), "RP" | "old") {
+        for (_, ops) in sized.parts.iter_mut().filter(|(part, _)| matches!(part, Part::Solid(_))) {
+            move_ops(ops, |p| [p[0], -p[1]]);
+        }
+    }
+    if n.name == "gridnode" {
+        // `gridlines` lines each way, the middle ones on the diagonal, spaced by 2/(n+1) of its side
+        let count = crate::bipole::number(cx, "blocks/gridnode/gridlines", 7.0).round().max(1.0);
+        let (half, step) = (0.35, 2.0 * 0.7 / (count + 1.0));
+        let mut ops = Vec::new();
+        for i in 0..count as i32 {
+            let t = (f64::from(i) - (count - 1.0) / 2.0) * step;
+            let (a, b) = if t >= 0.0 { ([-half + t, half], [half, -half + t]) } else { ([-half, half + t], [half + t, -half]) };
+            ops.extend([Op::Move(a[0], a[1]), Op::Line(b[0], b[1]), Op::Move(-a[0], a[1]), Op::Line(-b[0], b[1])]);
+        }
+        if let Some((_, lines)) = sized.parts.iter_mut().find(|(part, _)| matches!(part, Part::Thin(_))) {
+            *lines = ops;
+        }
+    }
+    if n.name == "msrstub" {
+        let k = crate::bipole::number(cx, "monopoles/msrstub/radius", 0.125) / 0.125;
+        for (_, ops) in sized.parts.iter_mut() {
+            move_ops(ops, |p| if p[0].hypot(p[1]) < 0.15 { [k * p[0], k * p[1]] } else { p });
+        }
+    }
+    if n.name == "proximeter" {
+        // (the lines are `hlines position` of the way to the diamond's top, as long as fits)
+        let at = crate::bipole::number(cx, "proximeter/hlines position", 0.3);
+        let thickness = crate::bipole::number(cx, "proximeter/hlines thickness", 0.5);
+        let (x, y) = (0.3 * (1.0 - at), 0.3 * at);
+        if let Some(part) = sized.parts.iter_mut().find(|(part, _)| matches!(part, Part::Thin(_))) {
+            *part = (Part::Stroke(2.0 * thickness, &[]), vec![Op::Move(-x, y), Op::Line(x, y), Op::Move(-x, -y), Op::Line(x, -y)]);
+        }
+    }
+    // a MOSFET's arrow at the end (`transistors/arrow pos=end`): bigger, its tip on the channel's end
+    if n.name.contains("arrowmos") && setting(cx, "transistors/arrow pos")? == "end" {
+        let tip = sized.parts.iter().find_map(|(part, ops)| match (part, &ops[..]) {
+            (Part::Solid(_), [Op::Move(tail, _), _, Op::Line(tip, y), _, Op::Close]) => Some((ops.clone(), *tail, *tip, *y)),
+            _ => None,
+        });
+        if let Some((arrow, tail, tip, y)) = tip {
+            sized.parts.retain(|(part, ops)| !(matches!(part, Part::Thin(_)) && *ops == arrow));
+            let (tip, back) = if tip > tail { (0.005, -0.1239) } else { (-0.35, -0.2213) };
+            if let Some((_, ops)) = sized.parts.iter_mut().find(|(_, ops)| *ops == arrow) {
+                *ops = vec![Op::Move(back, y), Op::Line(back, y + 0.0577), Op::Line(tip, y), Op::Line(back, y - 0.0577), Op::Close];
+            }
+        }
+    }
+    // an American or-like port rounded, its nose a quarter of an ellipse (`american or shape=roundy`)
+    if n.name.starts_with("american") && ["or", "nor", "xor", "xnor"].iter().any(|k| n.name.contains(&format!(" {k} port"))) && setting(cx, "american or shape")?.trim() == "roundy"
+    {
+        for (_, ops) in sized.parts.iter_mut().filter(|(part, _)| matches!(part, Part::Fill(_) | Part::Thick(_))) {
+            for i in 0..ops.len().saturating_sub(1) {
+                if let (Op::Curve(_, _, [tip, nose]), Op::Curve(_, _, [left, top])) = (ops[i], ops[i + 1]) {
+                    if nose.abs() < 1e-3 && top > 0.1 && tip > left {
+                        let along = left + 0.5523 * (tip - left);
+                        let round = 0.5523 * top;
+                        ops[i] = Op::Curve([along, -top], [tip, -round], [tip, 0.0]);
+                        ops[i + 1] = Op::Curve([tip, round], [along, top], [left, top]);
+                    }
+                }
+            }
+        }
+    }
+    // an IEEE port's negation circle (`ieeestd ports/not radius`), and its xor's bar and leads
+    if n.name.starts_with("ieeestd") {
+        let k = 0.4;
+        let radius = k * crate::bipole::number(cx, "ieeestd ports/not radius", 0.154);
+        let circle = sized.parts.iter().find(|(_, ops)| is_circle(ops)).map(|(_, ops)| bounds(ops));
+        if let Some([left, right, low, high]) = circle.filter(|_| (radius - k * 0.154).abs() > 1e-9) {
+            let (grow, cy) = (radius / ((right - left) / 2.0), (low + high) / 2.0);
+            for (_, ops) in sized.parts.iter_mut() {
+                if is_circle(ops) {
+                    move_ops(ops, |p| [left + grow * (p[0] - left), cy + grow * (p[1] - cy)]);
+                } else if matches!(ops[..], [Op::Move(x, _), Op::Line(..)] if (x - right).abs() < 1e-3) {
+                    if let Op::Move(x, _) = &mut ops[0] {
+                        *x = left + 2.0 * radius;
+                    }
+                }
+            }
+        }
+        if n.name.contains("xor") || n.name.contains("xnor") {
+            let bar = k * (crate::bipole::number(cx, "ieeestd ports/xor bar distance", 0.192) - 0.192);
+            let lead = k * (crate::bipole::number(cx, "ieeestd ports/xor leads in", 0.192) - 0.192);
+            for (part, ops) in sized.parts.iter_mut() {
+                if matches!(part, Part::Thick(_)) && ops.len() == 2 && matches!(ops[1], Op::Curve(..)) {
+                    move_ops(ops, |p| [p[0] - bar, p[1]]);
+                } else if matches!(part, Part::Thin(_)) {
+                    for i in 0..ops.len().saturating_sub(1) {
+                        if let (Op::Move(a, _), Op::Line(b, y)) = (ops[i], ops[i + 1]) {
+                            if a.min(b) < -0.3 && b > a && y.abs() > 0.1 {
+                                ops[i + 1] = Op::Line(b + lead, y);
+                            } else if a.min(b) < -0.3 && a > b && y.abs() > 0.1 {
+                                ops[i] = Op::Move(a + lead, y);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // a HEMT's gate split in three around its lead (`tripoles/hemt/split gate`), or whole
+    if n.name.starts_with("hemt") || n.name.starts_with("GaN hemt") {
+        let split = setting(cx, "tripoles/hemt/split gate")?;
+        let lead = sized.anchors.iter().find(|(name, _)| *name == "G").map_or(0.0, |(_, p)| p[1]);
+        if !split.trim().is_empty() {
+            if let Some((_, ops)) = sized.parts.iter_mut().find(|(part, _)| matches!(part, Part::Thick(_))) {
+                let [x, _, low, high] = bounds(ops);
+                *ops = if split.trim() == "true" {
+                    let (near, far) = (0.055, 0.11);
+                    vec![M(x, high), L(x, lead + far), M(x, lead + near), L(x, lead - near), M(x, lead - far), L(x, low)]
+                } else {
+                    vec![M(x, high), L(x, low)]
+                };
+            }
+        }
+    }
+    // a transistor's solder dot, of `transistor solderdot scale` of a pole
+    if n.name.contains("solderdot") {
+        let k = crate::bipole::number(cx, "transistor solderdot scale", 0.7) / 0.7;
+        for (_, ops) in sized.parts.iter_mut().filter(|(part, ops)| matches!(part, Part::Solid(_) | Part::Thin(_)) && is_circle(ops)) {
+            let [left, right, low, high] = bounds(ops);
+            let c = [(left + right) / 2.0, (low + high) / 2.0];
+            if (right - left) < 0.1 {
+                move_ops(ops, |p| [c[0] + k * (p[0] - c[0]), c[1] + k * (p[1] - c[1])]);
+            }
+        }
+    }
+    let arrow = crate::bipole::number(cx, "current arrow scale", 16.0);
+    if transistors::TRANSISTORS.iter().any(|t| t.name == n.name) && arrow > 0.0 && (arrow - 16.0).abs() > 1e-9 {
+        let k = 16.0 / arrow;
+        for (_, ops) in sized.parts.iter_mut().filter(|(part, ops)| matches!(part, Part::Solid(_)) && ops.len() == 5 && matches!(ops[4], Op::Close)) {
+            if let Op::Line(x, y) = ops[2] {
+                move_ops(ops, |p| [x + k * (p[0] - x), y + k * (p[1] - y)]);
+            }
+        }
+    }
+    Ok(())
+}
+
+/// A MOSFET's gate: the leftmost of its two or more upright thick bars (a BJT has one).
+fn gate_bar(sized: &Sized) -> Option<Vec<Op>> {
+    let upright = |ops: &[Op]| !ops.is_empty() && ops.iter().all(|o| matches!(o, Op::Move(..) | Op::Line(..))) && (bounds(ops)[1] - bounds(ops)[0]).abs() < 1e-9;
+    let bars: Vec<_> = sized.parts.iter().filter(|(part, ops)| matches!(part, Part::Thick(_)) && upright(ops)).collect();
+    (bars.len() > 1).then(|| bars.iter().min_by(|a, b| bounds(&a.1)[0].total_cmp(&bounds(&b.1)[0])).map(|(_, ops)| ops.clone())).flatten()
+}
+
+/// `tripoles/igbt/outer base height`: the IGBT's outer bar (its leftmost thick line), of half height
+/// 0.5812 of it, with the base of an `L` one, which enters at its end, following. Returns the bar.
+fn igbt_outer_base(cx: &mut Context, sized: &mut Sized) -> Result<Vec<Op>, Error> {
+    let bar = |ops: &[Op]| match *ops {
+        [Op::Move(x, a), Op::Line(x2, b)] if (x - x2).abs() < 1e-9 && (a - b).abs() > 1e-9 => Some((x, a, b)),
+        _ => None,
+    };
+    let found = sized.parts.iter().enumerate().filter_map(|(i, (part, ops))| if matches!(part, Part::Thick(_)) { bar(ops).map(|b| (i, b)) } else { None });
+    let Some((i, (x, a, b))) = found.min_by(|p, q| p.1 .0.total_cmp(&q.1 .0)) else { return Ok(Vec::new()) };
+    let height = setting(cx, "tripoles/igbt/outer base height")?;
+    if let Ok(height) = height.trim().parse::<f64>() {
+        let (mid, half, was) = ((a + b) / 2.0, 0.5812 * height, (a - b).abs() / 2.0);
+        sized.parts[i].1 = vec![Op::Move(x, mid + half), Op::Line(x, mid - half)];
+        // the base, where it is not in the middle
+        let shift = half - was;
+        let moved = |y: f64| y + (y - mid).signum() * shift;
+        for (_, ops) in sized.parts.iter_mut() {
+            if let [Op::Move(x0, y0), Op::Line(x1, y1)] = **ops {
+                if (x0 - x).abs() < 1e-3 && (y0 - y1).abs() < 1e-9 && (y0 - mid).abs() > 1e-3 && x1 < x0 {
+                    *ops = vec![Op::Move(x0, moved(y0)), Op::Line(x1, moved(y1))];
+                }
+            }
+        }
+        for (_, p) in sized.anchors.iter_mut() {
+            if p[0] <= x + 1e-3 && (p[1] - mid).abs() > 1e-3 {
+                p[1] = moved(p[1]);
+            }
+        }
+    }
+    Ok(sized.parts[i].1.clone())
+}
+
+/// `transistor bodydiode/scale` and `dot scale`: the diode (its triangle and bar) grows around its
+/// middle, drawn at 0.3 and with dots of 0.7, and its wires reach it. Returns the parts of the diode,
+/// which `color`, `dash` and `relative thickness` style.
+fn body_diode(cx: &mut Context, sized: &mut Sized) -> Result<Vec<Vec<Op>>, Error> {
+    let triangle = |ops: &[Op]| ops.len() == 4 && matches!(ops[3], Op::Close) && ops[1..3].iter().all(|o| matches!(o, Op::Line(..)));
+    let Some((_, tip)) = sized.parts.iter().find(|(part, ops)| matches!(part, Part::Thick(_)) && triangle(ops)) else { return Ok(Vec::new()) };
+    let points: Vec<[f64; 2]> = tip.iter().filter_map(|o| if let Op::Move(x, y) | Op::Line(x, y) = *o { Some([x, y]) } else { None }).collect();
+    let bound = |i: usize, f: fn(f64, f64) -> f64, start: f64| points.iter().map(|p| p[i]).fold(start, f);
+    let (left, right) = (bound(0, f64::min, f64::MAX), bound(0, f64::max, f64::MIN));
+    let (low, high) = (bound(1, f64::min, f64::MAX), bound(1, f64::max, f64::MIN));
+    let (mx, my, half) = ((left + right) / 2.0, (low + high) / 2.0, (high - low) / 2.0);
+    let k = crate::bipole::number(cx, "transistor bodydiode/scale", 0.3) / 0.3;
+    let dots = crate::bipole::number(cx, "transistor bodydiode/dot scale", 0.7) / 0.7;
+    let near = |a: f64, b: f64| (a - b).abs() < 1e-3;
+    let inside = |p: [f64; 2]| p[0] >= left - 1e-3 && p[0] <= right + 1e-3 && p[1] >= low - 1e-3 && p[1] <= high + 1e-3;
+    let mut diode = Vec::new();
+    sized.parts.retain_mut(|(_, ops)| {
+        let last = ops.iter().rev().find_map(|o| if let Op::Line(x, y) = *o { Some([x, y]) } else { None });
+        let all = ops.iter().all(|o| match *o {
+            Op::Move(x, y) | Op::Line(x, y) => inside([x, y]),
+            Op::Curve(..) => false,
+            Op::Close => true,
+        });
+        if all {
+            move_ops(ops, |p| [mx + k * (p[0] - mx), my + k * (p[1] - my)]);
+        } else if is_circle(ops) {
+            let (xs, ys): (Vec<f64>, Vec<f64>) = ops.iter().filter_map(|o| if let Op::Curve(_, _, c) = *o { Some((c[0], c[1])) } else { None }).unzip();
+            let (x, y) = (xs.iter().sum::<f64>() / xs.len() as f64, ys.iter().sum::<f64>() / ys.len() as f64);
+            let r = xs.iter().map(|v| (v - x).abs()).fold(0.0, f64::max);
+            if r > 0.05 {
+                return true;
+            }
+            if dots <= 0.0 {
+                return false;
+            }
+            move_ops(ops, |p| [x + dots * (p[0] - x), y + dots * (p[1] - y)]);
+        } else if last.is_some_and(|p| near(p[0], mx) && near((p[1] - my).abs(), half)) {
+            let end = ops.len() - 1;
+            if let Op::Line(x, y) = ops[end] {
+                ops[end] = Op::Line(x, my + k * (y - my));
+            }
+        } else {
+            return true;
+        }
+        diode.push(ops.clone());
+        true
+    });
+    let reach = [k * (right - mx), k * half];
+    sized.extent.extend([[mx - reach[0], my - reach[1]], [mx + reach[0], my + reach[1]]]);
+    Ok(diode)
+}
+
+/// `transistor circle/partial borders` and `tubes/partial borders`: each part of the border, clockwise
+/// from the top (a tube wider than tall from its left), left out (0), drawn (1) or dashed (2) with
+/// its `partial border dash`.
+fn partial_borders(cx: &mut Context, paths: Vec<ShapePath>, circled: bool, n: &Node) -> Result<Vec<ShapePath>, Error> {
+    let tube = n.class() == Some("tubes");
+    if !circled && !tube {
+        return Ok(paths);
+    }
+    let class = if tube { "tubes" } else { "transistor circle" };
+    let spec = setting(cx, &format!("{class}/partial borders"))?;
+    let spec = spec.trim();
+    if spec.is_empty() || spec == "none" {
+        return Ok(paths);
+    }
+    let pattern = setting(cx, &format!("{class}/partial border dash"))?;
+    let pattern = dash(cx, &pattern)?;
+    let mut out = Vec::new();
+    for path in paths {
+        let curves: Vec<[Point; 4]> = {
+            let mut at = Point::new(0.0, 0.0);
+            let mut found = Vec::new();
+            for s in &path.segments {
+                match *s {
+                    PathSegment::MoveTo(p) | PathSegment::LineTo(p) => at = p,
+                    PathSegment::CurveTo(a, b, c) => {
+                        found.push([at, a, b, c]);
+                        at = c;
+                    }
+                    PathSegment::Close => {}
+                }
+            }
+            found
+        };
+        let border = matches!(path.paint, ShapePaint::Stroke(_)) && curves.len() == 4 && matches!(path.segments.last(), Some(PathSegment::Close));
+        if !border {
+            out.push(path);
+            continue;
+        }
+        let curve = |c: [Point; 4]| vec![PathSegment::MoveTo(c[0]), PathSegment::CurveTo(c[1], c[2], c[3])];
+        let back = |c: [Point; 4]| curve([c[3], c[2], c[1], c[0]]);
+        let line = |a: Point, b: Point| vec![PathSegment::MoveTo(a), PathSegment::LineTo(b)];
+        let [c1, c2, c3, c4] = [curves[0], curves[1], curves[2], curves[3]];
+        let (side, other) = (line(c2[3], c3[0]), line(c4[3], c1[0]));
+        let parts = if !tube {
+            // (the circle goes the other way, from its right)
+            vec![back(c1), back(c4), back(c3), back(c2)]
+        } else if n.name.contains("~wide") {
+            vec![curve(c4), other, curve(c1), curve(c2), side, curve(c3)]
+        } else {
+            vec![curve(c2), side, curve(c3), curve(c4), other, curve(c1)]
+        };
+        for (segments, how) in parts.into_iter().zip(spec.chars()) {
+            match how {
+                '1' => out.push(ShapePath { segments, ..path.clone() }),
+                '2' => out.push(ShapePath { segments, dash: pattern.clone(), ..path.clone() }),
+                _ => {}
+            }
+        }
+    }
+    Ok(out)
 }
 
 fn scale_circle(sized: &mut Sized, k: f64) {
@@ -1477,9 +1878,13 @@ fn variant(cx: &mut Context, base: &str) -> Result<Option<&'static Node>, Error>
         name.push_str("|xnor style=direct");
     }
     // options that do not change this one (`arrow pos=end` on a MOSFET) are dropped
-    let plain = name.replace("|number inputs=2", "").replace("|arrow pos=end", "").replace("|ferroel gate", "").replace("|arrowmos", "");
     let name = name.replace("|number inputs=2", "");
-    match find(&name).or_else(|| find(&name.replace("|arrow pos=end", ""))).or_else(|| find(&plain)) {
+    // (and a circle on what has none: only a P-type transistor has it)
+    let circleless = name.replace("|emptycircle", "").replace("|nocircle", "");
+    let plain = circleless.replace("|arrow pos=end", "").replace("|ferroel gate", "").replace("|arrowmos", "");
+    let bipolar = circleless.replace("|arrowmos", "");
+    let found = [&name, &name.replace("|arrow pos=end", ""), &circleless, &bipolar, &circleless.replace("|arrow pos=end", ""), &plain].into_iter().find_map(|n| find(n));
+    match found {
         Some(n) => Ok(Some(n)),
         None => {
             cx.warn(format!("voltik: {} not drawn yet; drawn as a plain {base}", name.replace('|', ", ")));
@@ -1624,11 +2029,13 @@ fn double_bipole(cx: &mut Context) -> Result<bool, Error> {
 /// length (cm) and which way it goes (`-` up from `a`, `+` down).
 fn coil_shape(cx: &mut Context, _input: &ShapeInput) -> Result<NodeShape, Error> {
     let spec = cx.macro_text("voltik@coil");
+    let (spec, midtap) = spec.split_once(':').unwrap_or((&spec, "0"));
     let (sign, half) = spec.split_at(1);
     let h = half.parse::<f64>().unwrap_or(0.0) * if sign == "+" { 1.0 } else { -1.0 };
+    let midtap = midtap.parse::<f64>().unwrap_or(0.0);
     let p = Point::new;
     let mut anchors = compass(-0.0, 0.0, -h.abs(), h.abs());
-    anchors.extend([("a".to_string(), p(0.0, h)), ("b".to_string(), p(0.0, -h))]);
+    anchors.extend([("a".to_string(), p(0.0, h)), ("b".to_string(), p(0.0, -h)), ("midtap".to_string(), p(if sign == "+" { -midtap } else { midtap }, 0.0))]);
     Ok(NodeShape { center: p(0.0, 0.0), anchors, border: ShapeBorder::Point, text: p(0.0, 0.0), paths: Vec::new(), extent: Vec::new(), ..Default::default() })
 }
 
@@ -1676,9 +2083,10 @@ fn transformer(cx: &mut Context, base: &str) -> Result<bool, Error> {
         ));
     }
     // the coils' nodes, in the middle of each side
-    for (side, f, (_, w, _), sign) in [("L1", fl, l1, "-"), ("L2", fr, l2, "+")] {
+    for (side, f, (kind, w, _), sign) in [("L1", fl, &l1, "-"), ("L2", fr, &l2, "+")] {
         let half = w / 2.0 * unit;
-        code.push_str(&format!("($({n}.A1)!{f}!({n}.B1)$ |- {n}.center) node[shape=voltik coil, voltik/coil={{{sign}{half}}}, name={n}-{side}] {{}} "));
+        let midtap = crate::bipole::coil_midtap(kind) * unit;
+        code.push_str(&format!("($({n}.A1)!{f}!({n}.B1)$ |- {n}.center) node[shape=voltik coil, voltik/coil={{{sign}{half}:{midtap}}}, name={n}-{side}] {{}} "));
     }
     cx.run(Tokens::text(&format!("\\gdef\\voltik@tr{{{code}}}")))?;
     Ok(own)
@@ -1795,7 +2203,34 @@ fn rotary_shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error
         "both" => (ROTARY_ARC_BOTH, &[ROTARY_HEAD_CW, ROTARY_HEAD_CCW]),
         _ => (&[], &[]),
     };
-    if !arc.is_empty() {
+    let mut after = String::new();
+    let custom = if arc.is_empty() { None } else { crate::bipole::arrow_look(cx, "switch", Some("switch arrows"), "latexslim")? };
+    if let Some(custom) = custom.filter(|c| !c.own_head || !c.start.is_empty()) {
+        // the whole arc, with the tips of the ends it has: its start the counterclockwise one
+        let thick = crate::bipole::number(cx, "bipoles/thickness", 2.0);
+        let (start, end) = match arrow.as_str() {
+            "cw" => ("", custom.end.as_str()),
+            "ccw" => (custom.start.as_str(), ""),
+            _ => (custom.start.as_str(), custom.end.as_str()),
+        };
+        let ops = turn(&[ROTARY_ARC_CW[0], ROTARY_ARC_CW[1], ROTARY_ARC_CCW[2]]);
+        let mut code = String::new();
+        for op in &ops {
+            let mut point = |q: [f64; 2]| {
+                let name = format!("voltik arrow {}", anchors.len());
+                let text = format!("(\\voltik@tn.{name})");
+                anchors.push((name, p(q[0] * u, q[1] * u)));
+                text
+            };
+            code.push_str(&match *op {
+                Op::Move(x, y) => point([x, y]),
+                Op::Line(x, y) => format!(" -- {}", point([x, y])),
+                Op::Curve(a, b, c) => format!(" .. controls {} and {} .. {}", point(a), point(b), point(c)),
+                Op::Close => String::new(),
+            });
+        }
+        after = format!("\\draw[{{{start}}}-{{{end}}},solid,{}line width={}cm] {code};", custom.options, thick * lw * custom.thickness);
+    } else if !arc.is_empty() {
         let thick = crate::bipole::number(cx, "bipoles/thickness", 2.0);
         paths.push(ShapePath { segments: segments(&turn(arc), u), paint: ShapePaint::Stroke(thick * lw), ..Default::default() });
         for head in heads {
@@ -1811,7 +2246,7 @@ fn rotary_shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error
             paths.push(ShapePath { segments, paint: path.paint, ..Default::default() });
         }
     }
-    let mut code = String::from("\\pgfextra{\\xdef\\voltik@tn{\\tikzlastnode}} ");
+    let mut code = format!("\\pgfextra{{\\xdef\\voltik@tn{{\\tikzlastnode}}{after}}} ");
     for (name, _, _) in &poles {
         let anchor = if name == "in" { "cin".to_string() } else { format!("c{name}") };
         code.push_str(&format!("(\\voltik@tn.{anchor}) node[shape=voltik pole, voltik/pole shape={pole}, name=\\voltik@tn-{name}] {{}} "));
@@ -1969,7 +2404,9 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
     let unit = cx.length(Tokens::text(&length)).unwrap_or(1.4);
     if TERMINALS.contains(&input.name.as_str()) {
         let half = crate::bipole::number(cx, "nodes width", 0.04) * unit;
-        return Ok(terminal(&input.name, half, input.line_width));
+        let mut shape = terminal(&input.name, half, input.line_width);
+        open_pole(cx, input, &mut shape)?;
+        return Ok(shape);
     }
     let n = if variant_shapes().any(|t| t == input.name) { variant(cx, &input.name)? } else { find(&input.name) };
     let Some(n) = n else { return Ok(NodeShape::default()) };
@@ -2016,6 +2453,12 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
     if n.name == "dynode" {
         dynode_arc(cx, &mut sized);
     }
+    let diode = if n.name.contains("bodydiode") { body_diode(cx, &mut sized)? } else { Vec::new() };
+    sizes(cx, n, &mut sized)?;
+    let (sign_parts, sign_texts) = amplifier_signs(cx, n, &sized, unit)?;
+    let supply_arrow = supply_arrow(cx, input, n, unit)?;
+    let outer_base = if n.name.contains("igbt") { igbt_outer_base(cx, &mut sized)? } else { Vec::new() };
+    let outer_thickness = crate::bipole::number(cx, "tripoles/igbt/outer base thickness", 1.0);
     // an `en amp` with an `en amp text` does not draw its ▷∞, the solid parts at its top
     let own_text = input.name == "en amp" && !setting(cx, "en amp text")?.is_empty();
     // a transistor's circle in a color and dashes of its own (`transistor circle/color`, `dash`)
@@ -2025,6 +2468,13 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
     };
     let circle_dash = setting(cx, "transistor circle/dash")?;
     let circle_dash = dash(cx, &circle_dash)?;
+    let diode_color = match setting(cx, "transistor bodydiode/color")?.trim() {
+        "" | "default" => None,
+        c => Some(c.to_string()),
+    };
+    let diode_dash = setting(cx, "transistor bodydiode/dash")?;
+    let diode_dash = dash(cx, &diode_dash)?;
+    let diode_thickness = crate::bipole::number(cx, "transistor bodydiode/relative thickness", 1.0);
     // a European port's symbol in `european ports font`: a text at its middle, upright, instead of
     // the glyphs measured in the plain font
     let symbol = match european_symbol(n.name) {
@@ -2038,12 +2488,115 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
     // the class's fill taken back later in the node's options (`circuitikz/logic ports/fill=none`)
     let class_fill = cx.macro_text("voltik@cfill");
     let unfilled = !class_fill.is_empty() && matches!(setting(cx, &format!("{class_fill}/fill"))?.trim(), "" | "none");
+    // the light of a phototransistor and the arrow of a cute switch, in their looks (`opto arrows`)
+    let custom = match n.name {
+        name if name.contains("photo") => crate::bipole::arrow_look(cx, "opto", Some("opto arrows"), "latexslim")?,
+        name if name.contains("spdt") && name.contains("arrow") => crate::bipole::arrow_look(cx, "switch", Some("switch arrows"), "latexslim")?,
+        _ => None,
+    };
+    let mut after = String::new();
+    let mut arrow_parts: Vec<Vec<Op>> = Vec::new();
+    let mut arrow_anchors: Vec<(String, Point)> = Vec::new();
+    if let Some(custom) = &custom {
+        let tn = "\\voltik@tn";
+        for pair in sized.parts.windows(2) {
+            let ((stroke, ops), (head, tip_ops)) = (&pair[0], &pair[1]);
+            let width = match stroke {
+                Part::Thin(_) => w,
+                Part::Thick(_) => thick * w,
+                Part::Stroke(k, _) => k * w,
+                _ => continue,
+            };
+            if !matches!(head, Part::Solid(_)) || !tip_ops.iter().any(|o| matches!(o, Op::Curve(..))) {
+                continue;
+            }
+            let mut anchor = |p: [f64; 2]| {
+                let name = format!("voltik arrow {}", arrow_anchors.len());
+                let code = format!("({tn}.{name})");
+                arrow_anchors.push((name, at(p)));
+                code
+            };
+            let mut trace = |ops: &[Op]| {
+                let mut path = String::new();
+                for op in ops {
+                    path.push_str(&match *op {
+                        Op::Move(x, y) => format!(" {}", anchor([x, y])),
+                        Op::Line(x, y) => format!(" -- {}", anchor([x, y])),
+                        Op::Curve(a, b, c) => format!(" .. controls {} and {} .. {}", anchor(a), anchor(b), anchor(c)),
+                        Op::Close => " -- cycle".to_string(),
+                    });
+                }
+                path
+            };
+            if custom.own_head {
+                let color = custom.options.split(',').find(|o| o.starts_with("color")).unwrap_or("color=.");
+                let (line, solid) = (trace(ops), trace(tip_ops));
+                after.push_str(&format!("\\draw[{{{}}}-,solid,{}line width={}cm]{line};\\fill[{color}]{solid};", custom.start, custom.options, width * custom.thickness));
+            } else {
+                let end = crate::bipole::head_tip(ops, tip_ops);
+                let (line, tip) = (trace(ops), trace(&[Op::Line(end[0], end[1])]));
+                after.push_str(&format!("\\draw[{}]{line}{tip};", custom.draw(width)));
+            }
+            arrow_parts.extend([ops.clone(), tip_ops.clone()]);
+        }
+    }
+    if !after.is_empty() || !cx.macro_text("voltik@na").is_empty() {
+        let code = if after.is_empty() { String::new() } else { format!("\\pgfextra{{\\xdef\\voltik@tn{{\\tikzlastnode}}{after}}}") };
+        cx.run(Tokens::text(&format!("\\gdef\\voltik@na{{{code}}}")))?;
+    }
+    // the lines that have a look of their own: a crossing's vertical one, a transformer's core
+    let lined = |name: &str| {
+        if name.ends_with("crossing") {
+            Some("crossing vertical")
+        } else if name.contains("transformer core") {
+            Some("transformer core")
+        } else {
+            None
+        }
+    };
+    let line_style = match lined(n.name) {
+        Some(group) => {
+            let color = setting(cx, &format!("{group}/color"))?;
+            let line_dash = setting(cx, &format!("{group}/dash"))?;
+            let thickness = crate::bipole::number(cx, &format!("{group}/relative thickness"), 1.0);
+            Some((if matches!(color.trim(), "" | "default") { None } else { Some(color.trim().to_string()) }, dash(cx, &line_dash)?, thickness))
+        }
+        None => None,
+    };
+    let styled_line = |ops: &[Op]| {
+        let straight = ops.chunks(2).all(|c| matches!(c, [Op::Move(x, _), Op::Line(x2, _)] if (x - x2).abs() < 1e-9));
+        straight && if n.name.ends_with("crossing") { matches!(ops[0], Op::Move(x, _) if x.abs() < 1e-9) } else { matches!(ops[0], Op::Move(x, _) if x.abs() < 0.1) }
+    };
+    // a depletion MOSFET's channel, of `tripoles/nmosd/depletion color`
+    let depletion = match n.name.split('|').next().unwrap_or("") {
+        kind @ ("nmosd" | "pmosd") => match setting(cx, &format!("tripoles/{kind}/depletion color"))?.trim() {
+            "" | "default" => None,
+            c => Some(c.to_string()),
+        },
+        _ => None,
+    };
+    // the gap between a transistor's gate and its channel, filled
+    let gap_fill = match setting(cx, "tr gap fill")?.trim() {
+        "" | "none" => None,
+        c => Some(c.to_string()),
+    };
+    // a MOSFET's gate (its leftmost bar), `transistors/gate thickness` of its channel, and their ends
+    let is_transistor = transistors::TRANSISTORS.iter().any(|t| t.name == n.name);
+    let gate = if is_transistor { gate_bar(&sized) } else { None };
+    let gate_thickness = crate::bipole::number(cx, "transistors/gate thickness", 1.0);
+    let rounded = is_transistor && setting(cx, "transistors/rounded caps")? == "true";
+    // (the arrows' variants have a solid circle: `emptycircle` empties it)
+    let empty_bubble = n.name.contains("|arrowmos") && setting(cx, "tr/emptycircle")? == "true";
     let paths = sized
         .parts
         .iter()
         .filter(|_| !own)
         .filter(|(part, _)| symbol.is_none() || !matches!(part, Part::Solid(_)))
         .filter(|(part, _)| !(unfilled && matches!(part, Part::Fill(_))))
+        .filter(|(_, ops)| !sign_parts.contains(ops))
+        .filter(|(_, ops)| !arrow_parts.contains(ops))
+        .filter(|(part, ops)| !(depletion.as_deref() == Some("none") && matches!(part, Part::Channel(_)) && !is_circle(ops)))
+        .filter(|_| !supply_arrow)
         .filter(|(part, ops)| !coils || (matches!(part, Part::Thick(_)) && !ops.iter().any(|op| matches!(op, Op::Curve(..) | Op::Close))))
         .filter(|(part, ops)| !(own_text && matches!(part, Part::Solid(_)) && ops.iter().all(|op| !matches!(op, Op::Move(_, y) | Op::Line(_, y) if *y < 0.5))))
         .map(|(part, ops)| {
@@ -2058,6 +2611,7 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
                 Part::Fill(_) => ShapePaint::Fill,
                 Part::Solid(_) => ShapePaint::Solid,
                 Part::Pole(_) => ShapePaint::Background,
+                Part::Channel(_) if empty_bubble => ShapePaint::Background,
                 Part::Channel(_) => {
                     if filled {
                         ShapePaint::Fill
@@ -2072,13 +2626,59 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
             if matches!(part, Part::Thick(ops) if circled && is_circle(ops)) {
                 return ShapePath { segments: segments(ops, unit), paint, color: circle_color.clone(), dash: circle_dash.clone(), ..Default::default() };
             }
+            if ops == &outer_base {
+                return ShapePath { segments: segments(ops, unit), paint: ShapePaint::Stroke(thick * w * outer_thickness), ..Default::default() };
+            }
+            // what the body diode is drawn with (`transistor bodydiode/…`)
+            if diode.contains(ops) {
+                let paint = match paint {
+                    ShapePaint::Stroke(width) => ShapePaint::Stroke(width * diode_thickness),
+                    other => other,
+                };
+                return ShapePath { segments: segments(ops, unit), paint, color: diode_color.clone(), dash: diode_dash.clone(), ..Default::default() };
+            }
+            if let (Some(color), Part::Channel(_), false) = (&depletion, part, is_circle(ops)) {
+                return ShapePath { segments: segments(ops, unit), paint: ShapePaint::Solid, color: Some(color.clone()), ..Default::default() };
+            }
+            if let Some((color, line_dash, k)) = line_style.as_ref().filter(|_| styled_line(ops)) {
+                let width = if let ShapePaint::Stroke(width) = paint { width } else { w };
+                return ShapePath { segments: segments(ops, unit), paint: ShapePaint::Stroke(width * k), color: color.clone(), dash: line_dash.clone(), ..Default::default() };
+            }
+            if rounded && matches!(part, Part::Thick(_)) {
+                let paint = if gate.as_ref() == Some(ops) { ShapePaint::Stroke(thick * w * gate_thickness) } else { paint };
+                return ShapePath { segments: segments(ops, unit), paint, cap: Some(LineCap::Round), ..Default::default() };
+            }
+            if gate.as_ref() == Some(ops) {
+                return ShapePath { segments: segments(ops, unit), paint: ShapePaint::Stroke(thick * w * gate_thickness), ..Default::default() };
+            }
             ShapePath { segments: segments(ops, unit), paint, ..Default::default() }
         })
         .collect();
+    let mut paths: Vec<ShapePath> = paths;
+    if let (Some(color), Some(gate)) = (&gap_fill, &gate) {
+        // from the gate to the channel next to it, as high as the gate; under what is drawn on it
+        let [g, _, low, high] = bounds(gate);
+        let channel =
+            sized.parts.iter().filter(|(part, ops)| matches!(part, Part::Thick(_)) && ops != gate).map(|(_, ops)| bounds(ops)[0]).filter(|x| *x > g).fold(f64::MAX, f64::min);
+        if channel < f64::MAX {
+            let rect = [M(g, low), L(channel, low), L(channel, high), L(g, high), Z];
+            let at = paths.iter().position(|p| matches!(p.paint, ShapePaint::Stroke(_))).unwrap_or(0);
+            paths.insert(at, ShapePath { segments: segments(&rect, unit), paint: ShapePaint::Solid, color: Some(color.clone()), ..Default::default() });
+        }
+    }
+    let paths = partial_borders(cx, paths, circled, n)?;
     let paths = blocks::inner(cx, n, paths)?;
     let [left, right, bottom, top] = sized.bounds;
     let mut anchors = compass(left * unit, right * unit, bottom * unit, top * unit);
     anchors.extend(sized.anchors.iter().map(|(name, p)| (name.to_string(), at(*p))));
+    anchors.extend(arrow_anchors);
+    // the circle's own compass (`circle top`), wherever `scale circle radius` left it
+    if let (true, Some((left, right, cy))) = (circled, circle_of(&sized)) {
+        let (cx0, r) = ((left + right) / 2.0, (right - left) / 2.0);
+        for (name, p) in [("circle top", [cx0, cy + r]), ("circle bottom", [cx0, cy - r]), ("circle left", [left, cy]), ("circle right", [right, cy])] {
+            anchors.push((name.to_string(), at(p)));
+        }
+    }
     // a cute switch's poles are nodes of their own too (`S1-in`, `S1-out 2`), after it
     if n.name.starts_with("cute spdt") {
         let half = crate::bipole::number(cx, "nodes width", 0.04);
@@ -2106,6 +2706,10 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
         Text::Middle(p) => Point::new(p[0] * unit - input.width / 2.0, p[1] * unit + (input.depth - input.height) / 2.0),
     };
     let text = Point::new(text.x + sized.text_shift[0] * unit, text.y + sized.text_shift[1] * unit);
+    // (a microstrip stub's text is over its middle, whatever its length)
+    let text = if n.name == "mslstub" { Point::new(sized.bounds[1] / 2.0 * unit - input.width / 2.0, text.y) } else { text };
+    // (a generic splitter's text starts further in the wider it is, measured)
+    let text = if n.name == "genericsplitter" { Point::new(text.x + input.width / 3.0, text.y) } else { text };
     // a transistor's text: up or down (`component text`), or near its collector (`legacy
     // transistors text`); measured on CircuiTikZ: 0.7 of its height away (0.95 and twice as far
     // right for the multi-terminal BJTs)
@@ -2165,7 +2769,11 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
         Some(ops) => ShapeBorder::Outline(outline_points(&segments(ops, unit))),
         None => ShapeBorder::Point,
     };
-    let mut out = NodeShape { center: Point::new(0.0, 0.0), anchors, border, text, paths, extent, ..Default::default() };
+    let mut anchors = anchors;
+    if matches!(n.name, "vcc" | "vee") {
+        anchors.push(("arrow tip".to_string(), Point::new(0.0, if n.name == "vcc" { 0.3 } else { -0.3 } * unit)));
+    }
+    let mut out = NodeShape { center: Point::new(0.0, 0.0), anchors, border, text, paths, extent, texts: sign_texts };
     // `en amp text`: where the ▷∞ goes, its baseline there, mirrored and turned with the node
     if own_text {
         let text = setting(cx, "en amp text")?;
@@ -2174,6 +2782,9 @@ fn shape(cx: &mut Context, input: &ShapeInput) -> Result<NodeShape, Error> {
     if let Some((text, font)) = symbol {
         let middle = sized.anchors.iter().find(|(a, _)| *a == "text").map_or([0.0, 0.0], |(_, p)| *p);
         let (color, font) = font_color(&font);
+        // (a mirrored node keeps it readable too)
+        let t = input.transform;
+        let text = if t.a * t.d - t.b * t.c < 0.0 { format!("\\scalebox{{-1}}[1]{{{text}}}") } else { text.to_string() };
         out.texts.push(ShapeText { text: format!("{color}{text}"), at: at(middle), font: Some(font), upright: true, ..Default::default() });
     }
     // `logic ports origin=center`: a port's point halfway between its west and east
@@ -2230,6 +2841,17 @@ fn centered(s: &mut NodeShape, d: Point) {
 }
 
 /// A terminal `half` (cm) across the half, with lines `w` wide.
+/// An open pole's fill: the node's, else `open poles fill`, and always `open poles opacity`.
+fn open_pole(cx: &mut Context, input: &ShapeInput, shape: &mut NodeShape) -> Result<(), Error> {
+    let color = setting(cx, "open poles fill")?;
+    let opacity = crate::bipole::number(cx, "poles/open fill opacity", 1.0);
+    for path in shape.paths.iter_mut().filter(|p| p.paint == ShapePaint::Background) {
+        path.color = if input.fill.is_some() { None } else { Some(color.trim().to_string()) };
+        path.opacity = Some(opacity);
+    }
+    Ok(())
+}
+
 fn terminal(name: &str, half: f64, w: f64) -> NodeShape {
     let p = Point::new;
     let k = 0.5523 * half;

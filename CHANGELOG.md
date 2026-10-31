@@ -4,6 +4,37 @@ What changed in each release of voltik: the crates `voltik` and `voltik-cli`, `@
 
 Each release has a headline (the line under its title), what changed, and the figures of [`corpus/`](corpus) that show it (`Figures:`), drawn by the site with today's voltik. `scripts/release.sh` will not release a version without its section here, and makes the GitHub release from it.
 
+## Unreleased
+
+The rest of the CircuiTikZ manual: 1053 of 1055 figures match TeX, no option of the manual is ignored any more, and the conformance run now counts the 9 it could not compile.
+
+- Every look of the arrows: `opto`, `switch`, `tunable`, `wiper` and `gto gate` `start arrow` and `end arrow`, and `opto arrows/…` and `switch arrows/…` (`color`, `dash`, `relative thickness`), also on phototransistors, cute switches and rotary switches.
+- Transistors: `tripoles/mos style=arrows`, `tripoles/pmos style/emptycircle` and `nocircle`, `arrow pos=end` on a MOSFET, `transistors/gate thickness`, `rounded caps`, `tr gap fill`, `depletion color`, `transistor solderdot scale`, and the HEMT's `split gate`.
+- Sources and meters: `bipoles/dcisource/angle`, `bipoles/isourcesin/angle`, an American source's `inner plus`, `inner minus` and `margin`, `sources/symbol/sign rotation`, and `index position`.
+- Blocks: `to[…, dashed]` dashes their box, with `inner blocks dashed` and `dashed blocks pattern`; `blocks dc segments` (and `in`, `out`); `blocks/filter grid/…`, `blocks/filter plot/…`, and `ideal filter numbers`.
+- Logic ports: `american or shape=roundy`, and `ieeestd ports/` `not radius`, `xor bar distance` and `xor leads in`.
+- `crossing vertical/…`, `transformer core/…`, `en amp text A`, `nodes width` on a `to`, `bipole/nodes/left` and `right`, poles given by a macro or a style, and an oscilloscope's own waveform (`bipoles/oscope/waveform/name/.code`).
+- `to[amp, >]`: the arrow into a block.
+- A transformer's coils have their `midtap` (`T-L2.midtap`).
+- A cute choke's `bipoles/cutechoke/cthick`, `twolineschoke` and `onelinechoke`.
+- The poles of a `to` under `transform shape` are as big as the `ocirc` nodes (they were scaled twice).
+- Partial borders of transistors' circles and tubes (`partial borders`, `partial border dash`), and the anchors `circle top`, `bottom`, `left` and `right`.
+- The body diode's `color`, `dash`, `relative thickness`, `scale` and `dot scale`.
+- `open poles fill` and `open poles opacity`.
+- `amplifiers/plus`, `amplifiers/minus`, `amp plus`, `amp minus` and `amp symbol font`.
+- `monopoles/vcc/arrow` and `monopoles/vee/arrow`, with `\\scaledwidth`.
+- `gridlines`, `tripoles/schottky base size`, `no schottky base`, `tripoles/igbt/outer base height` and `thickness`, `monopoles/msrstub/radius`, `proximeter/hlines position` and `thickness`, `current arrow scale` and `logic ports draw input leads`.
+- `rmeterwa`'s arrow leaves room for its text; a label on a line turned by `transform shape` keeps its side; `genericsplitter`'s and `mslstub`'s texts sit where TeX puts them; `\\SI{+10}{V}` leaves out the plus.
+- `\ctikzflipx`, `\ctikzflipy` and `\ctikzflipxy` flip their text back; a European port's symbol stays readable in a mirrored node.
+- A split two-port is drawn upright whichever way its path goes, with `t1` and `t2` where TeX puts them.
+- A double bipole's source follows `voltage dir`; the texts of `smeter` on vertical lines and of `qgenerator`; `\SI{.25}{…}` gets its zero.
+- `vif queue add` runs its macros at the end of the picture, or at `\ctikzprocessvif`, as TeX does, so they can use the component's nodes (`(R1voltage.center)`).
+- `\ctikzset{my v/.default=blue}` reaches the styles a `to` uses.
+- Inductive sensors (`sL`) keep their labels clear of their arrow.
+- An American voltage source under `bipole/override source vif` keeps a source's label.
+- `voltage=raised` keeps its height under a class's scale (`diodes/scale`).
+- `pin distance` and `label distance` among a pin's or a label's own options (tikra), and `\boldmath` math in bold italic, into `\rotatebox` too (mathra).
+
 ## 0.15.0 - 2026-10-29
 
 The CircuiTikZ manual's figures drawn as TeX draws them: 1041 of 1046 match, from 1010.

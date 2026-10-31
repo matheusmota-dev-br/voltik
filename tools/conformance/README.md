@@ -32,6 +32,8 @@ group, and every document starts with the ones in force at its place in the manu
 loads CircuiTikZ as the manual does (`siunitx, RPvoltages`), with T1 Latin Modern, and the manual's
 macros for marking anchors.
 
+A macro given to `vif queue add` counts as used, though the document names it without its backslash.
+
 The same document goes to pdflatex and to voltik.
 
 ## The reference
@@ -61,3 +63,5 @@ The tolerance absorbs what is expected to differ: labels in Latin Modern Math (C
 math font, without TeX's optical sizes or text italic), antialiasing, a bounding box off by a hair. An
 item that does not match although voltik gave no warning is counted apart: that is voltik being wrong
 without saying so.
+
+Each item is compiled once, but the ones with tikzmark's `pic anchor`, which needs a second run to find its place.

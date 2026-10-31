@@ -139,7 +139,10 @@ pub fn nodes(cx: &mut Context, placed: &Placed, frame: &Frame, unit: f64) -> Res
             // the node keeps TikZ's inner sep, as CircuiTikZ's do (it counts in the picture's size):
             // at the sides, its anchor is that much nearer, so that the text stays where it was
             let level = (local / 90.0 - (local / 90.0).round()).abs() < 1e-4;
-            let (anchor, shift) = match outward.rem_euclid(360.0) {
+            // (under `transform shape` the text turns with the picture: its own frame decides)
+            let shaped = cx.macro_text("voltik@ts") == "1";
+            let side_angle = if shaped { local + 90.0 * side } else { outward };
+            let (anchor, shift) = match side_angle.rem_euclid(360.0) {
                 // a slanted line: the label's border point that faces the line, as TeX anchors it
                 _ if !level => (tex_anchor(local, side), Point::new(0.0, 0.0)),
                 a if (45.0..135.0).contains(&a) => ("base".into(), Point::new(0.0, ABOVE)),
@@ -147,7 +150,9 @@ pub fn nodes(cx: &mut Context, placed: &Placed, frame: &Frame, unit: f64) -> Res
                 a if (135.0..225.0).contains(&a) => ("mid east".into(), Point::new(-SIDE + INNER_SEP, 0.0)),
                 _ => ("mid west".into(), Point::new(SIDE - INNER_SEP, 0.0)),
             };
-            let at = border.plus(shift);
+            // (turned with the picture under `rotate` and `transform shape`, as the text is)
+            let turn = if shaped { (placed.angle - local).to_radians() } else { 0.0 };
+            let at = border.plus(Point::new(shift.x * turn.cos() - shift.y * turn.sin(), shift.x * turn.sin() + shift.y * turn.cos()));
             s.push_str(&format!(" node[{options}anchor={anchor}] at {} {{{text}}}", frame.coordinate(at)));
             record(cx, &name, node, &tex_anchor(local, side), 0.0);
         }
@@ -234,7 +239,8 @@ pub fn siunitx(text: &str) -> String {
             if args > 0 {
                 if let Some((values, after)) = arguments(&rest[name_end..], args) {
                     let body = match name {
-                        "SI" | "qty" => format!("{}\\,\\mathrm{{{}}}", values[0], symbols(&values[1])),
+                        // (siunitx leaves out an explicit plus)
+                        "SI" | "qty" => format!("{}\\,\\mathrm{{{}}}", number_value(&values[0]), symbols(&values[1])),
                         "num" => values[0].clone(),
                         _ => format!("\\mathrm{{{}}}", symbols(&values[0])),
                     };
@@ -251,6 +257,16 @@ pub fn siunitx(text: &str) -> String {
         rest = &rest[c.len_utf8()..];
     }
     out
+}
+
+/// A quantity's value as siunitx prints it: no explicit plus, a zero before a bare point.
+fn number_value(value: &str) -> String {
+    let value = value.trim_start().trim_start_matches('+');
+    match value.strip_prefix('-') {
+        Some(rest) if rest.starts_with('.') => format!("-0{rest}"),
+        _ if value.starts_with('.') => format!("0{value}"),
+        _ => value.to_string(),
+    }
 }
 
 /// `n` braced arguments at the start of `text`, and what follows them.
