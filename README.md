@@ -4,6 +4,8 @@
 
 voltik converts CircuiTikZ circuits to SVG and PNG, with no TeX installation, no fonts on the system and no external processes. It is a library of [tikra](https://github.com/matheusmota-dev-br/tikra): tikra draws the TikZ, voltik adds the CircuiTikZ keys and components on top of it, and labels are set by [mathra](https://github.com/matheusmota-dev-br/mathra) in Latin Modern, TeX's own Computer Modern.
 
+<p align="center"><a href="https://youtu.be/cYkUMd_6WYI"><img src="https://img.youtube.com/vi/cYkUMd_6WYI/maxresdefault.jpg" alt="voltik in 60 seconds: watch the demo on YouTube" width="720"></a></p>
+
 ## Install and use
 
 | Where | Install | Registry |
