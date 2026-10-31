@@ -120,6 +120,7 @@ Path-style, with the bipoles: `multiwire`, `bmultiwire`, `tmultiwire` (buses), `
 - `bipole nodes={start}{end}` puts a pole at each end: `none`, `circ`, `ocirc`, `diamondpole`, `odiamondpole`, `squarepole`, `osquarepole`, each with options of its own (`{odiamondpole, fill=red}`). The shorthands combine none, `o` (`ocirc`), `*` (`circ`) and `d` (`diamondpole`): `o-*`, `*-o`, `-o`, `d-d`, `o-d`…
 - A pole is `nodes width` (0.04) of `bipoles/length` across the half, with the path's stroke, drawn over the wires; a full one is filled with the stroke's color, an open one with the component's fill, or white.
 - `mirror` flips the component across the line; `invert` turns it end for end.
+- `>` (no value) on a block draws the arrow into it.
 
 ## Settings and styles
 
@@ -127,10 +128,20 @@ Path-style, with the bipoles: `multiwire`, `bmultiwire`, `tmultiwire` (buses), `
 - The same settings in a `to[…]` or a TikZ style: `to[R, resistors/scale=1.8]`. A style defined with `\ctikzset{tallR/.style={…}}` is a TikZ style too: `to[R, tallR]`.
 - Styles: `american`, `european`, `american resistors`, `european resistors`, `american inductors`, `european inductors`, `cute inductors`, on the environment, a scope or a path.
 
+## Looks of their own
+
+- Arrows: `opto`, `switch`, `tunable`, `wiper` and `gto gate`, each with `start arrow` and `end arrow`; `opto arrows/…` and `switch arrows/…` with `color`, `dash` and `relative thickness`.
+- Transistors: `tripoles/mos style`, `tripoles/pmos style`, `transistors/gate thickness`, `transistors/rounded caps`, `tr gap fill`, `tripoles/nmosd/depletion color` (and `pmosd`), `transistor solderdot scale`, `tripoles/hemt/split gate`.
+- Sources and meters: `bipoles/dcisource/angle`, `bipoles/isourcesin/angle`, `bipoles/vsourceam/inner plus`, `inner minus` and `margin` (and `cvsourceam`), `sources/symbol/sign rotation`, `bipoles/smeter/index position`, `bipoles/qmeter/index position`, and an oscilloscope's own waveform (`bipoles/oscope/waveform/mine/.code`, in pgf).
+- Blocks: `inner blocks dashed`, `dashed blocks pattern`, `blocks dc segments` (and `in`, `out`), `blocks/filter grid/…`, `blocks/filter plot/…`, `ideal filter numbers`, `ideal filter number low` and `high`.
+- Logic ports: `american or shape`, `ieeestd ports/not radius`, `xor bar distance`, `xor leads in`.
+- `crossing vertical/…`, `transformer core/…`, `en amp text A`, `bipole/nodes/left` and `right`.
+
 ## Out, for now
 
-- The logic ports' sizes in general (`height`, `width`, `port width`, `input height`), `logic ports/scale`, `european ports font`, more inputs than measured, the blocks' `blocks dc segments`, `inner blocks dashed`, `dashed blocks pattern`, `blocks/filter grid/…`, `blocks/filter plot/…`, `ideal filter numbers`, `blocks/gridnode/gridlines`, the `>` input arrow, `monopoles/msrstub/radius`, `monopoles/msport/width` and the inner thickness of the blocks on a path (chapter 4 of the manual after the double bipoles).
-- The sources' `sign rotation`, an oscilloscope's own waveforms (`bipoles/oscope/waveform/mine/.code`, in pgf), the switches' arrow tips (`switch end arrow`, `switch start arrow`), a transformer core's lines with coils of other lengths, `inner` with `quadpoles style=inline`, the amplifiers' `amp symbol font`, an `en amp text` in a mirrored amplifier, the tubes' `partial borders` and the dynode's `arc angle`, the transistors' `tr gap fill` and `partial borders`, `bjt pins width` other than the manual's, the opto and GTO gate arrows' customizations (`opto arrows/…`, `opto end arrow`, `gto gate end arrow`), and the experimental automatic voltages' lengths (`\fixedvlen`, `\compvlen`).
-- The customizations of the supplies' arrows (`monopoles/vcc/arrow`).
-- The fill and opacity of open poles set apart (`open poles fill`, `open poles opacity`), the tunable components' start arrow and the potentiometers' arrow tips (`tunable start arrow`, `wiper end arrow`, but for `\ctikztunablearrow`), the zig-zag joins (`resistors/zigzag hook`, `zigzag stub`), the choke's lines (`twolineschoke`, `cthick`).
+- The logic ports' sizes in general (`height`, `width`, `port width`, `input height`), `logic ports/scale`, `european ports font`, more inputs than measured, `monopoles/msport/width` and the inner thickness of the blocks on a path (chapter 4 of the manual after the double bipoles).
+- A transformer core's lines with coils of other lengths, `inner` with `quadpoles style=inline`, an `en amp text` in a mirrored amplifier, the dynode's `arc angle`, `bjt pins width` other than the manual's, and the experimental automatic voltages' lengths (`\fixedvlen`, `\compvlen`).
+- `bipoles/cutechoke/cthick` on a transformer's core.
+- The zig-zag joins (`resistors/zigzag hook`, `zigzag stub`).
+- The blank box of a `\ctikzsubcircuitactivate` given inside the picture, which only widens TeX's margins.
 - Straight labels on lines at angles that are not multiples of 90° (15°, 75°…) are a few points from where CircuiTikZ puts them.

@@ -37,7 +37,7 @@ PREAMBLE = [
 ]
 
 # The commands that change settings for what follows; their arguments are read as TeX reads them.
-SETUP = re.compile(r"\\(ctikzset|tikzset|ctikzsetstyle|ctikzloadstyle|ctikzsubcircuitdef|pgfkeys|usetikzlibrary|definecolor|colorlet|newcommand|renewcommand|providecommand|def)(?![A-Za-z@])")
+SETUP = re.compile(r"\\(ctikzset|tikzset|ctikzsetstyle|ctikzloadstyle|ctikzsubcircuitdef|ctikzactivate(?:voltage|current|flow)directions|pgfkeys|usetikzlibrary|definecolor|colorlet|newcommand|renewcommand|providecommand|NewDocumentCommand|def|let)(?![A-Za-z@])")
 EVENT = re.compile(
     r"\\begin\{([A-Za-z*]+)\}|\\end\{([A-Za-z*]+)\}|\\(begingroup|endgroup)(?![A-Za-z])"
     r"|\\(circuitdescbip|circuitdesc)(?![A-Za-z])|\\(section|subsection)\*?\{"
@@ -109,6 +109,11 @@ def setup_statement(text, name, i):
         # \def\name<parameter text>{body}
         m = re.compile(r"\s*\\[A-Za-z@]+[^{]*").match(text, j)
         _, j = group(text, m.end())
+    elif name == "let":
+        j = re.compile(r"\s*\\[A-Za-z@]+\s*=?\s*\\[A-Za-z@]+").match(text, j).end()
+    elif name == "NewDocumentCommand":
+        for _ in range(3):  # name, argument specification, body
+            _, j = group(text, j)
     elif name == "definecolor":
         arg, j2 = group(text, j, "[", "]")
         if arg is not None:
@@ -171,7 +176,7 @@ def split_options(options):
 
 def defined_name(statement):
     """What a definition defines, as a document would use it (`\\mydiv`, `\\divider`, a color); None for a setting."""
-    m = re.match(r"\\(?:newcommand|renewcommand|providecommand)\*?\s*\{?\s*(\\[A-Za-z@]+)", statement) or re.match(r"\\def\s*(\\[A-Za-z@]+)", statement)
+    m = re.match(r"\\(?:newcommand|renewcommand|providecommand|NewDocumentCommand)\*?\s*\{?\s*(\\[A-Za-z@]+)", statement) or re.match(r"\\(?:def|let)\s*(\\[A-Za-z@]+)", statement)
     if m:
         return m.group(1)
     m = re.match(r"\\ctikzsubcircuitdef\s*\{([^}]*)\}", statement)
@@ -190,8 +195,12 @@ def needed(setup, body):
     while changed:
         changed = False
         for i, s in enumerate(setup):
+            if keep[i]:
+                continue
             name = defined_name(s)
-            if not keep[i] and re.search(re.escape(name) + (r"(?![A-Za-z@])" if name.startswith("\\") else r"\b"), text):
+            # a macro `vif queue add={name}` will call is named there without its backslash
+            use = re.escape(name) + r"(?![A-Za-z@])|vif queue add=\{" + re.escape(name[1:]) + r"\}" if name.startswith("\\") else re.escape(name) + r"\b"
+            if re.search(use, text):
                 keep[i], changed = True, True
                 text += "\n" + s
     return [s for s, k in zip(setup, keep) if k]

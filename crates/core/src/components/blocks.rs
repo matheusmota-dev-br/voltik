@@ -2563,7 +2563,8 @@ pub fn size(cx: &mut Context, comp: &Component) -> Option<(f64, f64)> {
 pub fn text(name: &str) -> [f64; 2] {
     match name {
         "bgenerator" => [-0.157, 0.0],
-        "ngenerator" | "qgenerator" => [0.0, -0.1226],
+        "ngenerator" => [0.0, -0.1226],
+        "qgenerator" => [-0.1575, 0.07],
         "amp" | "iamp" | "vamp" => [-0.084, 0.0],
         "amp|boxed" | "iamp|boxed" | "vamp|boxed" => [-0.0587, 0.0],
         _ => [0.0, 0.0],

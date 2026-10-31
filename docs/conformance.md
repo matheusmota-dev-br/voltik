@@ -4,12 +4,12 @@ How far voltik is from CircuiTikZ, measured by its manual (CircuiTikZ 1.8.7): ev
 shows and every entry of its list of components, drawn by pdflatex (TeX Live, CircuiTikZ 1.8.7) and by
 voltik, and compared. How it works and how to run it: [tools/conformance](../tools/conformance/README.md).
 
-**540 of 541 components (99.8%) and 501 of 505 examples (99.2%) match TeX.** Of all 1046 items, 4 are close, 1 differ and 0 fail in voltik; 5 of the ones that do not match came out with no warning.
+**540 of 541 components (99.8%) and 513 of 514 examples (99.8%) match TeX.** Of all 1055 items, 1 are close, 1 differ and 0 fail in voltik; 2 of the ones that do not match came out with no warning.
 
 | | Items | Match | Close | Different | Fails | Mean F1 |
 |---|---:|---:|---:|---:|---:|---:|
-| All | 1046 | 1041 (99.5%) | 4 (0.4%) | 1 (0.1%) | 0 (0.0%) | 1.00 |
-| Examples of the manual | 505 | 501 (99.2%) | 4 (0.8%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
+| All | 1055 | 1053 (99.8%) | 1 (0.1%) | 1 (0.1%) | 0 (0.0%) | 1.00 |
+| Examples of the manual | 514 | 513 (99.8%) | 1 (0.2%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | Path-style components | 306 | 306 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | Node-style components | 235 | 234 (99.6%) | 0 (0.0%) | 1 (0.4%) | 0 (0.0%) | 1.00 |
 
@@ -18,7 +18,7 @@ voltik, and compared. How it works and how to run it: [tools/conformance](../too
 
 A component is one entry of the manual's list, drawn as the manual draws it: `\draw (0,0) to[<name>] (2,0);` for a path-style one, `\draw (0,0) node[<name>]{};` for a node-style one, filled when the manual fills it. A component voltik says it does not know counts as different, even when the wire it draws instead scores close.
 
-Not counted: 9 examples of the manual where tex could not compile it, 1 path-style components where tex draws nothing visible.
+Not counted: 1 path-style components where tex draws nothing visible.
 
 ## By section
 
@@ -26,11 +26,8 @@ Sorted by how many items do not match, the work left.
 
 | Section | Items | Match | Close | Different | Fails | Mean F1 |
 |---|---:|---:|---:|---:|---:|---:|
-| Examples › Using components in pics (since v1.8.0) <sub>example</sub> | 1 | 0 (0.0%) | 1 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0.96 |
-| Labels, voltages and currents › Currents and voltages <sub>example</sub> | 12 | 11 (91.7%) | 1 (8.3%) | 0 (0.0%) | 0 (0.0%) | 0.99 |
-| The components: list › Resistive bipoles <sub>example</sub> | 6 | 5 (83.3%) | 1 (16.7%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Seven segment displays <sub>node</sub> | 1 | 0 (0.0%) | 0 (0.0%) | 1 (100.0%) | 0 (0.0%) | 0.67 |
-| The components: usage › Subcircuits <sub>example</sub> | 7 | 6 (85.7%) | 1 (14.3%) | 0 (0.0%) | 0 (0.0%) | 0.99 |
+| The components: usage › Subcircuits <sub>example</sub> | 7 | 6 (85.7%) | 1 (14.3%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | Colors <sub>example</sub> | 2 | 2 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | Colors › Fill colors <sub>example</sub> | 8 | 8 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | Colors › Shape colors <sub>example</sub> | 7 | 7 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
@@ -40,12 +37,13 @@ Sorted by how many items do not match, the work left.
 | Defining new components › Suggested setup <sub>path</sub> | 1 | 1 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | Examples › 3-phases block schematic <sub>example</sub> | 1 | 1 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | Examples › A Sallen-Key cell <sub>example</sub> | 1 | 1 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
-| Examples › A red diode <sub>example</sub> | 1 | 1 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0.99 |
+| Examples › A red diode <sub>example</sub> | 1 | 1 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | Examples › A styled low noise input stage <sub>example</sub> | 1 | 1 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0.99 |
 | Examples › Automatic user-defined voltages, currents and flows (since v1.8.5) <sub>example</sub> | 1 | 1 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | Examples › Mixing circuits and graphs <sub>example</sub> | 1 | 1 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | Examples › Photodiodes <sub>example</sub> | 1 | 1 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | Examples › RF circuit <sub>example</sub> | 1 | 1 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
+| Examples › Using components in pics (since v1.8.0) <sub>example</sub> | 1 | 1 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0.97 |
 | Examples › Using the (experimental) siunitx syntax <sub>example</sub> | 2 | 2 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | FAQ: Frequently asked questions › Labels, voltages and currents woes <sub>example</sub> | 1 | 1 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | FAQ: Frequently asked questions › Tunable components <sub>example</sub> | 1 | 1 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
@@ -57,9 +55,10 @@ Sorted by how many items do not match, the work left.
 | Introduction › Scale factor inaccuracies <sub>example</sub> | 2 | 2 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | Labels, voltages and currents <sub>example</sub> | 7 | 7 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | Labels, voltages and currents › Accessing labels text nodes <sub>example</sub> | 2 | 2 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0.99 |
-| Labels, voltages and currents › Advanced voltages, currents and flows <sub>example</sub> | 6 | 6 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
+| Labels, voltages and currents › Advanced voltages, currents and flows <sub>example</sub> | 12 | 12 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | Labels, voltages and currents › Changing the style of labels, voltages, and other text ornaments <sub>example</sub> | 1 | 1 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0.99 |
 | Labels, voltages and currents › Currents <sub>example</sub> | 15 | 15 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
+| Labels, voltages and currents › Currents and voltages <sub>example</sub> | 12 | 12 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0.99 |
 | Labels, voltages and currents › Flows <sub>example</sub> | 7 | 7 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | Labels, voltages and currents › Integration with siunitx <sub>example</sub> | 6 | 6 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | Labels, voltages and currents › Labels and Annotations <sub>example</sub> | 11 | 11 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
@@ -68,7 +67,7 @@ Sorted by how many items do not match, the work left.
 | The components: list › Amplifiers <sub>node</sub> | 11 | 11 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Arrows (fake and real) <sub>example</sub> | 4 | 4 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Arrows (fake and real) <sub>node</sub> | 4 | 4 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
-| The components: list › Block diagram components <sub>example</sub> | 26 | 26 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0.99 |
+| The components: list › Block diagram components <sub>example</sub> | 26 | 26 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Block diagram components <sub>node</sub> | 13 | 13 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Block diagram components <sub>path</sub> | 64 | 64 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0.99 |
 | The components: list › Capacitors and inductors: dynamical bipoles <sub>example</sub> | 8 | 8 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
@@ -87,13 +86,13 @@ Sorted by how many items do not match, the work left.
 | The components: list › Double bipoles (transformers) <sub>node</sub> | 9 | 9 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Electro-Mechanical Devices <sub>example</sub> | 3 | 3 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Electro-Mechanical Devices <sub>node</sub> | 2 | 2 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
-| The components: list › Electronic Tubes <sub>example</sub> | 7 | 7 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0.99 |
+| The components: list › Electronic Tubes <sub>example</sub> | 7 | 7 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Electronic Tubes <sub>node</sub> | 12 | 12 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Flip-flops <sub>example</sub> | 4 | 4 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Flip-flops <sub>node</sub> | 12 | 12 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
-| The components: list › Grounds and supply voltages <sub>example</sub> | 2 | 2 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0.99 |
+| The components: list › Grounds and supply voltages <sub>example</sub> | 2 | 2 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Grounds and supply voltages <sub>node</sub> | 12 | 12 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
-| The components: list › Instruments <sub>example</sub> | 18 | 18 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0.99 |
+| The components: list › Instruments <sub>example</sub> | 18 | 18 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Instruments <sub>path</sub> | 13 | 13 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Logic gates <sub>example</sub> | 30 | 30 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Logic gates <sub>node</sub> | 34 | 34 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
@@ -106,9 +105,10 @@ Sorted by how many items do not match, the work left.
 | The components: list › Multiple wires (buses) <sub>path</sub> | 3 | 3 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Multiplexer and de-multiplexer <sub>example</sub> | 13 | 13 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Multiplexer and de-multiplexer <sub>node</sub> | 6 | 6 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
-| The components: list › RF components <sub>example</sub> | 3 | 3 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0.99 |
+| The components: list › RF components <sub>example</sub> | 3 | 3 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › RF components <sub>node</sub> | 14 | 14 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › RF components <sub>path</sub> | 3 | 3 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
+| The components: list › Resistive bipoles <sub>example</sub> | 6 | 6 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Resistive bipoles <sub>path</sub> | 24 | 24 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Seven segment displays <sub>example</sub> | 2 | 2 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | The components: list › Sources and generators <sub>example</sub> | 21 | 21 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
@@ -128,7 +128,7 @@ Sorted by how many items do not match, the work left.
 | Tutorials › A logic circuit <sub>example</sub> | 3 | 3 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | Tutorials › A non-inverting op-amp amplifier <sub>example</sub> | 5 | 5 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | Tutorials › A non-inverting op-amp amplifier <sub>node</sub> | 1 | 1 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
-| Tutorials › A transistor-based amplifier <sub>example</sub> | 2 | 2 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
+| Tutorials › A transistor-based amplifier <sub>example</sub> | 5 | 5 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | Tutorials › Getting started with : a current shunt <sub>example</sub> | 7 | 7 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | Using bipoles in circuits › Line joins between Path Components <sub>example</sub> | 2 | 2 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
 | Using bipoles in circuits › Mirroring and Inverting <sub>example</sub> | 7 | 7 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 1.00 |
@@ -179,12 +179,6 @@ Warnings, by how many items they appear in (the varying part replaced by …):
 
 | Items | Warning |
 |---:|---|
-| 53 | `option … not supported: ignored` |
-| 1 | `voltik: oscilloscope waveform mywave not drawn yet; drawn as ramps` |
-| 1 | `\draw: figure: unknown anchor: QN.circle bottom; statement ignored` |
-| 1 | `\draw: figure: unknown anchor: QN.circle top; statement ignored` |
-| 1 | `\draw: figure: unknown anchor: T-LN.midtap; statement ignored` |
-| 1 | `voltik: pole \p is not drawn yet` |
 
 Components voltik does not know yet, by how many items use them:
 
@@ -195,46 +189,6 @@ Other options voltik does not know, likewise:
 
 | Items | Option |
 |---:|---|
-| 8 | `color` |
-| 7 | `dash` |
-| 5 | `relative thickness` |
-| 3 | `opto end arrow` |
-| 3 | `partial borders` |
-| 2 | `arrow` |
-| 2 | `angle` |
-| 2 | `nodes width` |
-| 2 | `dashed blocks pattern` |
-| 2 | `inner blocks dashed` |
-| 2 | `thickness` |
-| 2 | `nocircle` |
-| 2 | `mos style` |
-| 2 | `minus` |
-| 2 | `plus` |
-| 2 | `en amp text A` |
-| 2 | `switch start arrow` |
-| 2 | `switch end arrow` |
-| 2 | `open poles fill` |
-| 1 | `use fpu reciprocal` |
-| 1 | `pic anchor` |
-| 1 | `tunable end arrow` |
-| 1 | `wiper end arrow` |
-| 1 | `tunable start arrow` |
-| 1 | `onelinechoke` |
-| 1 | `cthick` |
-| 1 | `twolineschoke` |
-| 1 | `gto gate end arrow` |
-| 1 | `opto start arrow` |
-| 1 | `inner minus` |
-| 1 | `inner plus` |
-| 1 | `margin` |
-| 1 | `sign rotation` |
-| 1 | `index position` |
-| 1 | `current arrow scale` |
-| 1 | `blocks dc out segments` |
-| 1 | `blocks dc segments` |
-| 1 | `blocks dc in segments` |
-| 1 | `gridlines` |
-| 1 | `ideal filter numbers` |
 
 Errors of the items that fail:
 

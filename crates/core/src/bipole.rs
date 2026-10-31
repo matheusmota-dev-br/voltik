@@ -69,8 +69,12 @@ pub fn k_component(cx: &mut Context, v: Option<Tokens>) -> Result<(), Error> {
 /// (`circ`, `ocirc`, `diamondpole`…) and options for it (`ocirc, fill=red`), or `none`.
 pub fn k_pole(cx: &mut Context, v: Option<Tokens>) -> Result<(), Error> {
     let a = v.unwrap_or_default().arguments(2);
-    cx.define("voltik@ps", a[0].clone());
-    cx.define("voltik@pe", a[1].clone());
+    // (a macro's value, as a `\\foreach` gives: a pole's options are not expanded)
+    for (name, pole) in [("voltik@ps", &a[0]), ("voltik@pe", &a[1])] {
+        let text = pole.to_text();
+        let pole = if text.trim_start().starts_with('\\') { Tokens::text(&cx.expand(pole.clone())?) } else { pole.clone() };
+        cx.define(name, pole);
+    }
     Ok(())
 }
 
@@ -190,6 +194,12 @@ pub struct Frame {
 impl Frame {
     pub fn coordinate(&self, p: Point) -> String {
         let q = self.to_picture.apply(p);
+        format!("({}cm,{}cm)", num(q.x), num(q.y))
+    }
+
+    /// A canvas direction as a picture coordinate.
+    fn vector(&self, way: Point) -> String {
+        let q = self.to_picture.apply(way).minus(self.to_picture.apply(Point::new(0.0, 0.0)));
         format!("({}cm,{}cm)", num(q.x), num(q.y))
     }
 
@@ -386,7 +396,8 @@ pub fn k_place(cx: &mut Context, _v: Option<Tokens>) -> Result<(), Error> {
         let mut boxed = false;
         let mut scoped = false;
         // an instrument's screen upright, around its middle
-        let straight = STRAIGHT.contains(&comp.name) && setting(cx, "instruments/rotated")? != "true";
+        // (and a split two-port's diagonal, whichever way the path goes)
+        let straight = comp.name == "twoportsplit" || (STRAIGHT.contains(&comp.name) && setting(cx, "instruments/rotated")? != "true");
         let upright = Placed { along: Point::new(1.0, 0.0), normal: Point::new(0.0, 1.0), angle: 0.0, mirror: false, invert: false, ..placed.clone() };
         let upright = Look { placed: &upright, ..look.clone() };
         // a wiggly fuse's poles: none (`bipoles/wfuse/dots=false`), or other shapes, nodes of their
@@ -397,7 +408,54 @@ pub fn k_place(cx: &mut Context, _v: Option<Tokens>) -> Result<(), Error> {
         let fuse_name = cx.macro_text("voltik@name");
         let spark = if comp.name.starts_with("sparkgap") { sparkgap_arrows(cx, &look)? } else { None };
         let oosized = matches!(comp.name, "ioosource" | "voosource") && (own_width.is_some() || own_height.is_some());
+        let customs = own_arrows(cx, comp)?;
+        let mut head = false;
         for (i, part) in comp.parts.iter().enumerate() {
+            if std::mem::take(&mut head) {
+                continue;
+            }
+            // the arrows of a look of their own, whole, with the tips of TikZ
+            if let Some(custom) = &customs {
+                let stroke = match part {
+                    Part::Thin(ops) => Some((ops, look.thin)),
+                    Part::Line(ops) => Some((ops, look.thick)),
+                    _ => None,
+                };
+                let tip = match comp.parts.get(i + 1) {
+                    Some(Part::Solid(h)) if h.iter().any(|o| matches!(o, Op::Curve(..))) => stroke.map(|(ops, _)| head_tip(ops, h)),
+                    _ => None,
+                };
+                if let (Some((ops, width)), Some(tip)) = (stroke, tip) {
+                    if let (true, Some(Part::Solid(h))) = (custom.own_head, comp.parts.get(i + 1)) {
+                        let color = custom.options.split(',').find(|o| o.starts_with("color")).unwrap_or("color=.");
+                        code.push_str(&format!(
+                            "\\draw[{{{}}}-,solid,{}line width={}cm]{};\\fill[{color}]{};",
+                            custom.start,
+                            custom.options,
+                            num(width * custom.thickness),
+                            look.path(ops),
+                            look.path(h)
+                        ));
+                    } else {
+                        code.push_str(&format!("\\draw[{}]{} -- {};", custom.draw(width), look.path(ops), look.at(tip)));
+                    }
+                    head = true;
+                    continue;
+                }
+                // (a GTO's gate has two lines and no heads)
+                if let (true, Part::Thin(ops)) = (comp.name.contains("gto"), part) {
+                    if matches!(ops[..], [Op::Move(x, y), Op::Line(x2, y2)] if (x - x2).abs() > 1e-9 && (y - y2).abs() > 1e-9) {
+                        code.push_str(&format!("\\draw[{}]{};", custom.draw(look.thin), look.path(ops)));
+                        continue;
+                    }
+                }
+                if let Part::Arrow { from, to, thin } = part {
+                    if comp.name.contains("light dependent") || comp.name == "photoresistor" {
+                        code.push_str(&format!("\\draw[{}] {} -- {};", custom.draw(if *thin { look.thin } else { look.modifier }), look.at(*from), look.at(*to)));
+                        continue;
+                    }
+                }
+            }
             if let (Some(color), true, false) = (&inner, boxed, scoped) {
                 code.push_str(&format!("\\begin{{scope}}[color={{{color}}}]"));
                 scoped = true;
@@ -463,13 +521,32 @@ pub fn k_place(cx: &mut Context, _v: Option<Tokens>) -> Result<(), Error> {
                     let fill = look.fill.clone().map_or(String::new(), |f| format!(",{f}"));
                     code.push_str(&format!("\\node[{pole_shape}{fill}] at {} {{}};", look.at(middle(ops))));
                 }
+                _ if comp.class == components::Class::Blocks => {
+                    let drawn = match block_part(cx, look, comp, *part)? {
+                        Some(drawn) => drawn,
+                        None => draw_part(cx, look, comp, *part),
+                    };
+                    code.push_str(&dashed_block(cx, *part, drawn)?);
+                }
                 _ => code.push_str(&draw_part(cx, look, comp, *part)),
+            }
+        }
+        // an ideal filter's scale, left of its grid
+        if comp.name.ends_with("|ideal filter") && setting(cx, "blocks/ideal numbers")? == "true" {
+            for (key, y) in [("low", -0.21), ("high", 0.21)] {
+                let text = setting(cx, &format!("ideal filter number {key}"))?;
+                code.push_str(&format!("\\node[anchor=east,inner sep=0pt,font=\\fontsize{{3.2}}{{3.9}}\\selectfont] at {} {{{text}}};", look.at([-0.25, y])));
             }
         }
         if scoped {
             code.push_str("\\end{scope}");
         }
         code.push_str(&windings(cx, &look, comp, scale));
+        if cx.macro_text("voltik@gt") == "1" {
+            let tip = -comp.width / 2.0;
+            let (long, half) = (BLOCK_ARROW[0] * look.unit / look.x, BLOCK_ARROW[1] * look.unit / look.y);
+            code.push_str(&format!("\\fill[black] {} -- {} -- {} -- cycle;", look.at([tip, 0.0]), look.at([tip - long, half]), look.at([tip - long, -half])));
+        }
         let name = cx.macro_text("voltik@name");
         if !name.is_empty() && !poles.is_empty() {
             let names: &[&str] = if poles.len() == 3 { &["in", "tap", "out"] } else { &["in", "out"] };
@@ -503,8 +580,11 @@ pub fn k_place(cx: &mut Context, _v: Option<Tokens>) -> Result<(), Error> {
         let low = if comp.name == "smeter" { 0.15 } else { 0.0 };
         // (a block puts it where it has room: left of a generator's sign, in an amplifier's triangle)
         let [dx, dy] = components::block_text(comp.name);
-        let at = placed.mid.minus(placed.normal.scale(low * y)).plus(placed.along.scale(dx * x)).plus(placed.normal.scale(dy * y));
-        let turn = if STRAIGHT.contains(&comp.name) && setting(cx, "instruments/rotated")? == "true" { format!(", rotate={}", num(placed.angle)) } else { String::new() };
+        let rotated = STRAIGHT.contains(&comp.name) && setting(cx, "instruments/rotated")? == "true";
+        // (a screen kept upright has its bottom down the page, whichever way the line goes)
+        let down = if STRAIGHT.contains(&comp.name) && !rotated { Point::new(0.0, 1.0) } else { placed.normal };
+        let at = placed.mid.minus(down.scale(low * y)).plus(placed.along.scale(dx * x)).plus(placed.normal.scale(dy * y));
+        let turn = if rotated { format!(", rotate={}", num(placed.angle)) } else { String::new() };
         path.push_str(&format!(" node[anchor=center{turn}] at {} {{{}}}", frame.coordinate(at), label::units(&t.to_text())));
     }
     // `t1=…`, `t2=…`: a split two-port's texts, in its halves or by its corners (`component text=border`)
@@ -514,7 +594,11 @@ pub fn k_place(cx: &mut Context, _v: Option<Tokens>) -> Result<(), Error> {
             continue;
         }
         let (hx, hy) = (comp.width / 2.0 * x, comp.height / 2.0 * y);
-        let point = |cx: f64, cy: f64| placed.mid.plus(placed.along.scale(cx)).plus(placed.normal.scale(cy));
+        // (upright, as its diagonal, its first text at its top left: at its bottom right on a path
+        // going left or up)
+        let back = placed.along.x < -1e-6 || placed.along.y > 1e-6;
+        let corner = if back { corner.scale(-1.0) } else { corner };
+        let point = |cx: f64, cy: f64| placed.mid.plus(Point::new(cx, cy));
         let (at, anchor) = if setting(cx, "component text")? == "border" {
             let d = distance(cx, "border text distance", 0.0703);
             let at = point(corner.x * (hx - d), corner.y * (hy - d));
@@ -548,10 +632,12 @@ pub fn k_place(cx: &mut Context, _v: Option<Tokens>) -> Result<(), Error> {
         }
         // `\ctikzgetdirection{R1}`: the way the component goes, in degrees
         cx.define_text(&format!("voltik@direction@{full}"), &num(frame.angle(placed.along).rem_euclid(360.0)), true);
-        // `vif queue add={macro}{a}{b}{c}`: `\macro{R1}{a}{b}{c}`, once the anchors are there
+        // `vif queue add={macro}{a}{b}{c}`: `\macro{R1}{a}{b}{c}`, at the end of the picture
+        // (or at `\ctikzprocessvif`), when the component's nodes are there too
         if !cx.macro_text("voltik@vq").trim().is_empty() {
-            cx.define_text("voltik@qn", &name, false);
-            cx.run(Tokens::text("\\voltik@vq"))?;
+            let calls = cx.macro_body("voltik@vq").to_text().replace("\\voltik@qn", &full);
+            let queue = cx.macro_body("voltik@queue").to_text() + &calls;
+            cx.define_tex("voltik@queue", &queue, true);
         }
     }
     path.push_str(&poles(cx, &frame, start, end, unit));
@@ -698,6 +784,87 @@ fn oosource_circles(look: &Look, width: f64, height: f64) -> String {
     code
 }
 
+/// How the arrows of a group are drawn when any of its settings is changed: their tips (`opto end
+/// arrow`, `switch start arrow`…) and, if the group has them, the color, dash and relative thickness
+/// of `{style}` (`opto arrows`, `switch arrows`).
+pub struct ArrowLook {
+    pub start: String,
+    pub end: String,
+    pub options: String,
+    pub thickness: f64,
+    /// Its end is the default tip: the head measured stays, in the arrow's color.
+    pub own_head: bool,
+}
+
+impl ArrowLook {
+    /// The options of a `\\draw` of such an arrow, of line width `width` cm.
+    pub fn draw(&self, width: f64) -> String {
+        format!("{{{}}}-{{{}}},solid,{}line width={}cm", self.start, self.end, self.options, num(width * self.thickness))
+    }
+}
+
+/// The look of `group`'s arrows (of default end tip `end`), `None` when nothing changes them.
+pub fn arrow_look(cx: &mut Context, group: &str, style: Option<&str>, end: &str) -> Result<Option<ArrowLook>, Error> {
+    let tip = |cx: &mut Context, which: &str| -> Result<Option<String>, Error> {
+        Ok(match setting(cx, &format!("{group} {which} arrow"))?.trim() {
+            "" | "default" => None,
+            t => Some(t.to_string()),
+        })
+    };
+    let (start_tip, end_tip) = (tip(cx, "start")?, tip(cx, "end")?);
+    let mut changed = start_tip.is_some() || end_tip.is_some();
+    let (mut options, mut thickness) = (String::new(), 1.0);
+    if let Some(style) = style {
+        thickness = number(cx, &format!("{style}/relative thickness"), 1.0);
+        changed |= (thickness - 1.0).abs() > 1e-9;
+        let color = setting(cx, &format!("{style}/color"))?;
+        if !matches!(color.trim(), "" | "default") {
+            changed = true;
+            options.push_str(&format!("color={{{}}},", color.trim()));
+        }
+        let dash = setting(cx, &format!("{style}/dash"))?;
+        if !matches!(dash.trim(), "" | "default" | "none") {
+            changed = true;
+            options.push_str(&format!("dash pattern={{{}}},", dash_pattern(&dash)));
+        }
+    }
+    let own_head = end_tip.is_none();
+    Ok(changed.then(|| ArrowLook { start: start_tip.unwrap_or_default(), end: if own_head { end.to_string() } else { end_tip.unwrap_or_default() }, options, thickness, own_head }))
+}
+
+/// Where the head `head` of a stroke `stroke` points: of its corners, the farthest from the stroke's end.
+pub fn head_tip(stroke: &[Op], head: &[Op]) -> [f64; 2] {
+    let last = |ops: &[Op]| {
+        ops.iter().rev().find_map(|o| match *o {
+            Op::Move(x, y) | Op::Line(x, y) => Some([x, y]),
+            Op::Curve(_, _, c) => Some(c),
+            Op::Close => None,
+        })
+    };
+    let from = last(stroke).unwrap_or([0.0, 0.0]);
+    let corners = head.iter().filter_map(|o| match *o {
+        Op::Move(x, y) | Op::Line(x, y) => Some([x, y]),
+        Op::Curve(_, _, c) => Some(c),
+        Op::Close => None,
+    });
+    corners.max_by(|a, b| (a[0] - from[0]).hypot(a[1] - from[1]).total_cmp(&(b[0] - from[0]).hypot(b[1] - from[1]))).unwrap_or(from)
+}
+
+/// The arrows of a component's look that are not its own: the group of the `component`'s light or
+/// switching arrows, and its gate's.
+fn own_arrows(cx: &mut Context, comp: &components::Component) -> Result<Option<ArrowLook>, Error> {
+    let name = comp.name;
+    if name.contains("gto") {
+        arrow_look(cx, "gto gate", None, "")
+    } else if comp.class == components::Class::Switches {
+        arrow_look(cx, "switch", Some("switch arrows"), "latexslim")
+    } else if name.contains("led") || name.contains("photo") || name.contains("laser") || name.contains("light dependent") || name == "solar" {
+        arrow_look(cx, "opto", Some("opto arrows"), "latexslim")
+    } else {
+        Ok(None)
+    }
+}
+
 /// A spark gap's two arrows, from its ends to `sparkgap/gap` (of its half width) apart, with
 /// `sparkgap end arrow` tips; `None` for the default ones, drawn as measured.
 fn sparkgap_arrows(cx: &mut Context, look: &Look) -> Result<Option<String>, Error> {
@@ -814,6 +981,186 @@ impl Look<'_> {
     }
 }
 
+/// A dash pattern as `\\pgfsetdash` has it (`{{1pt}{2pt}}`), as the value of `dash pattern`.
+fn dash_pattern(spec: &str) -> String {
+    let lengths: Vec<&str> = spec.split(['{', '}']).map(str::trim).filter(|p| !p.is_empty()).collect();
+    lengths.chunks(2).map(|c| format!("on {} off {}", c[0], c.get(1).unwrap_or(&c[0]))).collect::<Vec<_>>().join(" ")
+}
+
+/// A sharp corner for each rounded one of a plot, or rounded `k` times as much.
+fn rounded_plot(ops: &[Op], k: f64) -> Vec<Op> {
+    let mut out: Vec<Op> = Vec::new();
+    let mut last = [0.0, 0.0];
+    for op in ops {
+        match *op {
+            Op::Move(x, y) | Op::Line(x, y) => {
+                out.push(*op);
+                last = [x, y];
+            }
+            Op::Curve(a, b, c) => {
+                // where the lines into and out of the corner meet
+                let (d1, d2) = ([a[0] - last[0], a[1] - last[1]], [c[0] - b[0], c[1] - b[1]]);
+                let det = d1[0] * d2[1] - d1[1] * d2[0];
+                let t = if det.abs() < 1e-12 { 0.5 } else { ((c[0] - last[0]) * d2[1] - (c[1] - last[1]) * d2[0]) / det };
+                let corner = [last[0] + t * d1[0], last[1] + t * d1[1]];
+                let near = |p: [f64; 2]| [corner[0] + k * (p[0] - corner[0]), corner[1] + k * (p[1] - corner[1])];
+                if k < 1e-9 {
+                    out.push(Op::Line(corner[0], corner[1]));
+                } else {
+                    let start = near(last);
+                    if let Some(Op::Line(x, y) | Op::Move(x, y)) = out.last_mut() {
+                        (*x, *y) = (start[0], start[1]);
+                    }
+                    out.push(Op::Curve(near(a), near(b), near(c)));
+                }
+                last = c;
+            }
+            Op::Close => out.push(Op::Close),
+        }
+    }
+    out
+}
+
+/// A block's part when its settings change it: a filter's grid and plot, and the lower line of a
+/// DC symbol, cut in `blocks dc segments` with gaps as long.
+fn block_part(cx: &mut Context, look: &Look, comp: &components::Component, part: Part) -> Result<Option<String>, Error> {
+    let stroke = |width: f64, extra: &str| format!("\\draw[-,solid,{extra}miter limit=10,line width={}cm]", num(width));
+    let plotted = comp.parts.iter().any(|p| matches!(p, Part::Styled(_, style, _) if style.starts_with("draw opacity")));
+    match part {
+        Part::Styled(_, style, ops) if style.starts_with("draw opacity") => {
+            let opacity = number(cx, "blocks/filter grid/opacity", 0.3);
+            if opacity <= 0.0 {
+                return Ok(Some(String::new()));
+            }
+            let mut extra = format!("draw opacity={opacity},");
+            match setting(cx, "blocks/filter grid/color")?.trim() {
+                "" | "default" => {}
+                c => extra.push_str(&format!("color={{{c}}},")),
+            }
+            match setting(cx, "blocks/filter grid/dash")?.trim() {
+                "none" | "default" => {}
+                d => extra.push_str(&format!("dash pattern={{{}}},", dash_pattern(d))),
+            }
+            let width = number(cx, "blocks/filter grid/thickness", 0.5) * look.thin;
+            Ok(Some(format!("{}{};", stroke(width, &format!("fill=none,{extra}")), look.path(ops))))
+        }
+        Part::Line(ops) if plotted && ops.len() != 5 => {
+            let width = number(cx, "blocks/filter plot/relative thickness", 2.0) * look.thin;
+            let k = number(cx, "blocks/filter plot/rounding", 0.15) / 0.15;
+            let plot = if (k - 1.0).abs() < 1e-9 { ops.to_vec() } else { rounded_plot(ops, k) };
+            Ok(Some(format!("{}{};", stroke(width, "fill=none,"), look.path(&plot))))
+        }
+        Part::Thin(ops) if matches!(comp.name, "sdcdc" | "sacdc" | "sdcac") => {
+            let [Op::Move(a, y), Op::Line(b, _)] = *ops else { return Ok(None) };
+            let side = if (y - 0.1313).abs() < 1e-3 {
+                "in"
+            } else if (y + 0.2187).abs() < 1e-3 {
+                "out"
+            } else {
+                return Ok(None);
+            };
+            let all = number(cx, "blocks dc segments", 1.0);
+            let count = optional(cx, &format!("blocks dc {side} segments")).unwrap_or(all).round().max(1.0) as usize;
+            if count == 1 {
+                return Ok(None);
+            }
+            let step = (b - a) / (2 * count - 1) as f64;
+            let pieces: Vec<Op> = (0..count).flat_map(|i| [Op::Move(a + 2.0 * i as f64 * step, y), Op::Line(a + (2 * i + 1) as f64 * step, y)]).collect();
+            Ok(Some(format!("{}{};", stroke(look.thin, "fill=none,"), look.path(&pieces))))
+        }
+        _ => Ok(None),
+    }
+}
+
+/// A block on a dashed path: its box and diagonal dashed by `dashed blocks pattern`, and what is
+/// inside too with `inner blocks dashed`.
+fn dashed_block(cx: &mut Context, part: Part, drawn: String) -> Result<String, Error> {
+    if !cx.is_dashed() {
+        return Ok(drawn);
+    }
+    let outer = match part {
+        Part::Line(ops) => ops.len() == 5 && matches!(ops[4], Op::Close),
+        Part::Thin(ops) => matches!(ops[..], [Op::Move(x, _), Op::Line(x2, _)] if (x + 0.35).abs() < 1e-3 && (x2 - 0.35).abs() < 1e-3),
+        _ => false,
+    };
+    if !outer && setting(cx, "blocks/inner dashed")? != "true" {
+        return Ok(drawn);
+    }
+    let pattern = dash_pattern(&setting(cx, "dashed blocks pattern")?);
+    Ok(drawn.replacen("-,solid,", &format!("-,dash pattern={{{pattern}}},"), 1))
+}
+
+/// Whether a part goes around the middle of a source of radius 0.3: its circle.
+fn is_ring(ops: &[Op]) -> bool {
+    ops.iter().all(|o| match *o {
+        Op::Move(x, y) | Op::Line(x, y) | Op::Curve(_, _, [x, y]) => (x.hypot(y) - 0.3).abs() < 0.01,
+        Op::Close => true,
+    })
+}
+
+/// A current source's circle with its gaps, `bipoles/…/angle` from its axis, when it is not as measured.
+fn open_circle(cx: &mut Context, comp: &components::Component) -> Option<Vec<Op>> {
+    let (key, default) = match comp.name {
+        "dcisource" => ("bipoles/dcisource/angle", 80.0),
+        "sinusoidal current source" => ("bipoles/isourcesin/angle", 90.0),
+        _ => return None,
+    };
+    let angle: f64 = number(cx, key, default);
+    if (angle - default).abs() < 1e-9 {
+        return None;
+    }
+    let r = 0.3;
+    let mut ops = Vec::new();
+    for (from, to) in [(angle, -angle), (180.0 - angle, 180.0 + angle)] {
+        let pieces = (f64::abs(to - from) / 45.0).ceil().max(1.0);
+        let step = ((to - from) / pieces).to_radians();
+        let k = 4.0 / 3.0 * (step / 4.0).tan() * r;
+        for i in 0..pieces as usize {
+            let a = from.to_radians() + i as f64 * step;
+            let (p, q) = ([r * a.cos(), r * a.sin()], [r * (a + step).cos(), r * (a + step).sin()]);
+            if i == 0 {
+                ops.push(Op::Move(p[0], p[1]));
+            }
+            ops.push(Op::Curve([p[0] - k * a.sin(), p[1] + k * a.cos()], [q[0] + k * (a + step).sin(), q[1] - k * (a + step).cos()], q));
+        }
+    }
+    Some(ops)
+}
+
+/// A square meter's index, as measured: the center it turns around, the degrees of each unit of
+/// its `index position` and the key.
+fn index_center(name: &str) -> Option<([f64; 2], f64, &'static str)> {
+    match name {
+        "smeter" => Some(([0.0, -0.5385], 0.3, "bipoles/smeter/index position")),
+        "qiprobe" | "qvprobe" | "qpprobe" => Some(([0.0, -0.679], 0.26, "bipoles/qmeter/index position")),
+        _ => None,
+    }
+}
+
+/// Half the distance between an American voltage source's signs at `margin=1`, as measured.
+const SIGN_DISTANCE: f64 = 0.18;
+
+/// An American voltage source's sign in `text` when its look changes: its text, how far from the
+/// middle it goes and its rotation; `None` to draw it as measured.
+fn polarity_sign(cx: &mut Context, comp: &components::Component, text: &str) -> Option<(String, f64, String)> {
+    let base = match comp.name {
+        "american voltage source" => "bipoles/vsourceam",
+        "american controlled voltage source" => "bipoles/cvsourceam",
+        _ => return None,
+    };
+    let sign = match text {
+        "+" => "inner plus",
+        "$-$" => "inner minus",
+        _ => return None,
+    };
+    let inner = setting(cx, &format!("{base}/{sign}")).unwrap_or_default();
+    let rotation = setting(cx, "sources/symbol/sign rotation").unwrap_or_default();
+    let margin = number(cx, &format!("{base}/margin"), 0.7);
+    let plain = inner.trim().is_empty() && matches!(rotation.trim(), "" | "default") && (margin - 0.7).abs() < 1e-9;
+    let shown = if inner.trim().is_empty() { text.to_string() } else { inner };
+    (!plain).then_some((shown, SIGN_DISTANCE * margin, rotation))
+}
+
 /// The TeX that draws one part of a component.
 fn draw_part(cx: &mut Context, look: &Look, comp: &components::Component, part: Part) -> String {
     let stroke = |width: f64, extra: &str| format!("\\draw[-,solid,{extra}miter limit=10,line width={}cm]", num(width));
@@ -826,7 +1173,50 @@ fn draw_part(cx: &mut Context, look: &Look, comp: &components::Component, part: 
             let fill = look.fill.clone().unwrap_or_else(|| "fill=none".into());
             format!("{}{};", stroke(look.thick, &format!("{fill},")), look.path(ops))
         }
+        // a current source's circle broken by `bipoles/…/angle`
+        Part::Line(ops) if is_ring(ops) && open_circle(cx, comp).is_some() => {
+            let ops = open_circle(cx, comp).unwrap_or_default();
+            format!("{}{};", stroke(look.thick, "fill=none,"), look.path(&ops))
+        }
         Part::Line(ops) => format!("{}{};", stroke(look.thick, "fill=none,"), look.path(ops)),
+        // a meter's index at `index position` of its scale
+        Part::Thin(ops) if index_center(comp.name).is_some() && matches!(ops[ops.len().saturating_sub(2)..], [Op::Move(..), Op::Line(..)]) && ops.len() > 2 => {
+            let (center, per_unit, key) = index_center(comp.name).unwrap_or(([0.0, 0.0], 0.0, ""));
+            let turn = ((number(cx, key, 80.0) - 80.0) * per_unit).to_radians();
+            let (sin, cos) = (-turn).sin_cos();
+            let round = |x: f64, y: f64| {
+                let (dx, dy) = (x - center[0], y - center[1]);
+                (center[0] + dx * cos - dy * sin, center[1] + dx * sin + dy * cos)
+            };
+            let mut moved = ops.to_vec();
+            let last = moved.len() - 2;
+            for op in &mut moved[last..] {
+                *op = match *op {
+                    Op::Move(x, y) => {
+                        let (x, y) = round(x, y);
+                        Op::Move(x, y)
+                    }
+                    Op::Line(x, y) => {
+                        let (x, y) = round(x, y);
+                        Op::Line(x, y)
+                    }
+                    other => other,
+                };
+            }
+            format!("{}{};", stroke(look.thin, "fill=none,"), look.path(&moved))
+        }
+        Part::ChokeCore(ops) => {
+            let width = look.thick * number(cx, "bipoles/cutechoke/cthick", 1.0);
+            let line = format!("{}{};", stroke(width, "fill=none,"), look.path(ops));
+            if number(cx, "bipoles/cutechoke/lines", 1.0) < 2.0 {
+                line
+            } else {
+                // (the second one 0.0627 cm, measured, above the first)
+                let way = look.canvas([0.0, 1.0]).minus(look.canvas([0.0, 0.0]));
+                let up = look.frame.vector(way.scale(CHOKE_LINES / way.norm().max(1e-9)));
+                format!("{line}\\begin{{scope}}[shift={{{up}}}]{line}\\end{{scope}}")
+            }
+        }
         Part::Modifier(ops) => format!("{}{};", stroke(look.modifier, "fill=none,"), look.path(ops)),
         Part::Stroke(k, ops) => format!("{}{};", stroke(k / 2.0 * look.thick, "fill=none,"), look.path(ops)),
         Part::Faint(k, ops) => format!("{}{};", stroke(k / 2.0 * look.thick, "fill=none,draw opacity=0.5,"), look.path(ops)),
@@ -836,6 +1226,23 @@ fn draw_part(cx: &mut Context, look: &Look, comp: &components::Component, part: 
             match components::WAVEFORMS.iter().find(|(name, _)| *name == wave.trim()) {
                 Some((_, [])) => String::new(),
                 Some((_, ops)) => format!("{}{};", stroke(look.thick, "fill=none,"), look.path(ops)),
+                // one of the user's (`bipoles/oscope/waveform/mywave/.code`), of its box from -1cm to 1cm
+                None if cx
+                    .expand(Tokens::text(&format!("\\ifcsname pgfk@/tikz/circuitikz/bipoles/oscope/waveform/{}/.@cmd\\endcsname1\\fi", wave.trim())))
+                    .unwrap_or_default()
+                    .trim()
+                    == "1" =>
+                {
+                    let rotate = if setting(cx, "instruments/rotated").unwrap_or_default() == "true" { look.placed.angle } else { 0.0 };
+                    format!(
+                        "\\begin{{scope}}[shift={{{}}},rotate={rotate},xscale={},yscale={},line width={}cm]\\pgfkeys{{/tikz/circuitikz/bipoles/oscope/waveform/{}}}\\end{{scope}}",
+                        look.at([0.0, 0.0]),
+                        num(0.3 * look.x),
+                        num(0.3 * look.y),
+                        num(look.thick),
+                        wave.trim()
+                    )
+                }
                 None => {
                     cx.warn(format!("voltik: oscilloscope waveform {} not drawn yet; drawn as ramps", wave.trim()));
                     format!("{}{};", stroke(look.thick, "fill=none,"), look.path(components::WAVEFORMS[0].1))
@@ -864,9 +1271,9 @@ fn draw_part(cx: &mut Context, look: &Look, comp: &components::Component, part: 
                 "false" if comp.class != components::Class::Inductors => ([from[0], -from[1]], [to[0], -to[1]]),
                 _ => (from, to),
             };
-            match setting(cx, "tunable end arrow").unwrap_or_default().trim() {
-                "" | "default" => arrow(look, from, to, look.modifier),
-                tip => format!("\\draw[-{{{tip}}},solid,line width={}cm] {} -- {};", num(look.modifier), look.at(from), look.at(to)),
+            match arrow_look(cx, "tunable", None, "latexslim").unwrap_or(None) {
+                None => arrow(look, from, to, look.modifier),
+                Some(tips) => format!("\\draw[{}] {} -- {};", tips.draw(look.modifier), look.at(from), look.at(to)),
             }
         }
         Part::Arrow { from, to, thin } => arrow(look, from, to, if thin { look.thin } else { look.modifier }),
@@ -874,7 +1281,11 @@ fn draw_part(cx: &mut Context, look: &Look, comp: &components::Component, part: 
             let pos = number(cx, "wiper pos", 0.5);
             let x = (pos - 0.5) * comp.width;
             let top = comp.height / 2.0;
-            arrow(look, [x, top + 0.25], [x, top], if thin { look.thin } else { look.modifier })
+            let width = if thin { look.thin } else { look.modifier };
+            match arrow_look(cx, "wiper", None, "latexslim").unwrap_or(None) {
+                None => arrow(look, [x, top + 0.25], [x, top], width),
+                Some(tips) => format!("\\draw[{}] {} -- {};", tips.draw(width), look.at([x, top + 0.25]), look.at([x, top])),
+            }
         }
         Part::ZigZag { half, high } => {
             let count = number(cx, "resistors/zigs", 3.0).round().max(1.0) as usize;
@@ -887,6 +1298,21 @@ fn draw_part(cx: &mut Context, look: &Look, comp: &components::Component, part: 
             let (half, h) = (comp.width * look.x / 2.0 + look.thick / 2.0, comp.height * look.y / 2.0);
             let ops = if part == Part::Coil { components::coil(half, h, count) } else { components::arches(half, h, count) };
             format!("{}{};", stroke(look.thick, "line join=bevel,fill=none,"), look.path_cm(&ops))
+        }
+        // an American voltage source's signs, of other texts, margin or rotation
+        Part::Text { text, .. } if polarity_sign(cx, comp, text).is_some() => {
+            let (sign, distance, rotation) = polarity_sign(cx, comp, text).unwrap_or_default();
+            let side = if text == "+" { 1.0 } else { -1.0 };
+            let angle = look.placed.angle.rem_euclid(180.0);
+            let leaning = angle.min(180.0 - angle);
+            let rotate = match rotation.trim() {
+                "" | "default" => look.placed.angle + 90.0,
+                "straight" => 0.0,
+                "auto" if leaning < 45.0 => look.placed.angle,
+                "auto" => look.placed.angle + 90.0,
+                n => look.placed.angle + cx.number(Tokens::text(n)).unwrap_or(90.0),
+            };
+            format!("\\node[anchor=center,inner sep=0pt,rotate={rotate}] at {} {{{sign}}};", look.at([side * distance, 0.0]))
         }
         Part::Text { at, shift, size, text, turn } => {
             let at = [at[0] + shift[0] * look.unit / look.x.max(1e-9), at[1] + shift[1] * look.unit / look.y.max(1e-9)];
@@ -987,13 +1413,7 @@ fn anchors(cx: &mut Context, look: &Look, comp: &components::Component, name: &s
             Part::Arches => Some(optional(cx, "inductors/coils").unwrap_or(4.0).round()),
             _ => None,
         });
-        let midtap = match coils {
-            Some(n) if n as i64 % 2 == 1 => h,
-            Some(_) if comp.parts.contains(&Part::Coil) => -comp.bottom,
-            Some(_) => 0.0,
-            None => comp.top,
-        };
-        points.push(("midtap", [0.0, midtap]));
+        points.push(("midtap", [0.0, midtap(comp, coils, h)]));
     }
     // a node of its own, as in CircuiTikZ: `(R1)` is its center, and a name prefix is its
     let center = look.canvas([0.0, 0.0]);
@@ -1027,14 +1447,46 @@ fn arrow(look: &Look, from: [f64; 2], to: [f64; 2], width: f64) -> String {
     s
 }
 
+/// Where an inductor's tap is, across it: over a coil's middle turn if it has one, else between two.
+fn midtap(comp: &crate::components::Component, coils: Option<f64>, h: f64) -> f64 {
+    match coils {
+        Some(n) if n as i64 % 2 == 1 => h,
+        Some(_) if comp.parts.contains(&Part::Coil) => -comp.bottom,
+        Some(_) => 0.0,
+        None => comp.top,
+    }
+}
+
+/// The tap of a transformer's coil, of `kind|coils` (`cute|6`, no number for the default).
+pub fn coil_midtap(spec: &str) -> f64 {
+    let (kind, coils) = spec.split_once('|').unwrap_or((spec, ""));
+    let Some(comp) = crate::components::find(&format!("{kind} inductor")) else { return 0.0 };
+    let coils = comp.parts.iter().find_map(|p| match p {
+        Part::Coil => Some(coils.trim().parse().unwrap_or(5.0)),
+        Part::Arches => Some(coils.trim().parse().unwrap_or(4.0)),
+        _ => None,
+    });
+    midtap(comp, coils, comp.height / 2.0)
+}
+
+/// The arrow into a block (`to[amp, >]`): its length and half its width, in `bipoles/length`, a
+/// plain triangle with its tip on the block.
+const BLOCK_ARROW: [f64; 2] = [0.1057, 0.0498];
+/// How far a cute choke's second core line is from the first, in cm.
+const CHOKE_LINES: f64 = 0.0627;
+
 /// The poles at the ends: circles, diamonds or squares `nodes width` (of `bipoles/length`) across
 /// the half, drawn with the wire's stroke and filled with its color, or the open ones (`ocirc`) with
 /// the component's fill (white without one).
 fn poles(cx: &mut Context, frame: &Frame, start: Point, end: Point, unit: f64) -> String {
+    // (with `transform shape` the node scales by itself)
+    let unit = if cx.macro_text("voltik@ts") == "1" { unit / cx.transform().factor() } else { unit };
     let half = number(cx, "nodes width", 0.04) * unit;
     // the filled poles take the stroke's color; the open ones the component's fill, or white
     let closed = "color=.,fill";
-    let open = fill(cx).unwrap_or_else(|| "fill=white".into());
+    let open_fill = setting(cx, "open poles fill").unwrap_or_default();
+    let opacity = number(cx, "poles/open fill opacity", 1.0);
+    let open = format!("{},fill opacity={}", fill(cx).unwrap_or_else(|| format!("fill={{{}}}", open_fill.trim())), num(opacity));
     let mut s = String::new();
     for (which, at) in [("voltik@ps", start), ("voltik@pe", end)] {
         let spec = cx.macro_text(which);
@@ -1047,8 +1499,10 @@ fn poles(cx: &mut Context, frame: &Frame, start: Point, end: Point, unit: f64) -
             "diamondpole" => ("rectangle,rotate=45", 2.0 * half, closed),
             "odiamondpole" => ("rectangle,rotate=45", 2.0 * half, open.as_str()),
             "" | "none" => continue,
+            // a style of the user's, or a node's shape: a node of it
             other => {
-                cx.warn(format!("voltik: pole {other} is not drawn yet"));
+                let options = if options.is_empty() { String::new() } else { format!(",{options}") };
+                s.push_str(&format!(" node[{other},draw,solid,inner sep=0pt,outer sep=0pt,minimum size={}cm{options}] at {} {{}}", num(2.0 * half), frame.coordinate(at)));
                 continue;
             }
         };
