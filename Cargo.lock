@@ -264,9 +264,9 @@ checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
 
 [[package]]
 name = "mathra"
-version = "1.9.1"
+version = "1.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81abbe5515d2d1a5c889202041eb2863e3250c08a7c9ec07b261d4604c8a4495"
+checksum = "a31712212c99d4d702a2454f2cf014e8bdb55cc3ed196dba64775760f4a79631"
 dependencies = [
  "roxmltree",
  "serde",
@@ -645,9 +645,9 @@ checksum = "adb6935a6f5c20170eeceb1a3835a49e12e19d792f6dd344ccc76a985ca5a6ca"
 
 [[package]]
 name = "tikra"
-version = "1.8.0"
+version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4476d45b842bb40b9a199e937f58c36c1a117976013373cf20b64a227bdb0fe4"
+checksum = "c0a1f3ec14f9349fd3b1e955d686dbcc684a7c9f1c6cb8823da11fba7e2fad73"
 dependencies = [
  "mathra",
  "resvg",
