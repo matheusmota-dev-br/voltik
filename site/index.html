@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,12 +8,13 @@
 <link rel="icon" href="pkg/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="pkg/favicon-32.png" type="image/png" sizes="32x32">
 <link rel="apple-touch-icon" href="pkg/apple-touch-icon.png">
-<meta name="theme-color" content="#fbf9f4">
+<meta name="theme-color" content="#0B4F3A">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@400;500;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <script src="theme.js"></script>
+<script src="code.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -32,8 +33,9 @@
 
   <header class="hero">
     <div class="logo" id="logo" role="img" aria-label="voltik: CircuiTikZ to SVG and PNG, no TeX install"></div>
+    <figure class="chua" id="chua" aria-label="Chua's circuit and its oscilloscope, drawn by voltik"></figure>
     <p class="tagline">CircuiTikZ circuits to <em>SVG</em> and <em>PNG</em>.<br>No TeX install. JavaScript, Python, Rust or the terminal.</p>
-    <p class="sub">voltik is a library of <a href="https://matheusmota-dev-br.github.io/tikra/">tikra</a>: tikra draws the TikZ, voltik adds the CircuiTikZ components, and <a href="https://matheusmota-dev-br.github.io/mathra/">mathra</a> typesets the math in labels. The banner above was drawn just now, in your browser, from <a href="https://github.com/matheusmota-dev-br/voltik/blob/main/docs/banner.tex"><code>docs/banner.tex</code></a>.</p>
+    <p class="sub">voltik is a library of <a href="https://matheusmota-dev-br.github.io/tikra/">tikra</a>: tikra draws the TikZ, voltik adds the CircuiTikZ components, and <a href="https://matheusmota-dev-br.github.io/mathra/">mathra</a> typesets the math in labels. Above is Chua's circuit of 1983, a handful of parts that behave chaotically, drawn by voltik in your browser on every move with the values of a real build. Turn R down and the trace goes from a still point through a loop to the double scroll; drag the screen to turn it.</p>
     <div class="cta">
       <a class="button solid" href="#playground">Try it now</a>
       <a class="button" href="gallery.html">See the gallery</a>
@@ -142,7 +144,7 @@
         <div class="platform-head"><h3>JavaScript and TypeScript</h3><a class="pill" href="https://github.com/matheusmota-dev-br/voltik/tree/main/npm">from GitHub</a></div>
         <p>Node, bundlers (Vite, webpack, esbuild) and browsers. Types included. Building it needs Rust with the <code>wasm32-unknown-unknown</code> target and <code>wasm-bindgen-cli</code>.</p>
         <code class="cmd">git clone https://github.com/matheusmota-dev-br/voltik &amp;&amp; voltik/npm/build.sh &amp;&amp; npm install ./voltik/npm/pkg</code>
-<pre>import { init, circuitikzToSvg, render, png } from "@mathlabs/voltik";
+<pre data-lang="js">import { init, circuitikzToSvg, render, png } from "@mathlabs/voltik";
 
 await init();  // browsers and bundlers; Node needs nothing
 const svg = circuitikzToSvg(String.raw`\begin{circuitikz}\draw (0,0) to[R=$R$] (2,0);\end{circuitikz}`);
@@ -153,7 +155,7 @@ const bytes = png(svg, { dpi: 300 });</pre>
         <div class="platform-head"><h3>Python</h3><a class="pill" href="https://github.com/matheusmota-dev-br/voltik/tree/main/crates/python">from GitHub</a></div>
         <p>Python 3.9 and later. Types included. pip builds the wheel, so it needs Rust.</p>
         <code class="cmd">pip install "git+https://github.com/matheusmota-dev-br/voltik#subdirectory=crates/python"</code>
-<pre>import voltik
+<pre data-lang="py">import voltik
 
 svg = voltik.circuitikz_to_svg(r"\begin{circuitikz}\draw (0,0) to[R=$R$] (2,0);\end{circuitikz}")
 open("circuit.png", "wb").write(voltik.png(svg, dpi=300))
@@ -164,7 +166,7 @@ voltik.render(code)["description"]  # the figure in words</pre>
         <div class="platform-head"><h3>Terminal</h3><a class="pill" href="https://github.com/matheusmota-dev-br/voltik/tree/main/crates/cli">from GitHub</a></div>
         <p>One binary: a <code>.tex</code> file or stdin to SVG or PNG.</p>
         <code class="cmd">cargo install --git https://github.com/matheusmota-dev-br/voltik voltik-cli</code>
-<pre>voltik circuit.tex -o circuit.svg
+<pre data-lang="sh">voltik circuit.tex -o circuit.svg
 voltik circuit.tex -o circuit.png --dpi 300
 voltik circuit.tex -o circuit.png --transparent
 cat circuit.tex | voltik --warnings
@@ -174,7 +176,7 @@ voltik circuit.tex --describe</pre>
         <div class="platform-head"><h3>Rust</h3><a class="pill" href="https://github.com/matheusmota-dev-br/voltik/tree/main/crates/core">from GitHub</a></div>
         <p>The core itself, for servers and native apps; its <code>LIBRARY</code> can also be given to tikra next to other libraries. API docs with <code>cargo doc --open</code>.</p>
         <code class="cmd">cargo add voltik --git https://github.com/matheusmota-dev-br/voltik</code>
-<pre>let out = voltik::convert(code)?;
+<pre data-lang="rust">let out = voltik::convert(code)?;
 std::fs::write("circuit.svg", &amp;out.svg)?;
 std::fs::write("circuit.png", voltik::png(&amp;out.svg, 300.0, true)?)?;</pre>
       </div>
@@ -202,6 +204,7 @@ std::fs::write("circuit.png", voltik::png(&amp;out.svg, 300.0, true)?)?;</pre>
 <script src="pkg/corpus.js"></script>
 <script src="animate.js"></script>
 <script src="params.js"></script>
+<script src="chua.js"></script>
 <script>
 (function () {
   "use strict";
@@ -375,7 +378,7 @@ std::fs::write("circuit.png", voltik::png(&amp;out.svg, 300.0, true)?)?;</pre>
       $("words-locale").onchange = (e) => { locale = e.target.value; update(); };
       return;
     }
-    panel.innerHTML = `<pre>${escape(last.svg)}</pre>`;
+    panel.innerHTML = `<pre>${colorCode(last.svg, "xml")}</pre>`;
   }
 
   function load(src) {
@@ -400,6 +403,7 @@ std::fs::write("circuit.png", voltik::png(&amp;out.svg, 300.0, true)?)?;</pre>
   function drawStatic() {
     $("logo").innerHTML = convert(VOLTIK_BANNER, true).svg;
     $("logo").querySelector("svg")?.setAttribute("aria-hidden", "true");
+    voltikChua.mount($("chua"), (code) => convert(code));
     for (const el of document.querySelectorAll("[data-tikz]")) el.innerHTML = convert(el.dataset.tikz).svg;
     const tiles = $("tiles");
     let total = 0;
@@ -432,7 +436,7 @@ std::fs::write("circuit.png", voltik::png(&amp;out.svg, 300.0, true)?)?;</pre>
     ["Rust", "cargo add voltik --git https://github.com/matheusmota-dev-br/voltik"],
   ];
   function showInstall(i) {
-    $("install-cmd").textContent = INSTALL[i][1];
+    $("install-cmd").innerHTML = colorCode(INSTALL[i][1], "sh");
     [...document.querySelectorAll(".installer-tabs button")].forEach((b, j) => b.setAttribute("aria-selected", String(i === j)));
   }
   INSTALL.forEach(([label], i) => {
