@@ -1,8 +1,21 @@
 # Changelog
 
-What changed in each release of voltik: the crates `voltik` and `voltik-cli`, `@mathlabs/voltik` on npm and `voltik` on PyPI, which are released together. The local site (`site/build.sh`, then open `site/changelog.html`) shows the same, with the circuits drawn live.
+What changed in each release of voltik: the crates `voltik` and `voltik-cli`, `@mathlabs/voltik` on npm and `voltik` on PyPI, which are released together. The [site](https://matheusmota-dev-br.github.io/voltik/changelog.html) shows the same, with the circuits drawn live.
 
 Each release has a headline (the line under its title), what changed, and the figures of [`corpus/`](corpus) that show it (`Figures:`), drawn by the site with today's voltik. `scripts/release.sh` will not release a version without its section here, and makes the GitHub release from it.
+
+## 1.0.0 - 2026-10-31
+
+The first stable version: the CircuiTikZ manual, with 1053 of 1055 figures matching TeX, on crates.io, npm and PyPI.
+
+- voltik comes to PyPI with this version.
+- What the packages draw does not change from 0.16.0.
+- The site, banner and icon take an identity of their own: gold on green solder mask, with a white board as the light theme.
+- The top of the site is Chua's circuit beside its oscilloscope, drawn by voltik on every move: turning R down takes the trace from a still point through a loop to the double scroll.
+- Code blocks are colored, the gallery's sources and the SVG tab included.
+- A 60-second demo video in the README and on the site.
+
+Figures: `h-bridge`, `instrumentation-amplifier`
 
 ## 0.16.0 - 2026-10-30
 
